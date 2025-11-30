@@ -1,5 +1,7 @@
 FROM ubuntu:20.04
 
+ARG MAKEMKV_VERSION=1.18.2
+
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -37,8 +39,15 @@ RUN apt-get update && \
       libssl1.1 \
       zlib1g && \
     mkdir -p /tmp/makemkv && \
-    curl -fsSL -o /tmp/makemkv/makemkv-oss_1.18.2-1_amd64.deb https://www.makemkv.com/download/makemkv-oss_1.18.2-1_amd64.deb && \
-    curl -fsSL -o /tmp/makemkv/makemkv-bin_1.18.2-1_amd64.deb https://www.makemkv.com/download/makemkv-bin_1.18.2-1_amd64.deb && \
+    /bin/sh -c 'set -e; \
+      ver="$MAKEMKV_VERSION"; \
+      base_url=https://www.makemkv.com/download; \
+      fetch() { curl -fsSL -o "/tmp/makemkv/$1" "$base_url/$1"; }; \
+      if ! fetch "makemkv-oss_${ver}-1_amd64.deb" || ! fetch "makemkv-bin_${ver}-1_amd64.deb"; then \
+        echo "Primary MakeMKV version ${ver} unavailable, falling back to 1.17.7"; \
+        ver=1.17.7; \
+        fetch "makemkv-oss_${ver}-1_amd64.deb" && fetch "makemkv-bin_${ver}-1_amd64.deb"; \
+      fi' && \
     apt-get install -y --no-install-recommends /tmp/makemkv/*.deb && \
     rm -rf /tmp/makemkv && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
