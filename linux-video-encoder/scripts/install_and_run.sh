@@ -94,10 +94,27 @@ install_nvidia_toolkit() {
     $SUDO apt-get install -y curl gnupg
     distribution=$(. /etc/os-release; echo "$ID$VERSION_ID")
 
-    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | $SUDO gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-    curl -s -L "https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list" | \
-      sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    # Install key without prompting for overwrite
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | $SUDO gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+    # Download repo list to a temp file, validate it's not HTML, then install
+    tmp_list="$(mktemp)"
+    curl -s -L "https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list" >"$tmp_list"
+    if grep -qi "<!doctype" "$tmp_list"; then
+      log "Failed to download NVIDIA repo list (HTML detected). Check network/access."
+      rm -f "$tmp_list"
+      exit 1
+    fi
+    if ! grep -q "^deb " "$tmp_list"; then
+      log "Invalid NVIDIA repo list content; aborting."
+      rm -f "$tmp_list"
+      exit 1
+    fi
+    # Inject signed-by into the repo line
+    sed 's#^deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' "$tmp_list" | \
       $SUDO tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
+    rm -f "$tmp_list"
+
     $SUDO apt-get update
     $SUDO apt-get install -y nvidia-container-toolkit
     $SUDO nvidia-ctk runtime configure --runtime=docker || true
