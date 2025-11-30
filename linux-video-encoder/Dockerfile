@@ -9,7 +9,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 WORKDIR /app
 
 # Base tools, Python, FFmpeg/HandBrakeCLI, and MakeMKV ${MAKEMKV_VERSION}
-RUN apt-get update && \
+RUN set -ex && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
       ca-certificates \
       software-properties-common \
@@ -53,8 +54,10 @@ RUN apt-get update && \
     ./configure && make -s && make install && \
     cd /tmp/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
     make -f makefile.linux -s && make -f makefile.linux install && \
-    rm -rf /tmp/makemkv && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    rm -rf /tmp/makemkv
+
+# Clean apt caches to keep the image smaller
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
