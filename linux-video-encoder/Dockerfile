@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
-# Base tools, Python, FFmpeg/HandBrakeCLI, and MakeMKV 1.18.2
+# Base tools, Python, FFmpeg/HandBrakeCLI, and MakeMKV ${MAKEMKV_VERSION}
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       ca-certificates \
@@ -22,8 +22,13 @@ RUN apt-get update && \
     add-apt-repository -y universe && \
     add-apt-repository -y multiverse && \
     apt-get update && \
-    # Install MakeMKV runtime deps from Ubuntu repos
+    # Install MakeMKV build/runtime deps from Ubuntu repos
     apt-get install -y --no-install-recommends \
+      build-essential \
+      pkg-config \
+      libssl-dev \
+      zlib1g-dev \
+      qtbase5-dev \
       libavcodec58 \
       libavformat58 \
       libavutil56 \
@@ -39,16 +44,15 @@ RUN apt-get update && \
       libssl1.1 \
       zlib1g && \
     mkdir -p /tmp/makemkv && \
-    /bin/sh -c 'set -e; \
-      ver="$MAKEMKV_VERSION"; \
-      base_url=https://www.makemkv.com/download; \
-      fetch() { curl -fsSL -o "/tmp/makemkv/$1" "$base_url/$1"; }; \
-      if ! fetch "makemkv-oss_${ver}-1_amd64.deb" || ! fetch "makemkv-bin_${ver}-1_amd64.deb"; then \
-        echo "Primary MakeMKV version ${ver} unavailable, falling back to 1.17.7"; \
-        ver=1.17.7; \
-        fetch "makemkv-oss_${ver}-1_amd64.deb" && fetch "makemkv-bin_${ver}-1_amd64.deb"; \
-      fi' && \
-    apt-get install -y --no-install-recommends /tmp/makemkv/*.deb && \
+    curl -fsSL -o /tmp/makemkv/makemkv-bin.tar.gz https://www.makemkv.com/download/makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
+    curl -fsSL -o /tmp/makemkv/makemkv-oss.tar.gz https://www.makemkv.com/download/makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
+    cd /tmp/makemkv && \
+    tar xzf makemkv-oss.tar.gz && \
+    tar xzf makemkv-bin.tar.gz && \
+    cd makemkv-oss-${MAKEMKV_VERSION} && \
+    make -s && make install && \
+    cd /tmp/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
+    make -s && make install && \
     rm -rf /tmp/makemkv && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
