@@ -16,6 +16,9 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 #   INSTALL_NVIDIA_TOOLKIT=1 to enable (default: 1)
 #   NVIDIA_TOOLKIT_VERSION (default 1.14.3)
 #   ALLOW_APT_FIX=1 to allow apt-get -f install if dpkg reports missing deps
+# MakeMKV tarballs:
+#   MAKEMKV_VERSION (default 1.18.2)
+#   MAKEMKV_BASE_URL (default raw link to your repo)
 
 REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
 REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/thashiznit2003/AutoEncoder/archive/refs/heads/main.tar.gz}"
@@ -24,6 +27,8 @@ IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
 INSTALL_NVIDIA_TOOLKIT="${INSTALL_NVIDIA_TOOLKIT:-1}"
 NVIDIA_TOOLKIT_VERSION="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
 ALLOW_APT_FIX="${ALLOW_APT_FIX:-0}"
+MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}"
+MAKEMKV_BASE_URL="${MAKEMKV_BASE_URL:-https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main}"
 
 SUDO=""
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
@@ -155,8 +160,22 @@ fetch_repo() {
 
 build_and_run() {
   cd "$REPO_DIR/linux-video-encoder" || cd "$REPO_DIR"
+  # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build
+  log "Ensuring MakeMKV tarballs are present (version ${MAKEMKV_VERSION})..."
+  for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
+    if [ ! -s "$f" ]; then
+      log "Downloading $f from $MAKEMKV_BASE_URL"
+      curl -fL "${MAKEMKV_BASE_URL}/${f}" -o "$f"
+    else
+      log "$f already present; skipping download."
+    fi
+  done
+
   log "Building image $IMAGE_TAG ..."
-  $SUDO docker build -t "$IMAGE_TAG" .
+  $SUDO docker build \
+    --build-arg MAKEMKV_VERSION="$MAKEMKV_VERSION" \
+    --build-arg MAKEMKV_BASE_URL="$MAKEMKV_BASE_URL" \
+    -t "$IMAGE_TAG" .
   log "Starting stack with docker compose..."
   IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose up -d
   log "Stack is running. Web UI: http://<host>:5959"
