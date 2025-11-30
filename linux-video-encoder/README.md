@@ -82,8 +82,8 @@ Compose highlights:
 4. After completion, Docker will be installed (if missing), the image built, and the stack started.
 5. Open `http://<host>:5959` to view the web UI.
 
-Optional: NVIDIA Container Toolkit (offline .deb, no apt repo)
-- Set `INSTALL_NVIDIA_TOOLKIT=1` to have the script download the toolkit .deb packages from NVIDIA GitHub releases (default version: `1.14.3`) and install via `dpkg`.
+NVIDIA Container Toolkit (offline .deb, no apt repo)
+- The installer defaults `INSTALL_NVIDIA_TOOLKIT=1` and downloads the toolkit .deb packages from NVIDIA GitHub releases (default version: `1.14.3`) and installs via `dpkg`.
 - If `dpkg` reports missing dependencies, set `ALLOW_APT_FIX=1` to allow a one-time `apt-get -f install` to resolve them.
 - Override version with `NVIDIA_TOOLKIT_VERSION=<version>` if needed (matching filenames on https://github.com/NVIDIA/libnvidia-container/releases).
 

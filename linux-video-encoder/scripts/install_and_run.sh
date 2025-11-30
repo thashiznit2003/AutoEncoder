@@ -12,8 +12,8 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 #   REPO_DIR  - directory to clone into
 #   IMAGE_TAG - image name:tag to build
 #
-# Optional NVIDIA Container Toolkit (offline .deb install, no apt repo):
-#   INSTALL_NVIDIA_TOOLKIT=1 to enable
+# NVIDIA Container Toolkit (offline .deb install, no apt repo):
+#   INSTALL_NVIDIA_TOOLKIT=1 to enable (default: 1)
 #   NVIDIA_TOOLKIT_VERSION (default 1.14.3)
 #   ALLOW_APT_FIX=1 to allow apt-get -f install if dpkg reports missing deps
 
@@ -21,7 +21,7 @@ REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
 REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/thashiznit2003/AutoEncoder/archive/refs/heads/main.tar.gz}"
 REPO_DIR="${REPO_DIR:-$HOME/AutoEncoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
-INSTALL_NVIDIA_TOOLKIT="${INSTALL_NVIDIA_TOOLKIT:-0}"
+INSTALL_NVIDIA_TOOLKIT="${INSTALL_NVIDIA_TOOLKIT:-1}"
 NVIDIA_TOOLKIT_VERSION="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
 ALLOW_APT_FIX="${ALLOW_APT_FIX:-0}"
 
