@@ -176,21 +176,32 @@ build_and_run() {
   # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build
   log "Ensuring MakeMKV tarballs are present (version ${MAKEMKV_VERSION})..."
   for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
-    if [ ! -s "$f" ]; then
+    download_tarball() {
       log "Downloading $f from $MAKEMKV_BASE_URL"
       if ! curl -fL "${MAKEMKV_BASE_URL}/${f}" -o "$f"; then
-        log "Failed to download ${f} from ${MAKEMKV_BASE_URL}. Aborting build."
+        log "Failed to download ${f} from ${MAKEMKV_BASE_URL}."
+        return 1
+      fi
+      $SUDO chown "$TARGET_OWNER":"$TARGET_OWNER" "$f" || true
+      $SUDO chmod 644 "$f" || true
+    }
+
+    if [ ! -s "$f" ]; then
+      download_tarball || { log "Aborting build (download failed for ${f})."; exit 1; }
+    else
+      log "$f already present; verifying..."
+    fi
+
+    # Validate tarball; if invalid, re-download once.
+    if ! tar -tzf "$f" >/dev/null 2>&1; then
+      log "Tarball ${f} is invalid (not a gzipped tar or corrupted). Re-downloading..."
+      rm -f "$f"
+      download_tarball || { log "Aborting build (re-download failed for ${f})."; exit 1; }
+      if ! tar -tzf "$f" >/dev/null 2>&1; then
+        log "Tarball ${f} still invalid after re-download. Aborting build."
         exit 1
       fi
-    else
-      log "$f already present; skipping download."
     fi
-    if [ ! -s "$f" ]; then
-      log "Download check failed for ${f} (file missing or empty). Aborting build."
-      exit 1
-    fi
-    $SUDO chown "$TARGET_OWNER":"$TARGET_OWNER" "$f" || true
-    $SUDO chmod 644 "$f" || true
   done
 
   log "Building image $IMAGE_TAG ..."
