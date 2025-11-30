@@ -51,10 +51,10 @@ INSTALL_NVIDIA_TOOLKIT="${INSTALL_NVIDIA_TOOLKIT:-0}"
 NVIDIA_TOOLKIT_VERSION="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
 ALLOW_APT_FIX="${ALLOW_APT_FIX:-0}"
 MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}"
-MAKEMKV_BASE_URL="${MAKEMKV_BASE_URL:-https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main}"
-# Explicit raw URLs for hosted tarballs (override if needed)
-MAKEMKV_BIN_URL="${MAKEMKV_BIN_URL:-https://github.com/thashiznit2003/AutoEncoder/raw/refs/heads/main/makemkv-bin-${MAKEMKV_VERSION}.tar.gz}"
-MAKEMKV_OSS_URL="${MAKEMKV_OSS_URL:-https://github.com/thashiznit2003/AutoEncoder/raw/refs/heads/main/makemkv-oss-${MAKEMKV_VERSION}.tar.gz}"
+MAKEMKV_BASE_URL="${MAKEMKV_BASE_URL:-https://www.makemkv.com/download}"
+# Explicit tarball URLs (override if hosting elsewhere)
+MAKEMKV_BIN_URL="${MAKEMKV_BIN_URL:-${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz}"
+MAKEMKV_OSS_URL="${MAKEMKV_OSS_URL:-${MAKEMKV_BASE_URL}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz}"
 
 if [ "${TRACE:-0}" = "1" ]; then
   set -x
