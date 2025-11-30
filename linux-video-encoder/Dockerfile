@@ -6,10 +6,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-WORKDIR /app
+WORKDIR /linux-video-encoder
 
 # Pre-fetch MakeMKV tarballs into build context (script downloads them before build)
-COPY makemkv-*.tar.gz /app/makemkv/
+COPY makemkv-*.tar.gz /linux-video-encoder/makemkv/
 
 # Base tools, Python, FFmpeg/HandBrakeCLI, and MakeMKV ${MAKEMKV_VERSION}
 RUN set -ex && \
@@ -47,14 +47,14 @@ RUN set -ex && \
       libqt5widgets5 \
       libssl1.1 \
       zlib1g && \
-    cd /app/makemkv && \
+    cd /linux-video-encoder/makemkv && \
     tar xzf makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
     tar xzf makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
     cd makemkv-oss-${MAKEMKV_VERSION} && \
     ./configure && make -s && make install && \
-    cd /app/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
+    cd /linux-video-encoder/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
     make -f makefile.linux -s && make -f makefile.linux install && \
-    rm -rf /app/makemkv
+    rm -rf /linux-video-encoder/makemkv
 
 # Clean apt caches to keep the image smaller
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
