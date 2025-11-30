@@ -165,7 +165,10 @@ build_and_run() {
   for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
     if [ ! -s "$f" ]; then
       log "Downloading $f from $MAKEMKV_BASE_URL"
-      curl -fL "${MAKEMKV_BASE_URL}/${f}" -o "$f"
+      if ! curl -fL "${MAKEMKV_BASE_URL}/${f}" -o "$f"; then
+        log "Failed to download ${f} from ${MAKEMKV_BASE_URL}"
+        exit 1
+      fi
     else
       log "$f already present; skipping download."
     fi

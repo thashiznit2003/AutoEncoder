@@ -1,13 +1,15 @@
 FROM ubuntu:20.04
 
 ARG MAKEMKV_VERSION=1.18.2
-ARG MAKEMKV_BASE_URL=https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
+
+# Pre-fetch MakeMKV tarballs into build context (script downloads them before build)
+COPY makemkv-*.tar.gz /tmp/makemkv/
 
 # Base tools, Python, FFmpeg/HandBrakeCLI, and MakeMKV ${MAKEMKV_VERSION}
 RUN set -ex && \
@@ -45,20 +47,13 @@ RUN set -ex && \
       libqt5widgets5 \
       libssl1.1 \
       zlib1g && \
-    mkdir -p /tmp/makemkv && \
-    curl -fsSL -o /tmp/makemkv/makemkv-bin.tar.gz ${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
-    curl -fsSL -o /tmp/makemkv/makemkv-oss.tar.gz ${MAKEMKV_BASE_URL}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
     cd /tmp/makemkv && \
-    if [ -s makemkv-oss.tar.gz ] && [ -s makemkv-bin.tar.gz ]; then \
-      tar xzf makemkv-oss.tar.gz && \
-      tar xzf makemkv-bin.tar.gz && \
-      cd makemkv-oss-${MAKEMKV_VERSION} && \
-      ./configure && make -s && make install && \
-      cd /tmp/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
-      make -f makefile.linux -s && make -f makefile.linux install; \
-    else \
-      echo "MakeMKV tarballs missing or failed to download; skipping MakeMKV build."; \
-    fi && \
+    tar xzf makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
+    tar xzf makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
+    cd makemkv-oss-${MAKEMKV_VERSION} && \
+    ./configure && make -s && make install && \
+    cd /tmp/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
+    make -f makefile.linux -s && make -f makefile.linux install && \
     rm -rf /tmp/makemkv
 
 # Clean apt caches to keep the image smaller
