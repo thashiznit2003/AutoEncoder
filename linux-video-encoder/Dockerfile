@@ -50,9 +50,9 @@ RUN apt-get update && \
     tar xzf makemkv-oss.tar.gz && \
     tar xzf makemkv-bin.tar.gz && \
     cd makemkv-oss-${MAKEMKV_VERSION} && \
-    make -s && make install && \
+    ./configure && make -s && make install && \
     cd /tmp/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
-    make -s && make install && \
+    make -f makefile.linux -s && make -f makefile.linux install && \
     rm -rf /tmp/makemkv && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
