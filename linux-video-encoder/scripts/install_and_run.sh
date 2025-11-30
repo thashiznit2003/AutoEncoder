@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
+SUDO=""
 set -euo pipefail
 
 BASE_DIR="${BASE_DIR:-/linux-video-encoder}"
 
-SUDO="${SUDO:-}"
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   SUDO="sudo"
   if ! command -v sudo >/dev/null 2>&1; then
