@@ -82,10 +82,18 @@ install_nvidia_toolkit() {
     $SUDO apt-get update
     $SUDO apt-get install -y curl gnupg
     distribution=$(. /etc/os-release; echo "$ID$VERSION_ID")
+    # Remove a bad repo file if it contains HTML (happens when download is blocked/redirected)
+    if [ -f /etc/apt/sources.list.d/nvidia-container-toolkit.list ]; then
+      if grep -qi "<!doctype" /etc/apt/sources.list.d/nvidia-container-toolkit.list 2>/dev/null; then
+        log "Removing invalid nvidia-container-toolkit.list (HTML detected)."
+        $SUDO rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
+      fi
+    fi
+
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | $SUDO gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
     curl -s -L "https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list" | \
       sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-      $SUDO tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+      $SUDO tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
     $SUDO apt-get update
     $SUDO apt-get install -y nvidia-container-toolkit
     $SUDO nvidia-ctk runtime configure --runtime=docker || true
