@@ -166,11 +166,15 @@ build_and_run() {
     if [ ! -s "$f" ]; then
       log "Downloading $f from $MAKEMKV_BASE_URL"
       if ! curl -fL "${MAKEMKV_BASE_URL}/${f}" -o "$f"; then
-        log "Failed to download ${f} from ${MAKEMKV_BASE_URL}"
+        log "Failed to download ${f} from ${MAKEMKV_BASE_URL}. Aborting build."
         exit 1
       fi
     else
       log "$f already present; skipping download."
+    fi
+    if [ ! -s "$f" ]; then
+      log "Download check failed for ${f} (file missing or empty). Aborting build."
+      exit 1
     fi
   done
 
