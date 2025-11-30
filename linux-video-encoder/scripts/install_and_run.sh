@@ -110,7 +110,7 @@ install_nvidia_toolkit() {
       case "${ID:-}" in
         ubuntu)
           case "${VERSION_ID:-}" in
-            24.04) repo_path="ubuntu24.04";;
+            24.04) repo_path="ubuntu22.04";;  # 24.04 not published yet; use 22.04 repo
             22.04) repo_path="ubuntu22.04";;
             20.04) repo_path="ubuntu20.04";;
             *) repo_path="ubuntu20.04";;
