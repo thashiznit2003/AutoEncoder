@@ -101,7 +101,7 @@ install_nvidia_toolkit() {
     if grep -q "nvidia.github.io/libnvidia-container" /etc/apt/sources.list 2>/dev/null; then
       log "Removing stale NVIDIA repo entries from /etc/apt/sources.list."
       $SUDO cp /etc/apt/sources.list /etc/apt/sources.list.bak
-      $SUDO sed -i '/nvidia.github.io\\/libnvidia-container/d' /etc/apt/sources.list
+      $SUDO sed -i '/nvidia\.github\.io\/libnvidia-container/d' /etc/apt/sources.list
     fi
 
     $SUDO apt-get update
