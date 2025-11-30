@@ -102,16 +102,11 @@ install_nvidia_toolkit() {
     # Install key without prompting for overwrite
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | $SUDO gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
-    # Build repo lines for Ubuntu based on VERSION_ID (use 22.04 repo for 24.04 until published)
+    # Build repo lines for Ubuntu based on VERSION_ID (force 22.04 repo for 24.04 until published)
     . /etc/os-release
     case "${ID:-}" in
       ubuntu)
-        case "${VERSION_ID:-}" in
-          24.04) repo_path="ubuntu22.04";;  # 24.04 not published yet; use 22.04 repo
-          22.04) repo_path="ubuntu22.04";;
-          20.04) repo_path="ubuntu20.04";;
-          *) repo_path="ubuntu20.04";;
-        esac
+        repo_path="ubuntu22.04"
         ;;
       *)
         log "Unsupported distro for manual repo creation; please add repo manually."
@@ -120,12 +115,10 @@ install_nvidia_toolkit() {
     esac
     # Add repo directly to main sources.list to avoid bad .list files getting reused
     repo_line="deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/${repo_path}/${arch} /"
-    if ! grep -Fxq "$repo_line" /etc/apt/sources.list; then
-      log "Adding NVIDIA repo to /etc/apt/sources.list: $repo_line"
-      printf '%s\n' "$repo_line" | $SUDO tee -a /etc/apt/sources.list >/dev/null
-    else
-      log "NVIDIA repo already present in /etc/apt/sources.list."
-    fi
+    log "Adding NVIDIA repo to /etc/apt/sources.list: $repo_line"
+    # Remove any stale NVIDIA entries (any line containing nvidia.github.io/libnvidia-container)
+    $SUDO sed -i '/nvidia.github.io\\/libnvidia-container/d' /etc/apt/sources.list
+    printf '%s\n' "$repo_line" | $SUDO tee -a /etc/apt/sources.list >/dev/null
 
     $SUDO apt-get update
     $SUDO apt-get install -y nvidia-container-toolkit
