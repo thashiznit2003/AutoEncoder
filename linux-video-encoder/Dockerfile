@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 WORKDIR /app
 
 # Pre-fetch MakeMKV tarballs into build context (script downloads them before build)
-COPY makemkv-*.tar.gz /tmp/makemkv/
+COPY makemkv-*.tar.gz /app/makemkv/
 
 # Base tools, Python, FFmpeg/HandBrakeCLI, and MakeMKV ${MAKEMKV_VERSION}
 RUN set -ex && \
@@ -47,14 +47,14 @@ RUN set -ex && \
       libqt5widgets5 \
       libssl1.1 \
       zlib1g && \
-    cd /tmp/makemkv && \
+    cd /app/makemkv && \
     tar xzf makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
     tar xzf makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
     cd makemkv-oss-${MAKEMKV_VERSION} && \
     ./configure && make -s && make install && \
-    cd /tmp/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
+    cd /app/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
     make -f makefile.linux -s && make -f makefile.linux install && \
-    rm -rf /tmp/makemkv
+    rm -rf /app/makemkv
 
 # Clean apt caches to keep the image smaller
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
