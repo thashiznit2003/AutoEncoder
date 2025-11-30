@@ -79,9 +79,7 @@ install_nvidia_toolkit() {
     log "NVIDIA Container Toolkit already installed."
   else
     log "Installing NVIDIA Container Toolkit..."
-    $SUDO apt-get update
-    $SUDO apt-get install -y curl gnupg
-    distribution=$(. /etc/os-release; echo "$ID$VERSION_ID")
+
     # Remove a bad repo file if it contains HTML (happens when download is blocked/redirected)
     if [ -f /etc/apt/sources.list.d/nvidia-container-toolkit.list ]; then
       if grep -qi "<!doctype" /etc/apt/sources.list.d/nvidia-container-toolkit.list 2>/dev/null; then
@@ -89,6 +87,10 @@ install_nvidia_toolkit() {
         $SUDO rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
       fi
     fi
+
+    $SUDO apt-get update
+    $SUDO apt-get install -y curl gnupg
+    distribution=$(. /etc/os-release; echo "$ID$VERSION_ID")
 
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | $SUDO gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
     curl -s -L "https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list" | \
