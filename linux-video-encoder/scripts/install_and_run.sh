@@ -131,10 +131,24 @@ install_nvidia_toolkit() {
     echo 'Acquire::AllowInsecureRepositories "true";' | $SUDO tee "$ALLOW_CONF" >/dev/null
     echo 'Acquire::AllowDowngradeToInsecureRepositories "true";' | $SUDO tee -a "$ALLOW_CONF" >/dev/null
 
+    set +e
     $SUDO apt-get update
+    update_rc=$?
+    if [ $update_rc -ne 0 ]; then
+      log "Warning: apt update failed for NVIDIA repo (rc=$update_rc). Skipping toolkit install; check network/access."
+      $SUDO rm -f "$ALLOW_CONF"
+      set -e
+      return
+    fi
     $SUDO apt-get install -y nvidia-container-toolkit
+    install_rc=$?
     # Remove insecure override
     $SUDO rm -f "$ALLOW_CONF"
+    set -e
+    if [ $install_rc -ne 0 ]; then
+      log "Warning: NVIDIA Container Toolkit install failed (rc=$install_rc). Continuing without toolkit."
+      return
+    fi
     $SUDO nvidia-ctk runtime configure --runtime=docker || true
     log "NVIDIA Container Toolkit installed."
   fi
