@@ -3,6 +3,15 @@ set -euo pipefail
 
 BASE_DIR="${BASE_DIR:-/linux-video-encoder}"
 
+SUDO=""
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+  SUDO="sudo"
+  if ! command -v sudo >/dev/null 2>&1; then
+    printf '[installer] sudo not found; please install sudo or run as root.\n' >&2
+    exit 1
+  fi
+fi
+
 # Prepare working directory at /linux-video-encoder (wipe and recreate)
 if [ -d "$BASE_DIR" ]; then
   printf '[installer] Removing existing %s\n' "$BASE_DIR"
@@ -42,15 +51,6 @@ NVIDIA_TOOLKIT_VERSION="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
 ALLOW_APT_FIX="${ALLOW_APT_FIX:-0}"
 MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}"
 MAKEMKV_BASE_URL="${MAKEMKV_BASE_URL:-https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main}"
-
-SUDO=""
-if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-  SUDO="sudo"
-  if ! command -v sudo >/dev/null 2>&1; then
-    printf '[installer] sudo not found; please install sudo or run as root.\n' >&2
-    exit 1
-  fi
-fi
 
 if [ "${TRACE:-0}" = "1" ]; then
   set -x
