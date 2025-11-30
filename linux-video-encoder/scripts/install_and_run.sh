@@ -20,6 +20,10 @@ INSTALL_NVIDIA_DRIVER="${INSTALL_NVIDIA_DRIVER:-0}"
 SUDO=""
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   SUDO="sudo"
+  if ! command -v sudo >/dev/null 2>&1; then
+    printf '[installer] sudo not found; please install sudo or run as root.\n' >&2
+    exit 1
+  fi
 fi
 
 log() { printf '[installer] %s\n' "$*"; }

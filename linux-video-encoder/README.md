@@ -68,7 +68,7 @@ Compose highlights:
    ```bash
    curl -LO https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_and_run.sh
    chmod +x install_and_run.sh
-   ./install_and_run.sh
+   sudo ./install_and_run.sh
    ```
    - The script will download the repo tarball via curl if git is not present.
    - To use a different fork: `REPO_URL=https://github.com/<you>/<repo>.git REPO_TARBALL_URL=https://github.com/<you>/<repo>/archive/refs/heads/main.tar.gz ./install_and_run.sh`
