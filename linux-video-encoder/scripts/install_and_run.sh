@@ -30,6 +30,9 @@ if [ "${TRACE:-0}" = "1" ]; then
   set -x
 fi
 
+LOG_FILE="${LOG_FILE:-$(pwd)/installer.log}"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
 log() { printf '[installer] %s\n' "$*"; }
 
 ensure_base_tools() {
