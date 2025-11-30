@@ -11,11 +11,19 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 #   REPO_URL  - Git URL to clone (set to your fork if publishing)
 #   REPO_DIR  - directory to clone into
 #   IMAGE_TAG - image name:tag to build
+#
+# Optional NVIDIA Container Toolkit (offline .deb install, no apt repo):
+#   INSTALL_NVIDIA_TOOLKIT=1 to enable
+#   NVIDIA_TOOLKIT_VERSION (default 1.14.3)
+#   ALLOW_APT_FIX=1 to allow apt-get -f install if dpkg reports missing deps
 
 REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
 REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/thashiznit2003/AutoEncoder/archive/refs/heads/main.tar.gz}"
 REPO_DIR="${REPO_DIR:-$HOME/AutoEncoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
+INSTALL_NVIDIA_TOOLKIT="${INSTALL_NVIDIA_TOOLKIT:-0}"
+NVIDIA_TOOLKIT_VERSION="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
+ALLOW_APT_FIX="${ALLOW_APT_FIX:-0}"
 
 SUDO=""
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
@@ -56,6 +64,59 @@ install_docker() {
   $SUDO apt-get update
   $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   log "Docker installed."
+}
+
+install_nvidia_toolkit_offline() {
+  if [ "$INSTALL_NVIDIA_TOOLKIT" != "1" ]; then
+    log "Skipping NVIDIA Container Toolkit install (INSTALL_NVIDIA_TOOLKIT!=1)."
+    return
+  fi
+
+  if dpkg -s nvidia-container-toolkit >/dev/null 2>&1; then
+    log "NVIDIA Container Toolkit already installed."
+    return
+  fi
+
+  arch=$(dpkg --print-architecture)
+  base_url="https://github.com/NVIDIA/libnvidia-container/releases/download/v${NVIDIA_TOOLKIT_VERSION}"
+  pkgs=(
+    "nvidia-container-toolkit-base_${NVIDIA_TOOLKIT_VERSION}-1_${arch}.deb"
+    "nvidia-container-runtime-hook_${NVIDIA_TOOLKIT_VERSION}-1_${arch}.deb"
+    "nvidia-container-toolkit_${NVIDIA_TOOLKIT_VERSION}-1_${arch}.deb"
+  )
+
+  tmpdir="$(mktemp -d)"
+  log "Downloading NVIDIA toolkit packages (version ${NVIDIA_TOOLKIT_VERSION})..."
+  for pkg in "${pkgs[@]}"; do
+    url="${base_url}/${pkg}"
+    log "Fetching ${url}"
+    if ! curl -fL "$url" -o "${tmpdir}/${pkg}"; then
+      log "Failed to download ${url}"
+      rm -rf "$tmpdir"
+      return
+    fi
+  done
+
+  log "Installing NVIDIA toolkit packages with dpkg..."
+  if ! $SUDO dpkg -i "${tmpdir}"/nvidia-container-*.deb; then
+    log "dpkg reported missing dependencies."
+    if [ "$ALLOW_APT_FIX" = "1" ]; then
+      log "Attempting apt-get -f install to fix dependencies..."
+      $SUDO apt-get -f install -y
+      $SUDO dpkg -i "${tmpdir}"/nvidia-container-*.deb || log "dpkg still failing after apt fix."
+    else
+      log "Skipping NVIDIA toolkit install (set ALLOW_APT_FIX=1 to let apt fix dependencies)."
+      rm -rf "$tmpdir"
+      return
+    fi
+  fi
+  rm -rf "$tmpdir"
+
+  if command -v nvidia-ctk >/dev/null 2>&1; then
+    $SUDO nvidia-ctk runtime configure --runtime=docker || true
+  fi
+  $SUDO systemctl restart docker || true
+  log "NVIDIA Container Toolkit installation attempt complete."
 }
 
 fetch_repo() {
@@ -104,6 +165,7 @@ build_and_run() {
 main() {
   ensure_base_tools
   install_docker
+  install_nvidia_toolkit_offline
   fetch_repo
   build_and_run
 }

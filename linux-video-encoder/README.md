@@ -72,7 +72,6 @@ Compose highlights:
    ```
    - The script will download the repo tarball via curl if git is not present.
    - To use a different fork: `REPO_URL=https://github.com/<you>/<repo>.git REPO_TARBALL_URL=https://github.com/<you>/<repo>/archive/refs/heads/main.tar.gz ./install_and_run.sh`
-   - Driver install is skipped by default. If you need the script to install the NVIDIA driver, set `INSTALL_NVIDIA_DRIVER=1` (uses default P600 driver URL).
 3. Option B (if you have git):
    ```bash
    git clone https://github.com/thashiznit2003/AutoEncoder.git
@@ -80,17 +79,8 @@ Compose highlights:
    chmod +x scripts/install_and_run.sh
    ./scripts/install_and_run.sh
    ```
-4. After completion, Docker will be installed (if missing), NVIDIA Container Toolkit configured, the image built, and the stack started.
+4. After completion, Docker will be installed (if missing), the image built, and the stack started.
 5. Open `http://<host>:5959` to view the web UI.
-
-NVIDIA driver override:
-- To have the script install a driver, set `INSTALL_NVIDIA_DRIVER=1`. To use a different driver package, set `NVIDIA_DRIVER_URL` before running, e.g.:
-  ```bash
-  INSTALL_NVIDIA_DRIVER=1 \
-  NVIDIA_DRIVER_URL=https://us.download.nvidia.com/XFree86/Linux-x86_64/<version>/NVIDIA-Linux-x86_64-<version>.run \
-  ./install_and_run.sh
-  ```
-  Ensure the package matches your GPU and kernel; the installer may require a reboot if it builds new modules.
 
 ## Config
 
