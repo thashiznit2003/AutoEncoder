@@ -35,7 +35,7 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 #   IMAGE_TAG - image name:tag to build
 #
 # NVIDIA Container Toolkit (offline .deb install, no apt repo):
-#   INSTALL_NVIDIA_TOOLKIT=1 to enable (default: 1)
+#   INSTALL_NVIDIA_TOOLKIT=1 to enable (default: 0)
 #   NVIDIA_TOOLKIT_VERSION (default 1.14.3)
 #   ALLOW_APT_FIX=1 to allow apt-get -f install if dpkg reports missing deps
 # MakeMKV tarballs:
@@ -52,6 +52,8 @@ NVIDIA_TOOLKIT_VERSION="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
 ALLOW_APT_FIX="${ALLOW_APT_FIX:-0}"
 MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}"
 MAKEMKV_BASE_URL="${MAKEMKV_BASE_URL:-https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main}"
+MAKEMKV_BIN_URL="${MAKEMKV_BIN_URL:-${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz}"
+MAKEMKV_OSS_URL="${MAKEMKV_OSS_URL:-${MAKEMKV_BASE_URL}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz}"
 
 if [ "${TRACE:-0}" = "1" ]; then
   set -x
@@ -177,10 +179,14 @@ build_and_run() {
   # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build
   log "Ensuring MakeMKV tarballs are present (version ${MAKEMKV_VERSION})..."
   for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
+    url="$MAKEMKV_BIN_URL"
+    if echo "$f" | grep -q "oss"; then
+      url="$MAKEMKV_OSS_URL"
+    fi
     download_tarball() {
-      log "Downloading $f from $MAKEMKV_BASE_URL"
-      if ! curl -fL "${MAKEMKV_BASE_URL}/${f}?raw=1" -o "$f"; then
-        log "Failed to download ${f} from ${MAKEMKV_BASE_URL}."
+      log "Downloading $f from $url"
+      if ! curl -fL "$url" -o "$f"; then
+        log "Failed to download ${f} from ${url}."
         return 1
       fi
       $SUDO chown "$TARGET_OWNER":"$TARGET_OWNER" "$f" || true
@@ -199,7 +205,7 @@ build_and_run() {
       rm -f "$f"
       download_tarball || { log "Aborting build (re-download failed for ${f})."; exit 1; }
       if ! tar -tzf "$f" >/dev/null 2>&1; then
-        log "Tarball ${f} still invalid after re-download. Aborting build."
+        log "Tarball ${f} still invalid after re-download. Please replace it with a valid tar.gz at $url. Aborting build."
         exit 1
       fi
     fi
