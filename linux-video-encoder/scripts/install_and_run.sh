@@ -26,6 +26,10 @@ if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   fi
 fi
 
+if [ "${TRACE:-0}" = "1" ]; then
+  set -x
+fi
+
 log() { printf '[installer] %s\n' "$*"; }
 
 ensure_base_tools() {
