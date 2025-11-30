@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  autoencoder:
+    build: .
+    image: linux-video-encoder:latest
+    container_name: linux-video-encoder
+    restart: unless-stopped
+    ports:
+      - "5959:5959"
+    environment:
+      - TZ=Etc/UTC
+      # Enable NVIDIA GPU (requires NVIDIA Container Toolkit on the Docker host)
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    volumes:
+      # Point these to your host paths and keep config.json in sync with the same locations.
+      - ./config.json:/app/config.json:ro
+      - /path/to/videos:/mnt/input:rw
+      - /path/to/encoded:/mnt/output:rw
+      - /path/to/ripped:/mnt/ripped:rw
+    devices:
+      # Map your optical drive and (optionally) generic SCSI device into the container.
+      - /dev/sr0:/dev/sr0
+      - /dev/sg0:/dev/sg0
+      # Uncomment if you want Intel QuickSync or another GPU exposed to ffmpeg/HandBrakeCLI.
+      # - /dev/dri:/dev/dri
+      # Map NVIDIA device nodes if you prefer explicit devices (NVIDIA Container Toolkit handles this automatically when installed).
+      # - /dev/nvidia0:/dev/nvidia0
+      # - /dev/nvidiactl:/dev/nvidiactl
+      # - /dev/nvidia-uvm:/dev/nvidia-uvm
+    # Uncomment if you need the container to mount/unmount devices itself (generally not needed if you bind mount).
+    # privileged: true

@@ -25,6 +25,40 @@ sudo python3 path/to/your/directory/autoencoder.py
 
 This will initiate the scanning of connected video files and encode them using the specified settings in the `config.json` file.
 
+## Docker / Portainer
+
+You can run the app in a container (for Portainer, import the compose file below).
+
+1. Edit `config.json` so `search_path`, `output_dir`, `rip_dir`, and `final_dir` match the host paths you will mount.
+2. Build the image (Ubuntu 20.04 base with FFmpeg, HandBrakeCLI, and MakeMKV 1.18.2 baked in): `docker build -t linux-video-encoder .`
+3. Start with Docker Compose: `docker compose up -d` (uses the provided `docker-compose.yml`).
+
+Compose highlights:
+- `volumes` map host paths into `/mnt/input`, `/mnt/output`, and `/mnt/ripped`. Keep `config.json` in sync with the same paths.
+- `devices` maps the optical drive (`/dev/sr0`) and generic SCSI node (`/dev/sg0`) into the container for MakeMKV/HandBrakeCLI. Adjust if your device names differ.
+- NVIDIA GPU: install NVIDIA drivers + NVIDIA Container Toolkit on the Ubuntu VM, pass the P600 through from Proxmox to the VM, then the container will see NVENC/NVDEC via `NVIDIA_VISIBLE_DEVICES=all`. You can also uncomment explicit `/dev/nvidia*` device mappings if desired.
+- Intel GPU: uncomment the `/dev/dri` device mapping if you need Intel QuickSync (or add other GPU devices as needed).
+- If you need the container to mount/unmount drives itself, add `privileged: true`; otherwise mount your media paths from the host.
+- Web UI: port `5959` is exposed; open `http://<host>:5959` to see active encodes, recent jobs, and live logs.
+
+### Proxmox -> Ubuntu VM -> Docker optical drive passthrough
+1. In Proxmox, passthrough the SATA Blu-Ray/DVD drive to the Ubuntu VM (e.g., `qm set <VMID> -scsi1 /dev/disk/by-id/<your-drive-id>`).
+2. Inside the Ubuntu VM, confirm you see the drive: `ls -l /dev/sr* /dev/sg*` and `udevadm info /dev/sr0`.
+3. In `docker-compose.yml`, leave the `devices` entries for `/dev/sr0` and `/dev/sg0` (or adjust to your actual nodes).
+4. Bring the stack up: `docker compose up -d`. The container will have MakeMKV 1.18.2 and HandBrakeCLI with access to the optical drive.
+
+### Proxmox -> Ubuntu VM -> Docker NVIDIA P600 passthrough
+1. In Proxmox, passthrough the P600 to the Ubuntu VM (e.g., add a PCIe passthrough device for the GPU).
+2. Inside the Ubuntu VM, install the NVIDIA driver and NVIDIA Container Toolkit (`nvidia-container-toolkit`), then reboot/restart Docker.
+3. Confirm GPU visibility on the host: `nvidia-smi`.
+4. Use the provided `docker-compose.yml` (it sets `NVIDIA_VISIBLE_DEVICES=all` and `NVIDIA_DRIVER_CAPABILITIES=compute,video,utility`). If you prefer explicit devices, uncomment the `/dev/nvidia*` entries.
+5. Start: `docker compose up -d`. FFmpeg in the image will see NVENC/NVDEC (e.g., `hevc_nvenc`, `h264_nvenc`).
+
+### Web UI (port 5959)
+- The app hosts a local status page at `http://<host>:5959` (inside the container it binds to `0.0.0.0:5959`).
+- Multi-pane layout: active encodes, recent jobs, and a live log tail pulled from the application log.
+- Refreshes automatically every few seconds; no auth is included, so keep the port bound to trusted networks.
+
 ## Config
 
 * __search_path__ - You can specify a specific directory to search if the scan doesn't find your files.

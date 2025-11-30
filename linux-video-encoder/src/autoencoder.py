@@ -13,16 +13,24 @@ import json
 import os
 import time
 import logging
+import logging.handlers
 import subprocess
 import pathlib
 import re
 import shutil
+import threading
+from typing import Optional, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from scanner import Scanner
 from encoder import Encoder  # kept as a fallback if needed
+from status_tracker import StatusTracker
+from web_server import start_web_server
 
 # locate config next to the project root
 CONFIG_PATH = Path(__file__).resolve().parents[1] / "config.json"
+LOG_DIR = Path(__file__).resolve().parents[1] / "logs"
+LOG_FILE = LOG_DIR / "app.log"
+WEB_PORT = 5959
 
 DEFAULT_CONFIG = {
     "search_path": None,
@@ -57,6 +65,21 @@ def load_config(path: Path):
         hb.update({k: v for k, v in merged["handbrake"].items() if v is not None})
         merged["handbrake"] = hb
     return merged
+
+
+def setup_logging():
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    handlers = [
+        logging.StreamHandler(),
+        logging.handlers.RotatingFileHandler(
+            LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=2, encoding="utf-8"
+        ),
+    ]
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s %(levelname)s: %(message)s",
+        handlers=handlers,
+    )
 
 import subprocess
 
@@ -254,7 +277,7 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool) -> 
         logger.exception("Encoding run failed: %s", e)
         return False
 
-def process_video(video_file: str, config: dict[str, any], output_dir: Path, rip_dir: Path, encoder: Encoder) -> bool:
+def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip_dir: Path, encoder: Encoder, status_tracker: Optional[StatusTracker] = None) -> bool:
     config_str = config.get("profile", "ffmpeg") 
     final_dir = config.get("final_dir", "")   
     # check if dvd, bluray, or video file    
@@ -280,10 +303,16 @@ def process_video(video_file: str, config: dict[str, any], output_dir: Path, rip
         out_name = f"{src.stem}_encoded_{src_mtime}{extension}" # this ensures re-encoding if the source file has the same name but is newer
     out_path = output_dir / out_name
 
+    dest_str = str(out_path)
+    if status_tracker:
+        status_tracker.start(str(src), dest_str)
+
     # skip if output already exists
     if out_path.exists():
         try:
             logging.info("Skipping already-encoded file: %s", out_path)
+            if status_tracker:
+                status_tracker.complete(str(src), True, dest_str, "Skipped (already encoded)")
             return False
         except Exception:
             logging.debug("Failed to stat files %s or %s; proceeding to encode", src, out_path)
@@ -296,13 +325,19 @@ def process_video(video_file: str, config: dict[str, any], output_dir: Path, rip
             rip_path = rip_disc(disc_num, rip_dir)
             if rip_path is None:
                 logging.error("Blu-ray ripping failed; skipping encoding for %s", video_file)
+                if status_tracker:
+                    status_tracker.complete(str(src), False, dest_str, "Blu-ray rip failed")
                 return False
         else:
             logging.error("No Blu-ray disc detected; skipping encoding for %s", video_file)
+            if status_tracker:
+                status_tracker.complete(str(src), False, dest_str, "No Blu-ray detected")
             return False
 
         video_file = rip_path  # use ripped path for encoding
     if video_file is None:
+        if status_tracker:
+            status_tracker.complete(str(src), False, dest_str, "No video file to encode")
         return False
     # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available                         
     success = run_encoder(video_file, str(out_path), hb_opts, not (is_dvd or is_bluray))
@@ -315,8 +350,12 @@ def process_video(video_file: str, config: dict[str, any], output_dir: Path, rip
             except TypeError:
                 encoder.encode_video(video_file, str(out_path))
             logging.info("Fallback encoder succeeded: %s -> %s", video_file, out_path)
+            if status_tracker:
+                status_tracker.complete(str(src), True, dest_str, "Fallback encoder succeeded")
         except Exception:
             logging.exception("Fallback encoder failed for %s", video_file)
+            if status_tracker:
+                status_tracker.complete(str(src), False, dest_str, "Fallback encoder failed")
             return False
     else:
         logging.info("Encoded %s -> %s (HandBrakeCLI)", video_file, out_path)
@@ -339,9 +378,14 @@ def process_video(video_file: str, config: dict[str, any], output_dir: Path, rip
                 logging.info("Deleted ripped Blu-ray file: %s", rip_fp)
             except Exception:
                 logging.debug("Failed to delete ripped Blu-ray file: %s", video_file, exc_info=True)
+        if status_tracker:
+            status_tracker.complete(str(src), True, dest_str, "Encode complete")
+    return True
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s: %(message)s")
+    setup_logging()
+    status_tracker = StatusTracker(LOG_FILE)
+    start_web_server(status_tracker, port=WEB_PORT)
     config = load_config(CONFIG_PATH)
     max_threads = config.get("max_threads", 4)
     search_path = config.get("search_path")  # None => auto-detect plugged drives
@@ -406,7 +450,7 @@ def main():
                 logging.debug("No candidate video files found on this pass.")
             #for video_file in video_files:               
             with ThreadPoolExecutor(max_workers=max_threads) as ex:
-                futures = {ex.submit(process_video, f, config, output_dir, rip_dir, encoder): f for f in video_files}
+                futures = {ex.submit(process_video, f, config, output_dir, rip_dir, encoder, status_tracker): f for f in video_files}
                 for fut in as_completed(futures):
                     src = futures[fut]
                     try:
