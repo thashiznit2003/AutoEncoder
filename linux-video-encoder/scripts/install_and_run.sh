@@ -46,7 +46,8 @@ REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
 REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/thashiznit2003/AutoEncoder/archive/refs/heads/main.tar.gz}"
 REPO_DIR="${REPO_DIR:-$BASE_DIR/AutoEncoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
-INSTALL_NVIDIA_TOOLKIT="${INSTALL_NVIDIA_TOOLKIT:-1}"
+# Default: skip NVIDIA toolkit unless explicitly requested
+INSTALL_NVIDIA_TOOLKIT="${INSTALL_NVIDIA_TOOLKIT:-0}"
 NVIDIA_TOOLKIT_VERSION="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
 ALLOW_APT_FIX="${ALLOW_APT_FIX:-0}"
 MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}"
@@ -178,7 +179,7 @@ build_and_run() {
   for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
     download_tarball() {
       log "Downloading $f from $MAKEMKV_BASE_URL"
-      if ! curl -fL "${MAKEMKV_BASE_URL}/${f}" -o "$f"; then
+      if ! curl -fL "${MAKEMKV_BASE_URL}/${f}?raw=1" -o "$f"; then
         log "Failed to download ${f} from ${MAKEMKV_BASE_URL}."
         return 1
       fi
