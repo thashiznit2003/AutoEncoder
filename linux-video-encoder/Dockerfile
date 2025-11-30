@@ -20,11 +20,26 @@ RUN apt-get update && \
     add-apt-repository -y universe && \
     add-apt-repository -y multiverse && \
     apt-get update && \
+    # Install MakeMKV runtime deps from Ubuntu repos
+    apt-get install -y --no-install-recommends \
+      libavcodec58 \
+      libavformat58 \
+      libavutil56 \
+      libbluray2 \
+      libcurl4 \
+      libexpat1 \
+      libfdk-aac1 \
+      libgomp1 \
+      libqt5core5a \
+      libqt5gui5 \
+      libqt5network5 \
+      libqt5widgets5 \
+      libssl1.1 \
+      zlib1g && \
     mkdir -p /tmp/makemkv && \
     curl -fsSL -o /tmp/makemkv/makemkv-oss_1.18.2-1_amd64.deb https://www.makemkv.com/download/makemkv-oss_1.18.2-1_amd64.deb && \
     curl -fsSL -o /tmp/makemkv/makemkv-bin_1.18.2-1_amd64.deb https://www.makemkv.com/download/makemkv-bin_1.18.2-1_amd64.deb && \
-    dpkg -i /tmp/makemkv/*.deb || apt-get -f install -y && \
-    dpkg -i /tmp/makemkv/*.deb && \
+    apt-get install -y --no-install-recommends /tmp/makemkv/*.deb && \
     rm -rf /tmp/makemkv && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
