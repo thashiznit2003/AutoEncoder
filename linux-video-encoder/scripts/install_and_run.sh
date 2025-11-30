@@ -89,6 +89,12 @@ install_nvidia_toolkit() {
       log "Removing existing nvidia-container-toolkit.list to ensure a clean add."
       $SUDO rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
     fi
+    # Also remove any old NVIDIA lines from /etc/apt/sources.list to avoid bad entries
+    if grep -q "nvidia.github.io/libnvidia-container" /etc/apt/sources.list 2>/dev/null; then
+      log "Removing stale NVIDIA repo entries from /etc/apt/sources.list."
+      $SUDO cp /etc/apt/sources.list /etc/apt/sources.list.bak
+      $SUDO sed -i '/nvidia.github.io\\/libnvidia-container/d' /etc/apt/sources.list
+    fi
 
     $SUDO apt-get update
     $SUDO apt-get install -y curl gnupg
@@ -112,10 +118,14 @@ install_nvidia_toolkit() {
         exit 1
         ;;
     esac
-    cat <<EOF | $SUDO tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
-deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/${repo_path}/${arch} /
-#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/experimental/${repo_path}/${arch} /
-EOF
+    # Add repo directly to main sources.list to avoid bad .list files getting reused
+    repo_line="deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/${repo_path}/${arch} /"
+    if ! grep -Fxq "$repo_line" /etc/apt/sources.list; then
+      log "Adding NVIDIA repo to /etc/apt/sources.list: $repo_line"
+      printf '%s\n' "$repo_line" | $SUDO tee -a /etc/apt/sources.list >/dev/null
+    else
+      log "NVIDIA repo already present in /etc/apt/sources.list."
+    fi
 
     $SUDO apt-get update
     $SUDO apt-get install -y nvidia-container-toolkit
