@@ -84,12 +84,10 @@ install_nvidia_toolkit() {
   else
     log "Installing NVIDIA Container Toolkit..."
 
-    # Remove a bad repo file if it contains HTML (happens when download is blocked/redirected)
+    # Remove any existing repo file (to avoid HTML/invalid content breaking apt)
     if [ -f /etc/apt/sources.list.d/nvidia-container-toolkit.list ]; then
-      if grep -qi "<!doctype" /etc/apt/sources.list.d/nvidia-container-toolkit.list 2>/dev/null; then
-        log "Removing invalid nvidia-container-toolkit.list (HTML detected)."
-        $SUDO rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
-      fi
+      log "Removing existing nvidia-container-toolkit.list to ensure a clean add."
+      $SUDO rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
     fi
 
     $SUDO apt-get update
