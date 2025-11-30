@@ -92,50 +92,30 @@ install_nvidia_toolkit() {
 
     $SUDO apt-get update
     $SUDO apt-get install -y curl gnupg
-    distribution=$(. /etc/os-release; echo "$ID$VERSION_ID")
-
+    arch=$(dpkg --print-architecture)
     # Install key without prompting for overwrite
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | $SUDO gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
-    # Download repo list to a temp file, validate it's not HTML, then install.
-    tmp_list="$(mktemp)"
-    curl -s -L "https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list" >"$tmp_list"
-    if grep -qi "<!doctype" "$tmp_list"; then
-      log "Repo list download returned HTML; constructing repo file manually."
-      rm -f "$tmp_list"
-      arch=$(dpkg --print-architecture)
-      distro="nvidia-container-toolkit.list"
-      # Build repo lines for Ubuntu based on VERSION_ID (fallback to stable/ubuntu20.04)
-      . /etc/os-release
-      case "${ID:-}" in
-        ubuntu)
-          case "${VERSION_ID:-}" in
-            24.04) repo_path="ubuntu22.04";;  # 24.04 not published yet; use 22.04 repo
-            22.04) repo_path="ubuntu22.04";;
-            20.04) repo_path="ubuntu20.04";;
-            *) repo_path="ubuntu20.04";;
-          esac
-          ;;
-        *)
-          log "Unsupported distro for manual repo creation; please add repo manually."
-          exit 1
-          ;;
-      esac
-      cat <<EOF | $SUDO tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
+    # Build repo lines for Ubuntu based on VERSION_ID (use 22.04 repo for 24.04 until published)
+    . /etc/os-release
+    case "${ID:-}" in
+      ubuntu)
+        case "${VERSION_ID:-}" in
+          24.04) repo_path="ubuntu22.04";;  # 24.04 not published yet; use 22.04 repo
+          22.04) repo_path="ubuntu22.04";;
+          20.04) repo_path="ubuntu20.04";;
+          *) repo_path="ubuntu20.04";;
+        esac
+        ;;
+      *)
+        log "Unsupported distro for manual repo creation; please add repo manually."
+        exit 1
+        ;;
+    esac
+    cat <<EOF | $SUDO tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
 deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/${repo_path}/${arch} /
 #deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/experimental/${repo_path}/${arch} /
 EOF
-    else
-      if ! grep -q "^deb " "$tmp_list"; then
-        log "Invalid NVIDIA repo list content; aborting."
-        rm -f "$tmp_list"
-        exit 1
-      fi
-      # Inject signed-by into the repo line
-      sed 's#^deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' "$tmp_list" | \
-        $SUDO tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
-      rm -f "$tmp_list"
-    fi
 
     $SUDO apt-get update
     $SUDO apt-get install -y nvidia-container-toolkit
