@@ -8,7 +8,7 @@ set -euo pipefail
 #   REPO_DIR  - directory to clone into
 #   IMAGE_TAG - image name:tag to build
 
-REPO_URL="${REPO_URL:-https://github.com/RaidOwl/AutoEncoder.git}"
+REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
 REPO_DIR="${REPO_DIR:-$HOME/AutoEncoder/linux-video-encoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
 

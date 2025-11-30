@@ -59,6 +59,9 @@ Compose highlights:
 - Multi-pane layout: active encodes, recent jobs, and a live log tail pulled from the application log.
 - Refreshes automatically every few seconds; no auth is included, so keep the port bound to trusted networks.
 
+### Installer script defaults
+- `scripts/install_and_run.sh` defaults `REPO_URL` to your fork (`https://github.com/thashiznit2003/AutoEncoder.git`). Override with `REPO_URL=...` if needed.
+
 ## Config
 
 * __search_path__ - You can specify a specific directory to search if the scan doesn't find your files.
