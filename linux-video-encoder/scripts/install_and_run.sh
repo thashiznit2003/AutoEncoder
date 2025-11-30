@@ -12,6 +12,8 @@ REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
 REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/thashiznit2003/AutoEncoder/archive/refs/heads/main.tar.gz}"
 REPO_DIR="${REPO_DIR:-$HOME/AutoEncoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
+# Default NVIDIA driver for Quadro P600 (Linux x86_64)
+NVIDIA_DRIVER_URL="${NVIDIA_DRIVER_URL:-https://us.download.nvidia.com/XFree86/Linux-x86_64/470.239.06/NVIDIA-Linux-x86_64-470.239.06.run}"
 
 SUDO=""
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
@@ -26,6 +28,26 @@ ensure_base_tools() {
     $SUDO apt-get update
     $SUDO apt-get install -y curl tar
   fi
+}
+
+install_nvidia_driver() {
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    log "NVIDIA driver already present."
+    return
+  fi
+  log "Installing NVIDIA driver from $NVIDIA_DRIVER_URL ..."
+  $SUDO apt-get update
+  $SUDO apt-get install -y build-essential dkms linux-headers-$(uname -r) perl
+  tmpdir="$(mktemp -d)"
+  curl -L "$NVIDIA_DRIVER_URL" -o "$tmpdir/driver.run"
+  chmod +x "$tmpdir/driver.run"
+  # Silent install with DKMS; may require reboot if kernel modules are updated.
+  if ! $SUDO sh "$tmpdir/driver.run" --silent --dkms; then
+    log "NVIDIA driver installer failed."
+    exit 1
+  fi
+  rm -rf "$tmpdir"
+  log "NVIDIA driver installed. A reboot may be required for modules to load."
 }
 
 install_docker() {
@@ -113,6 +135,7 @@ build_and_run() {
 main() {
   ensure_base_tools
   install_docker
+  install_nvidia_driver
   install_nvidia_toolkit
   fetch_repo
   build_and_run
