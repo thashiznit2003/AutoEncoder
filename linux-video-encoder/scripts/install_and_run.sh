@@ -194,19 +194,15 @@ build_and_run() {
       $SUDO chmod 644 "$f" || true
     }
 
-    if [ ! -s "$f" ]; then
-      download_tarball || { log "Aborting build (download failed for ${f})."; exit 1; }
+    # If present and valid, keep it; otherwise download and validate.
+    if [ -s "$f" ] && tar -tzf "$f" >/dev/null 2>&1; then
+      log "$f already present and valid; skipping download."
     else
-      log "$f already present; verifying..."
-    fi
-
-    # Validate tarball; if invalid, re-download once.
-    if ! tar -tzf "$f" >/dev/null 2>&1; then
-      log "Tarball ${f} is invalid (not a gzipped tar or corrupted). Re-downloading..."
+      log "$f missing or invalid; fetching..."
       rm -f "$f"
-      download_tarball || { log "Aborting build (re-download failed for ${f})."; exit 1; }
+      download_tarball || { log "Aborting build (download failed for ${f})."; exit 1; }
       if ! tar -tzf "$f" >/dev/null 2>&1; then
-        log "Tarball ${f} still invalid after re-download. Please replace it with a valid tar.gz at $url. Aborting build."
+        log "Tarball ${f} is invalid after download. Please replace it with a valid tar.gz at $url. Aborting build."
         exit 1
       fi
     fi
