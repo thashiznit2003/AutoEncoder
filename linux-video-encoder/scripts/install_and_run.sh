@@ -9,6 +9,10 @@ if [ -d "$BASE_DIR" ]; then
   $SUDO rm -rf "$BASE_DIR"
 fi
 $SUDO mkdir -p "$BASE_DIR"
+$SUDO chmod 755 "$BASE_DIR"
+# ensure files we create are owned by the invoking user (if run via sudo)
+TARGET_OWNER="${SUDO_USER:-$USER}"
+$SUDO chown "$TARGET_OWNER":"$TARGET_OWNER" "$BASE_DIR"
 
 # Log everything to /linux-video-encoder/installer.log (or override with LOG_FILE) as early as possible
 LOG_FILE="${LOG_FILE:-$BASE_DIR/installer.log}"
@@ -185,6 +189,8 @@ build_and_run() {
       log "Download check failed for ${f} (file missing or empty). Aborting build."
       exit 1
     fi
+    $SUDO chown "$TARGET_OWNER":"$TARGET_OWNER" "$f" || true
+    $SUDO chmod 644 "$f" || true
   done
 
   log "Building image $IMAGE_TAG ..."
