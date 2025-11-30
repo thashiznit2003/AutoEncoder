@@ -1,6 +1,7 @@
 FROM ubuntu:20.04
 
 ARG MAKEMKV_VERSION=1.18.2
+ARG MAKEMKV_BASE_URL=https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -45,8 +46,8 @@ RUN set -ex && \
       libssl1.1 \
       zlib1g && \
     mkdir -p /tmp/makemkv && \
-    curl -fsSL -o /tmp/makemkv/makemkv-bin.tar.gz https://www.makemkv.com/download/makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
-    curl -fsSL -o /tmp/makemkv/makemkv-oss.tar.gz https://www.makemkv.com/download/makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
+    curl -fsSL -o /tmp/makemkv/makemkv-bin.tar.gz ${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
+    curl -fsSL -o /tmp/makemkv/makemkv-oss.tar.gz ${MAKEMKV_BASE_URL}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
     cd /tmp/makemkv && \
     if [ -s makemkv-oss.tar.gz ] && [ -s makemkv-bin.tar.gz ]; then \
       tar xzf makemkv-oss.tar.gz && \
