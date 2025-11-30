@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Log everything to installer.log (or override with LOG_FILE) as early as possible
+LOG_FILE="${LOG_FILE:-$(pwd)/installer.log}"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
 # This script installs Docker, Docker Compose plugin, NVIDIA Container Toolkit,
 # then builds and runs the linux-video-encoder stack.
 # Tunable vars (override with env):
@@ -29,9 +33,6 @@ fi
 if [ "${TRACE:-0}" = "1" ]; then
   set -x
 fi
-
-LOG_FILE="${LOG_FILE:-$(pwd)/installer.log}"
-exec > >(tee -a "$LOG_FILE") 2>&1
 
 log() { printf '[installer] %s\n' "$*"; }
 
