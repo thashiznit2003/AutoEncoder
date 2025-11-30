@@ -87,6 +87,9 @@ NVIDIA Container Toolkit (offline .deb, no apt repo)
 - If `dpkg` reports missing dependencies, set `ALLOW_APT_FIX=1` to allow a one-time `apt-get -f install` to resolve them.
 - Override version with `NVIDIA_TOOLKIT_VERSION=<version>` if needed (matching filenames on https://github.com/NVIDIA/libnvidia-container/releases).
 
+MakeMKV downloads note:
+- The Dockerfile now builds MakeMKV from source tarballs. If the tarballs cannot be fetched during build, it will skip building MakeMKV and continue (FFmpeg/HandBrakeCLI will still be present). To force a specific MakeMKV version, pass `--build-arg MAKEMKV_VERSION=1.18.2` to `docker build`.
+
 ## Config
 
 * __search_path__ - You can specify a specific directory to search if the scan doesn't find your files.

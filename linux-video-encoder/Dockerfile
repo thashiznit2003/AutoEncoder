@@ -48,12 +48,16 @@ RUN set -ex && \
     curl -fsSL -o /tmp/makemkv/makemkv-bin.tar.gz https://www.makemkv.com/download/makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
     curl -fsSL -o /tmp/makemkv/makemkv-oss.tar.gz https://www.makemkv.com/download/makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
     cd /tmp/makemkv && \
-    tar xzf makemkv-oss.tar.gz && \
-    tar xzf makemkv-bin.tar.gz && \
-    cd makemkv-oss-${MAKEMKV_VERSION} && \
-    ./configure && make -s && make install && \
-    cd /tmp/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
-    make -f makefile.linux -s && make -f makefile.linux install && \
+    if [ -s makemkv-oss.tar.gz ] && [ -s makemkv-bin.tar.gz ]; then \
+      tar xzf makemkv-oss.tar.gz && \
+      tar xzf makemkv-bin.tar.gz && \
+      cd makemkv-oss-${MAKEMKV_VERSION} && \
+      ./configure && make -s && make install && \
+      cd /tmp/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
+      make -f makefile.linux -s && make -f makefile.linux install; \
+    else \
+      echo "MakeMKV tarballs missing or failed to download; skipping MakeMKV build."; \
+    fi && \
     rm -rf /tmp/makemkv
 
 # Clean apt caches to keep the image smaller
