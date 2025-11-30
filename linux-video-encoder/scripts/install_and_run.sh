@@ -14,6 +14,8 @@ REPO_DIR="${REPO_DIR:-$HOME/AutoEncoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
 # Default NVIDIA driver for Quadro P600 (Linux x86_64)
 NVIDIA_DRIVER_URL="${NVIDIA_DRIVER_URL:-https://us.download.nvidia.com/XFree86/Linux-x86_64/470.239.06/NVIDIA-Linux-x86_64-470.239.06.run}"
+# Set INSTALL_NVIDIA_DRIVER=1 to force a driver install; default skips if already installed.
+INSTALL_NVIDIA_DRIVER="${INSTALL_NVIDIA_DRIVER:-0}"
 
 SUDO=""
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
@@ -31,6 +33,10 @@ ensure_base_tools() {
 }
 
 install_nvidia_driver() {
+  if [ "$INSTALL_NVIDIA_DRIVER" != "1" ]; then
+    log "Skipping NVIDIA driver install (INSTALL_NVIDIA_DRIVER!=1)."
+    return
+  fi
   if command -v nvidia-smi >/dev/null 2>&1; then
     log "NVIDIA driver already present."
     return
