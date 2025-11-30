@@ -119,7 +119,7 @@ install_nvidia_toolkit() {
     repo_line="deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/${repo_path}/${arch} /"
     log "Adding NVIDIA repo to /etc/apt/sources.list: $repo_line"
     # Remove any stale NVIDIA entries (any line containing nvidia.github.io/libnvidia-container)
-    $SUDO sed -i '\#nvidia.github.io/libnvidia-container#d' /etc/apt/sources.list
+    $SUDO sed -i '/nvidia\.github\.io\/libnvidia-container/d' /etc/apt/sources.list
     printf '%s\n' "$repo_line" | $SUDO tee -a /etc/apt/sources.list >/dev/null
 
     # Temporarily allow insecure updates (NVIDIA repo lacks Release for Ubuntu 24.04); will remove after install
