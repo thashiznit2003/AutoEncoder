@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Log everything to installer.log (or override with LOG_FILE) as early as possible
-LOG_FILE="${LOG_FILE:-$(pwd)/installer.log}"
+BASE_DIR="${BASE_DIR:-/linux-video-encoder}"
+
+# Prepare working directory at /linux-video-encoder (wipe and recreate)
+if [ -d "$BASE_DIR" ]; then
+  printf '[installer] Removing existing %s\n' "$BASE_DIR"
+  $SUDO rm -rf "$BASE_DIR"
+fi
+$SUDO mkdir -p "$BASE_DIR"
+
+# Log everything to /linux-video-encoder/installer.log (or override with LOG_FILE) as early as possible
+LOG_FILE="${LOG_FILE:-$BASE_DIR/installer.log}"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 # This script installs Docker, Docker Compose plugin,
@@ -22,7 +31,7 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 
 REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
 REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/thashiznit2003/AutoEncoder/archive/refs/heads/main.tar.gz}"
-REPO_DIR="${REPO_DIR:-$HOME/AutoEncoder}"
+REPO_DIR="${REPO_DIR:-$BASE_DIR/AutoEncoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
 INSTALL_NVIDIA_TOOLKIT="${INSTALL_NVIDIA_TOOLKIT:-1}"
 NVIDIA_TOOLKIT_VERSION="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
