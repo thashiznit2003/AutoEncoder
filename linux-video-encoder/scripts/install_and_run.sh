@@ -102,12 +102,10 @@ install_nvidia_toolkit() {
     # Install key without prompting for overwrite
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | $SUDO gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
-    # Build repo lines for Ubuntu based on VERSION_ID (force 22.04 repo for 24.04 until published)
+    # Build repo lines for Ubuntu based on VERSION_ID (force 22.04 repo for all Ubuntu until 24.04 is published)
     . /etc/os-release
     case "${ID:-}" in
-      ubuntu)
-        repo_path="ubuntu22.04"
-        ;;
+      ubuntu) repo_path="ubuntu22.04" ;;
       *)
         log "Unsupported distro for manual repo creation; please add repo manually."
         exit 1
@@ -120,8 +118,15 @@ install_nvidia_toolkit() {
     $SUDO sed -i '/nvidia.github.io\\/libnvidia-container/d' /etc/apt/sources.list
     printf '%s\n' "$repo_line" | $SUDO tee -a /etc/apt/sources.list >/dev/null
 
+    # Temporarily allow insecure updates (NVIDIA repo lacks Release for Ubuntu 24.04); will remove after install
+    ALLOW_CONF="/etc/apt/apt.conf.d/99allow-insecure-nvidia"
+    echo 'Acquire::AllowInsecureRepositories "true";' | $SUDO tee "$ALLOW_CONF" >/dev/null
+    echo 'Acquire::AllowDowngradeToInsecureRepositories "true";' | $SUDO tee -a "$ALLOW_CONF" >/dev/null
+
     $SUDO apt-get update
     $SUDO apt-get install -y nvidia-container-toolkit
+    # Remove insecure override
+    $SUDO rm -f "$ALLOW_CONF"
     $SUDO nvidia-ctk runtime configure --runtime=docker || true
     log "NVIDIA Container Toolkit installed."
   fi
