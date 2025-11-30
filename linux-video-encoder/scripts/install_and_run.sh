@@ -9,7 +9,8 @@ set -euo pipefail
 #   IMAGE_TAG - image name:tag to build
 
 REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
-REPO_DIR="${REPO_DIR:-$HOME/AutoEncoder/linux-video-encoder}"
+REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/thashiznit2003/AutoEncoder/archive/refs/heads/main.tar.gz}"
+REPO_DIR="${REPO_DIR:-$HOME/AutoEncoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
 
 SUDO=""
@@ -18,6 +19,14 @@ if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 fi
 
 log() { printf '[installer] %s\n' "$*"; }
+
+ensure_base_tools() {
+  if ! command -v curl >/dev/null 2>&1 || ! command -v tar >/dev/null 2>&1; then
+    log "Installing curl and tar..."
+    $SUDO apt-get update
+    $SUDO apt-get install -y curl tar
+  fi
+}
 
 install_docker() {
   if command -v docker >/dev/null 2>&1; then
@@ -58,14 +67,38 @@ install_nvidia_toolkit() {
   $SUDO systemctl restart docker
 }
 
-clone_repo() {
-  if [ -d "$REPO_DIR" ]; then
+fetch_repo() {
+  # If repo already exists and is a git repo, update it; otherwise download a tarball via curl.
+  if [ -d "$REPO_DIR/.git" ] && command -v git >/dev/null 2>&1; then
     log "Repo already present at $REPO_DIR; pulling latest..."
     git -C "$REPO_DIR" pull --ff-only || true
-  else
+    return
+  fi
+
+  if [ -d "$REPO_DIR" ] && [ ! -d "$REPO_DIR/linux-video-encoder" ]; then
+    log "Found existing $REPO_DIR but no git metadata. Replacing with fresh download."
+    rm -rf "$REPO_DIR"
+  fi
+
+  if command -v git >/dev/null 2>&1; then
     log "Cloning repo from $REPO_URL..."
     git clone "$REPO_URL" "$REPO_DIR"
+    return
   fi
+
+  log "Git not available; downloading tarball via curl."
+  tmpdir="$(mktemp -d)"
+  curl -L "$REPO_TARBALL_URL" -o "$tmpdir/repo.tar.gz"
+  mkdir -p "$REPO_DIR"
+  tar -xzf "$tmpdir/repo.tar.gz" -C "$tmpdir"
+  extracted="$(find "$tmpdir" -maxdepth 1 -type d -name 'AutoEncoder*' | head -n 1)"
+  if [ -z "$extracted" ] || [ ! -d "$extracted" ]; then
+    log "Failed to find extracted repo folder in tarball."
+    exit 1
+  fi
+  rm -rf "$REPO_DIR"
+  mv "$extracted" "$REPO_DIR"
+  rm -rf "$tmpdir"
 }
 
 build_and_run() {
@@ -78,9 +111,10 @@ build_and_run() {
 }
 
 main() {
+  ensure_base_tools
   install_docker
   install_nvidia_toolkit
-  clone_repo
+  fetch_repo
   build_and_run
 }
 

@@ -64,18 +64,21 @@ Compose highlights:
 
 ### Run the installer on Ubuntu (CLI)
 1. SSH into your Ubuntu VM/host.
-2. Clone your fork (or download the repo):
+2. Option A (no git required; curl only):
+   ```bash
+   curl -LO https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_and_run.sh
+   chmod +x install_and_run.sh
+   ./install_and_run.sh
+   ```
+   - The script will download the repo tarball via curl if git is not present.
+   - To use a different fork: `REPO_URL=https://github.com/<you>/<repo>.git REPO_TARBALL_URL=https://github.com/<you>/<repo>/archive/refs/heads/main.tar.gz ./install_and_run.sh`
+3. Option B (if you have git):
    ```bash
    git clone https://github.com/thashiznit2003/AutoEncoder.git
    cd AutoEncoder/linux-video-encoder
-   ```
-   If you need a different fork, set `REPO_URL=...` when running the script.
-3. Make the script executable and run it:
-   ```bash
    chmod +x scripts/install_and_run.sh
    ./scripts/install_and_run.sh
    ```
-   - To override the repo used by the installer: `REPO_URL=https://github.com/<you>/<repo>.git ./scripts/install_and_run.sh`
 4. After completion, Docker will be installed (if missing), NVIDIA Container Toolkit configured, the image built, and the stack started.
 5. Open `http://<host>:5959` to view the web UI.
 
