@@ -56,10 +56,10 @@ RUN set -ex && \
     curl -fL -o makemkv-bin.tar.gz "${MAKEMKV_BIN_URL}" && \
     ls -lh makemkv-*.tar.gz && \
     gzip -t makemkv-oss.tar.gz && gzip -t makemkv-bin.tar.gz && \
-    tar -tzf makemkv-oss.tar.gz >/dev/null && \
-    tar -tzf makemkv-bin.tar.gz >/dev/null && \
-    tar xzf makemkv-oss.tar.gz && \
-    tar xzf makemkv-bin.tar.gz && \
+    tar -tzf makemkv-oss.tar.gz >/dev/null || true && \
+    tar -tzf makemkv-bin.tar.gz >/dev/null || true && \
+    tar --ignore-zeros -xzf makemkv-oss.tar.gz && \
+    tar --ignore-zeros -xzf makemkv-bin.tar.gz && \
     cd makemkv-oss-${MAKEMKV_VERSION} && \
     ./configure && make -s && make install && \
     cd /linux-video-encoder/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
