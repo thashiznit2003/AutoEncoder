@@ -200,8 +200,11 @@ HTML_PAGE = """
         const cfg = await fetchJSON("/api/config");
         populateHandbrakeForm(cfg);
         document.getElementById("mk-ripdir").value = cfg.rip_dir || "/mnt/ripped";
-        document.getElementById("mk-minlen").value = cfg.makemkv_minlength ?? 1200;
-        document.getElementById("hb-summary").textContent = `Encoder: ${cfg.handbrake.encoder || "x264"} | Default RF: ${cfg.handbrake.quality ?? 20} | DVD RF: ${cfg.handbrake_dvd.quality ?? 20} | BR RF: ${cfg.handbrake_br.quality ?? 25} | Ext: ${cfg.handbrake.extension || ".mkv"}`;
+        document.getElementById("mk-minlen").value = (cfg.makemkv_minlength !== undefined && cfg.makemkv_minlength !== null) ? cfg.makemkv_minlength : 1200;
+        const hb = cfg.handbrake || {};
+        const hbDvd = cfg.handbrake_dvd || {};
+        const hbBr = cfg.handbrake_br || {};
+        document.getElementById("hb-summary").textContent = `Encoder: ${hb.encoder || "x264"} | Default RF: ${hb.quality !== undefined && hb.quality !== null ? hb.quality : 20} | DVD RF: ${hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20} | BR RF: ${hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25} | Ext: ${hb.extension || ".mkv"}`;
       } catch (e) {
         console.error("Failed to load config", e);
       }
