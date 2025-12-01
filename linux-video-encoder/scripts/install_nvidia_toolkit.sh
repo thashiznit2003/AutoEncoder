@@ -1,31 +1,19 @@
 #!/usr/bin/env bash
-# Install NVIDIA Container Toolkit from upstream .deb packages (no APT repo needed).
-# Usage (as root or with sudo privileges):
+# Install NVIDIA Container Toolkit via NVIDIA APT repo (pinned to ubuntu22.04 packages, which work on 24.04).
+# Usage:
 #   curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_nvidia_toolkit.sh -o /tmp/install_nvidia_toolkit.sh
 #   sudo bash /tmp/install_nvidia_toolkit.sh
 #
 # Tunables:
-#   NVIDIA_TOOLKIT_VERSION   Version to install (default: 1.14.3; script will fallback to a small list)
-#   RUN_NVIDIA_TEST=1        After install, run a test container (docker run --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi)
+#   RUN_NVIDIA_TEST=1  Run a test container after install: docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
 
 set -euo pipefail
-
-REQUESTED_VER="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
-FALLBACK_VERSIONS=("1.14.5" "1.14.4" "1.14.3" "1.13.5")
-ARCH="$(dpkg --print-architecture)"
-TMPDIR="$(mktemp -d /tmp/nvidia-ctk.XXXXXX)"
 SUDO=""
-
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   SUDO="sudo"
 fi
 
 log() { printf '[nvidia-ctk] %s\n' "$*"; }
-
-cleanup() {
-  rm -rf "$TMPDIR"
-}
-trap cleanup EXIT
 
 ensure_tools() {
   if ! command -v curl >/dev/null 2>&1; then
@@ -33,84 +21,32 @@ ensure_tools() {
     $SUDO apt-get update
     $SUDO apt-get install -y curl
   fi
-}
-
-clean_bad_lists() {
-  local lst="/etc/apt/sources.list.d/nvidia-container-toolkit.list"
-  if [ -f "$lst" ]; then
-    if grep -qi '<!doctype' "$lst"; then
-      log "Detected invalid nvidia-container-toolkit list (HTML); moving aside."
-      $SUDO mv "$lst" "${lst}.bak.$(date +%s)" || true
-    fi
+  if ! command -v gpg >/dev/null 2>&1; then
+    log "Installing gpg..."
+    $SUDO apt-get update
+    $SUDO apt-get install -y gpg
   fi
 }
 
-detect_distro_path() {
-  # Try to derive distro path like ubuntu22.04 or debian12
-  local id ver pretty
-  if [ -r /etc/os-release ]; then
-    . /etc/os-release
-    id="${ID:-ubuntu}"
-    ver="${VERSION_ID:-22.04}"
-  else
-    id="$(lsb_release -is 2>/dev/null | tr 'A-Z' 'a-z' || echo ubuntu)"
-    ver="$(lsb_release -rs 2>/dev/null || echo 22.04)"
-  fi
-  echo "${id}${ver}"
+add_repo() {
+  # Force repo path to ubuntu22.04 because NVIDIA has not published ubuntu24.04 yet.
+  local distribution="ubuntu22.04"
+  local list="/etc/apt/sources.list.d/nvidia-container-toolkit.list"
+  log "Removing any bad/old repo list..."
+  $SUDO rm -f "$list"
+  log "Adding NVIDIA key..."
+  curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+    | $SUDO gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+  log "Adding repo list for ${distribution}..."
+  curl -fsSL https://nvidia.github.io/libnvidia-container/${distribution}/libnvidia-container.list \
+    | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
+    | $SUDO tee "$list" >/dev/null
 }
 
-download_debs() {
-  local versions=()
-  versions+=("$REQUESTED_VER")
-  for v in "${FALLBACK_VERSIONS[@]}"; do
-    if [[ ! " ${versions[*]} " =~ " ${v} " ]]; then
-      versions+=("$v")
-    fi
-  done
-
-  local distro_path
-  distro_path="$(detect_distro_path)"
-
-  for ver in "${versions[@]}"; do
-    # Preferred: grab from NVIDIA GitHub pages (same place the apt repo points)
-    local base_url="https://nvidia.github.io/libnvidia-container/stable/${distro_path}/amd64"
-    local files=(
-      "libnvidia-container1_${ver}-1_${ARCH}.deb"
-      "libnvidia-container-tools_${ver}-1_${ARCH}.deb"
-      "nvidia-container-toolkit-base_${ver}-1_${ARCH}.deb"
-      "nvidia-container-toolkit_${ver}-1_${ARCH}.deb"
-    )
-    log "Attempting download for version ${ver} (path: ${distro_path})..."
-    local ok=1
-    for f in "${files[@]}"; do
-      local url="${base_url}/${f}"
-      log "  downloading ${f}"
-      if ! curl -fL --retry 3 --retry-delay 2 "$url" -o "${TMPDIR}/${f}"; then
-        log "  failed to fetch ${url}"
-        ok=0
-        break
-      fi
-    done
-    if [ "$ok" -eq 1 ]; then
-      VER="$ver"
-      return 0
-    else
-      log "Version ${ver} failed, trying next fallback..."
-      rm -f "${TMPDIR}"/*.deb
-    fi
-  done
-
-  log "All download attempts failed. Check connectivity or specify NVIDIA_TOOLKIT_VERSION to a valid release."
-  exit 1
-}
-
-install_debs() {
-  log "Installing NVIDIA Container Toolkit .deb packages..."
-  if ! $SUDO dpkg -i "${TMPDIR}"/*.deb; then
-    log "dpkg reported missing deps; attempting apt-get -f install..."
-    $SUDO apt-get -f install -y
-    $SUDO dpkg -i "${TMPDIR}"/*.deb
-  fi
+install_toolkit() {
+  log "Installing nvidia-container-toolkit (via apt)..."
+  $SUDO apt-get update
+  $SUDO apt-get install -y nvidia-container-toolkit
 }
 
 configure_docker() {
@@ -138,9 +74,8 @@ test_gpu() {
 }
 
 ensure_tools
-clean_bad_lists
-download_debs
-install_debs
+add_repo
+install_toolkit
 configure_docker
 test_gpu
 
