@@ -75,32 +75,41 @@ HTML_PAGE = """
         </label>
         <label>Default quality (constant quality RF, lower = higher quality)
           <select id="hb-quality" name="quality">
+            <option value="16">16</option>
             <option value="18">18</option>
             <option value="20">20</option>
             <option value="22">22</option>
             <option value="24">24</option>
+            <option value="25">25</option>
             <option value="26">26</option>
             <option value="28">28</option>
+            <option value="30">30</option>
           </select>
         </label>
         <label>DVD quality (constant quality RF, lower = higher quality)
           <select id="hb-dvd-quality" name="quality_dvd">
+            <option value="16">16</option>
             <option value="18">18</option>
             <option value="20">20</option>
             <option value="22">22</option>
             <option value="24">24</option>
+            <option value="25">25</option>
             <option value="26">26</option>
             <option value="28">28</option>
+            <option value="30">30</option>
           </select>
         </label>
         <label>Blu-ray quality (constant quality RF, lower = higher quality)
           <select id="hb-br-quality" name="quality_br">
+            <option value="16">16</option>
             <option value="18">18</option>
             <option value="20">20</option>
             <option value="22">22</option>
             <option value="24">24</option>
+            <option value="25">25</option>
             <option value="26">26</option>
             <option value="28">28</option>
+            <option value="30">30</option>
           </select>
         </label>
         <label>Output extension
@@ -192,7 +201,7 @@ HTML_PAGE = """
         document.getElementById("mk-ripdir").value = cfg.rip_dir || "";
         document.getElementById("mk-minlen").value = cfg.makemkv_minlength ?? 1200;
       } catch (e) {
-        // ignore populate errors
+        console.error("Failed to load config", e);
       }
     }
 
