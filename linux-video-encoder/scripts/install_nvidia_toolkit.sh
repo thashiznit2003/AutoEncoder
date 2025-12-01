@@ -45,6 +45,20 @@ clean_bad_lists() {
   fi
 }
 
+detect_distro_path() {
+  # Try to derive distro path like ubuntu22.04 or debian12
+  local id ver pretty
+  if [ -r /etc/os-release ]; then
+    . /etc/os-release
+    id="${ID:-ubuntu}"
+    ver="${VERSION_ID:-22.04}"
+  else
+    id="$(lsb_release -is 2>/dev/null | tr 'A-Z' 'a-z' || echo ubuntu)"
+    ver="$(lsb_release -rs 2>/dev/null || echo 22.04)"
+  fi
+  echo "${id}${ver}"
+}
+
 download_debs() {
   local versions=()
   versions+=("$REQUESTED_VER")
@@ -54,15 +68,19 @@ download_debs() {
     fi
   done
 
+  local distro_path
+  distro_path="$(detect_distro_path)"
+
   for ver in "${versions[@]}"; do
-    local base_url="https://github.com/NVIDIA/libnvidia-container/releases/download/v${ver}"
+    # Preferred: grab from NVIDIA GitHub pages (same place the apt repo points)
+    local base_url="https://nvidia.github.io/libnvidia-container/stable/${distro_path}/amd64"
     local files=(
       "libnvidia-container1_${ver}-1_${ARCH}.deb"
       "libnvidia-container-tools_${ver}-1_${ARCH}.deb"
       "nvidia-container-toolkit-base_${ver}-1_${ARCH}.deb"
       "nvidia-container-toolkit_${ver}-1_${ARCH}.deb"
     )
-    log "Attempting download for version ${ver}..."
+    log "Attempting download for version ${ver} (path: ${distro_path})..."
     local ok=1
     for f in "${files[@]}"; do
       local url="${base_url}/${f}"
