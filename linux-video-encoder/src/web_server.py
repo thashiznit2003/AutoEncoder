@@ -152,25 +152,29 @@ HTML_PAGE = """
 
     function renderList(container, items, empty) {
       if (!items || items.length === 0) {
-        container.innerHTML = `<div class="muted">${empty}</div>`;
+        container.innerHTML = '<div class="muted">' + empty + '</div>';
         return;
       }
-      container.innerHTML = items.map(item => {
-        const badge = `<span class="badge ${item.state}">${item.state.toUpperCase()}</span>`;
-        const duration = item.duration_sec ? fmtDuration(item.duration_sec) : (item.finished_at && item.started_at ? fmtDuration(item.finished_at - (item.started_at || item.finished_at)) : "");
-        const progress = (item.progress || item.progress === 0) ? Math.min(100, Math.max(0, item.progress)).toFixed(0) : null;
-        const progBar = progress !== null ? `<div class="progress"><div class="progress-bar" style="width:${progress}%"></div></div>` : "";
-        const stopBtn = item.state === "running" ? `<button class="stop-btn" data-src="${encodeURIComponent(item.source || "")}">Stop</button>` : "";
-        return `<div class="item">
-          <div class="flex-between">
-            <div class="path">${item.source || ""}</div>
-            <div>${badge} ${stopBtn}</div>
-          </div>
-          <div class="muted">-> ${item.destination || ""}</div>
-          <div class="muted">${item.message || ""}</div>
-          <div class="muted">${duration ? "Encode elapsed: " + duration : ""}</div>
-          ${progBar}
-        </div>`;
+      container.innerHTML = items.map(function(item) {
+        const state = item.state || "";
+        const badge = '<span class="badge ' + state + '">' + state.toUpperCase() + '</span>';
+        const duration = item.duration_sec ? fmtDuration(item.duration_sec) : ((item.finished_at && item.started_at) ? fmtDuration(item.finished_at - (item.started_at || item.finished_at)) : "");
+        const hasProgress = item.progress || item.progress === 0;
+        const progress = hasProgress ? Math.min(100, Math.max(0, item.progress)).toFixed(0) : null;
+        const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div>' : "";
+        const stopBtn = state === "running" ? '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">Stop</button>' : "";
+        return [
+          '<div class="item">',
+          '  <div class="flex-between">',
+          '    <div class="path">' + (item.source || "") + '</div>',
+          '    <div>' + badge + ' ' + stopBtn + '</div>',
+          '  </div>',
+          '  <div class="muted">-> ' + (item.destination || "") + '</div>',
+          '  <div class="muted">' + (item.message || "") + '</div>',
+          '  <div class="muted">' + (duration ? "Encode elapsed: " + duration : "") + '</div>',
+          '  ' + progBar,
+          '</div>'
+        ].join("");
       }).join("");
     }
 
@@ -185,21 +189,24 @@ HTML_PAGE = """
       }
       try {
         const logs = await fetchJSON("/api/logs");
-        document.getElementById("logs").textContent = logs.lines.join("\n");
+        const lines = Array.isArray(logs.lines) ? logs.lines : [];
+        document.getElementById("logs").textContent = lines.join("\\n");
       } catch (e) {
         document.getElementById("logs").textContent = "Logs unavailable.";
       }
       try {
         const events = await fetchJSON("/api/events");
-        const lines = events.map(ev => `[${new Date(ev.ts * 1000).toLocaleTimeString()}] ${ev.message}`);
-        document.getElementById("events").textContent = lines.join("\n") || "No recent events.";
+        const lines = (events || []).map(function(ev) {
+          return "[" + new Date(ev.ts * 1000).toLocaleTimeString() + "] " + ev.message;
+        });
+        document.getElementById("events").textContent = lines.join("\\n") || "No recent events.";
       } catch (e) {
         document.getElementById("events").textContent = "Events unavailable.";
       }
       try {
         const cfg = await fetchJSON("/api/config");
         populateHandbrakeForm(cfg);
-        document.getElementById("mk-ripdir").value = cfg.rip_dir || "/mnt/ripped";
+        document.getElementById("mk-ripdir").value = (cfg.rip_dir || "/mnt/ripped");
         document.getElementById("mk-minlen").value = (cfg.makemkv_minlength !== undefined && cfg.makemkv_minlength !== null) ? cfg.makemkv_minlength : 1200;
         const hb = cfg.handbrake || {};
         const hbDvd = cfg.handbrake_dvd || {};
@@ -221,7 +228,8 @@ HTML_PAGE = """
 
     function setSelectValue(sel, value, fallback) {
       if (!sel) return;
-      const valStr = (value ?? fallback).toString();
+      const val = (value === undefined || value === null) ? fallback : value;
+      const valStr = val.toString();
       const has = Array.from(sel.options).some(o => o.value === valStr);
       sel.value = has ? valStr : fallback.toString();
     }
@@ -260,7 +268,7 @@ HTML_PAGE = """
     document.addEventListener("click", async (e) => {
       if (e.target.classList.contains("clear-btn")) {
         const status = e.target.getAttribute("data-clear");
-        await fetch(`/api/clear`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+        await fetch("/api/clear", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
         refresh();
       }
       if (e.target.classList.contains("stop-btn")) {
