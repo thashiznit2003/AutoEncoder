@@ -391,6 +391,8 @@ class Scanner:
 
                 for file in files:
                     try:
+                        if file.startswith("._"):
+                            continue
                         if file.lower().endswith(video_extensions_lower):
                             full = os.path.join(root, file)
                             video_files.append(full)

@@ -46,14 +46,14 @@ DEFAULT_CONFIG = {
         "quality": 20,
         "audio_bitrate_kbps": 128,
         "extra_args": [],
-        "extension": ".mp4"
+        "extension": ".mkv"
     },
     "handbrake_dvd": {
         "encoder": "x264",
         "quality": 20,
         "width": 1920,
         "height": 1080,
-        "extension": ".mp4",
+        "extension": ".mkv",
         "extra_args": []
     },
     "handbrake_br": {
@@ -61,7 +61,7 @@ DEFAULT_CONFIG = {
         "quality": 25,
         "width": 3840,
         "height": 2160,
-        "extension": ".mp4",
+        "extension": ".mkv",
         "extra_args": []
     },
     "makemkv_minlength": 1200
@@ -136,7 +136,7 @@ def setup_logging():
 
 import subprocess
 
-def rip_disc(disc_index, output_dir_path, min_length=1800):
+def rip_disc(disc_index, output_dir_path, min_length=1800, status_tracker: Optional[StatusTracker] = None):
     """
     Rips a Blu-ray disc using MakeMKV CLI.
     Returns the path to the first output file if successful, or None on failure.
@@ -156,7 +156,10 @@ def rip_disc(disc_index, output_dir_path, min_length=1800):
         print(f"⚠️  Found existing MKV file: {latest}\nSkipping rip.")
         return None
 
-    print(f"📀 Running: {' '.join(cmd)}")
+    msg = f"📀 Running: {' '.join(cmd)}"
+    print(msg)
+    if status_tracker:
+        status_tracker.add_event(f"MakeMKV rip started (disc {disc_index})")
 
     try:
         result = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
@@ -169,6 +172,12 @@ def rip_disc(disc_index, output_dir_path, min_length=1800):
     except FileNotFoundError:
         print("❌ Error: makemkvcon not found. Is MakeMKV installed?")
         return None
+
+    if status_tracker:
+        if rc == 0:
+            status_tracker.add_event(f"MakeMKV rip complete (disc {disc_index})")
+        else:
+            status_tracker.add_event(f"MakeMKV rip failed (disc {disc_index})", level="error")
 
     # Print (or log) the MakeMKV output
     print(result.stdout)
@@ -311,6 +320,8 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
             status_tracker.add_event(f"Encoding started: {input_path}")
         # Stream combined stdout+stderr so progress and messages appear live
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        if status_tracker:
+            status_tracker.register_proc(str(input_path), proc)
         # Iterate lines as they arrive and log them
         if proc.stdout is not None:
             import re
@@ -357,17 +368,26 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         config_str = "handbrake_dvd"
 
     hb_opts = config.get(config_str, {})
-    extension = hb_opts.get("extension", ".mp4")
+    extension = hb_opts.get("extension", ".mkv")
 
     src = Path(video_file)
     src_mtime = src.stat().st_mtime
+    def unique_name(base_dir: Path, base: str, ext: str) -> Path:
+        candidate = base_dir / f"{base}{ext}"
+        idx = 1
+        while candidate.exists():
+            candidate = base_dir / f"{base}({idx}){ext}"
+            idx += 1
+        return candidate
+
     if is_dvd:
-        out_name = f"{src.parent.name}{extension}"
+        base = src.parent.name
     elif is_bluray:
-        out_name = f"{src.parent.parent.name}{extension}"
+        base = src.parent.parent.name
     else:
-        out_name = f"{src.stem}_encoded_{src_mtime}{extension}" # this ensures re-encoding if the source file has the same name but is newer
-    out_path = output_dir / out_name
+        base = src.stem
+
+    out_path = unique_name(output_dir, base, extension)
 
     dest_str = str(out_path)
     if status_tracker:
@@ -390,7 +410,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         disc_num = get_disc_number()
         if disc_num is not None:
             minlen = int(config.get("makemkv_minlength", 1800))
-            rip_path = rip_disc(disc_num, rip_dir, min_length=minlen)
+            rip_path = rip_disc(disc_num, rip_dir, min_length=minlen, status_tracker=status_tracker)
             if rip_path is None:
                 logging.error("Blu-ray ripping failed; skipping encoding for %s", video_file)
                 if status_tracker:
@@ -513,6 +533,7 @@ def main():
                 # unique preserving order
                 seen = set()
                 scan_roots = [x for x in scan_roots if not (x in seen or seen.add(x))]
+            scan_roots = [r for r in scan_roots if r != "/mnt/output"]
 
             logging.info("Scanning directories: %s", ", ".join(scan_roots) if scan_roots else "<none>")
             # debug: show mount status and a sample of contents for each scan root

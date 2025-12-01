@@ -19,7 +19,7 @@ HTML_PAGE = """
     input, select { padding: 6px 8px; border-radius: 6px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; }
     button { padding: 8px 12px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; font-weight: 600; cursor: pointer; }
     button:hover { background: #1d4ed8; }
-    .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 8px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; }
+    .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 8px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; white-space: pre-wrap; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: #0f172a; font-weight: 600; }
     .badge.running { background: #fde047; }
     .badge.success { background: #34d399; }
@@ -45,7 +45,13 @@ HTML_PAGE = """
     </div>
     <div class="panel">
       <h2>Recent Jobs</h2>
-      <div id="recent"></div>
+      <div id="recent" style="max-height: 260px; overflow-y: auto;"></div>
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
+        <button data-clear="success" class="clear-btn">Clear Success</button>
+        <button data-clear="error" class="clear-btn">Clear Error</button>
+        <button data-clear="running" class="clear-btn">Clear Running</button>
+        <button data-clear="all" class="clear-btn">Clear All</button>
+      </div>
     </div>
     <div class="panel">
       <h2>Status Messages</h2>
@@ -99,14 +105,15 @@ HTML_PAGE = """
         const duration = item.duration_sec ? fmtDuration(item.duration_sec) : (item.finished_at && item.started_at ? fmtDuration(item.finished_at - (item.started_at || item.finished_at)) : "");
         const progress = (item.progress || item.progress === 0) ? Math.min(100, Math.max(0, item.progress)).toFixed(0) : null;
         const progBar = progress !== null ? `<div class="progress"><div class="progress-bar" style="width:${progress}%"></div></div>` : "";
+        const stopBtn = item.state === "running" ? `<button class="stop-btn" data-src="${encodeURIComponent(item.source || "")}">Stop</button>` : "";
         return `<div class="item">
           <div class="flex-between">
             <div class="path">${item.source || ""}</div>
-            <div>${badge}</div>
+            <div>${badge} ${stopBtn}</div>
           </div>
           <div class="muted">-> ${item.destination || ""}</div>
           <div class="muted">${item.message || ""}</div>
-          <div class="muted">${duration ? "Duration: " + duration : ""}</div>
+          <div class="muted">${duration ? "Encode elapsed: " + duration : ""}</div>
           ${progBar}
         </div>`;
       }).join("");
@@ -167,6 +174,21 @@ HTML_PAGE = """
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     });
 
+    document.addEventListener("click", async (e) => {
+      if (e.target.classList.contains("clear-btn")) {
+        const status = e.target.getAttribute("data-clear");
+        await fetch(`/api/clear`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+        refresh();
+      }
+      if (e.target.classList.contains("stop-btn")) {
+        const src = decodeURIComponent(e.target.getAttribute("data-src"));
+        const ok = confirm("Stop this encode?\nAre you sure?");
+        if (!ok) return;
+        await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src }) });
+        refresh();
+      }
+    });
+
     document.getElementById("makemkv-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const body = {
@@ -213,6 +235,25 @@ def create_app(tracker, config_manager=None):
             payload = request.get_json(force=True) or {}
             updated = config_manager.update(payload)
             return jsonify(updated)
+
+    @app.route("/api/stop", methods=["POST"])
+    def stop():
+        payload = request.get_json(force=True) or {}
+        src = payload.get("source")
+        if src:
+            tracker.stop_proc(src)
+            tracker.add_event(f"Stopped encode: {src}")
+        return jsonify({"stopped": bool(src)})
+
+    @app.route("/api/clear", methods=["POST"])
+    def clear():
+        payload = request.get_json(force=True) or {}
+        status = payload.get("status")
+        if status == "all":
+            tracker.clear_history(None)
+        else:
+            tracker.clear_history(status)
+        return jsonify({"cleared": status or "all"})
 
     return app
 

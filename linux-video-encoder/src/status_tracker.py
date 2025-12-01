@@ -13,6 +13,7 @@ class StatusTracker:
         self._active = {}
         self._history = []
         self._events = []
+        self._procs = {}
         self._log_path = Path(log_path)
         self._history_size = history_size
 
@@ -32,9 +33,23 @@ class StatusTracker:
                 "progress": 0.0,
             }
 
+    def register_proc(self, src: str, proc):
+        with self._lock:
+            self._procs[src] = proc
+
+    def stop_proc(self, src: str):
+        with self._lock:
+            proc = self._procs.pop(src, None)
+        if proc:
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+
     def complete(self, src: str, success: bool, dest: str, message: str = ""):
         with self._lock:
             start = self._active.pop(src, None)
+            self._procs.pop(src, None)
             record = {
                 "source": src,
                 "destination": dest,
@@ -92,3 +107,10 @@ class StatusTracker:
     def events(self):
         with self._lock:
             return list(self._events)[-self._history_size :]
+
+    def clear_history(self, state: str = None):
+        with self._lock:
+            if state is None:
+                self._history = []
+            else:
+                self._history = [h for h in self._history if h.get("state") != state]
