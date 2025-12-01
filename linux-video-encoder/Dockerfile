@@ -67,7 +67,7 @@ RUN set -ex && \
     cd makemkv-oss-${MAKEMKV_VERSION} && \
     ./configure && make -s && make install && \
     cd /linux-video-encoder/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
-    make -f makefile.linux -s && make -f makefile.linux install
+    ./configure && make -s && make install
 
 # Clean apt caches to keep the image smaller
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
