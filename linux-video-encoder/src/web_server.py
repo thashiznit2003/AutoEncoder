@@ -46,6 +46,10 @@ HTML_PAGE = """
       <div id="recent"></div>
     </div>
     <div class="panel">
+      <h2>Status Messages</h2>
+      <div id="events" class="log"></div>
+    </div>
+    <div class="panel">
       <h2>HandBrake Settings</h2>
       <form id="handbrake-form">
         <label>Default encoder <input id="hb-encoder" name="encoder" /></label>
@@ -119,6 +123,13 @@ HTML_PAGE = """
         document.getElementById("logs").textContent = "Logs unavailable.";
       }
       try {
+        const events = await fetchJSON("/api/events");
+        const lines = events.map(ev => `[${new Date(ev.ts * 1000).toLocaleTimeString()}] ${ev.message}`);
+        document.getElementById("events").textContent = lines.join("\\n") || "No recent events.";
+      } catch (e) {
+        document.getElementById("events").textContent = "Events unavailable.";
+      }
+      try {
         const cfg = await fetchJSON("/api/config");
         document.getElementById("hb-encoder").value = cfg.handbrake.encoder || "";
         document.getElementById("hb-quality").value = cfg.handbrake.quality ?? "";
@@ -184,6 +195,10 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/logs")
     def logs():
         return jsonify({"lines": tracker.tail_logs()})
+
+    @app.route("/api/events")
+    def events():
+        return jsonify(tracker.events())
 
     if config_manager:
         @app.route("/api/config", methods=["GET", "POST"])

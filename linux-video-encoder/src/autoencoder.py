@@ -358,6 +358,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
 
     dest_str = str(out_path)
     if status_tracker:
+        status_tracker.add_event(f"Queued for encode: {src}")
         status_tracker.start(str(src), dest_str)
 
     # skip if output already exists
@@ -511,6 +512,9 @@ def main():
                     logging.debug("Scan root: %s inspect failed", root)
 
             video_files = scanner.find_video_files(scan_roots)
+            for f in video_files:
+                if status_tracker:
+                    status_tracker.add_event(f"Detected new file: {f}")
             if not video_files:
                 logging.debug("No candidate video files found on this pass.")
             #for video_file in video_files:               
