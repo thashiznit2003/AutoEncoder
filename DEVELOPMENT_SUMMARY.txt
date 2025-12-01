@@ -1,0 +1,33 @@
+AutoEncoder / linux-video-encoder – Development Summary (for future chats)
+
+Repository: https://github.com/thashiznit2003/AutoEncoder (branch: main)
+Latest relevant commits:
+- f9d6c43: Replace template literal in UI summary to avoid JS syntax errors.
+- 3312b8c: Bind config.json to /linux-video-encoder/config.json (rw) in compose.
+- 601a7f6: HandBrake/MakeMKV saves use buttons (avoid form navigation).
+- Earlier commits include exfat support, pre-staged MakeMKV tarballs, UI events, and scan/output fixes.
+
+Key behaviors/features:
+- MakeMKV built from source; Dockerfile uses pre-staged tarballs (makemkv-oss/bin) if present, otherwise downloads. exfat-fuse and exfatprogs installed. Privileged container with /dev/sr0, /dev/sg0, /dev/bus/usb.
+- Installer (scripts/install_and_run.sh): creates media dirs (USB, DVD, Bluray, File, Output, Ripped), runs docker compose down with explicit file, pre-downloads MakeMKV tarballs. Use BASE_DIR=/linux-video-encoder to run.
+- docker-compose.yml: binds ./config.json -> /linux-video-encoder/config.json (rw), media binds to /mnt/usb,/mnt/dvd,/mnt/bluray,/mnt/input,/mnt/output,/mnt/ripped; container privileged with device mappings.
+- Defaults (autoencoder.py): output_dir /mnt/output, rip_dir /mnt/ripped, final_dir empty. Video extensions include .m4v. Skip files starting with “._”; skip scanning /mnt/output to avoid re-encodes. Output naming uses source base name; duplicates get (n). Default HandBrake ext .mkv.
+- Events/status: status_tracker emits events for detected/queued, encoding start/complete, MakeMKV rip start/complete/fail. Progress parsed from encoder output (best effort). Stop API to terminate active encode; Clear API to clear recent jobs per status. Logs filtered to drop HTTP noise, default to “Ready to encode” when empty.
+- Scanner: base scan roots include /mnt/input,/mnt/dvd,/mnt/bluray,/mnt/usb plus auto-mounted candidates; ignores Output root; skips temp “._” files; detects .m4v.
+- UI (web_server.py):
+  - HandBrake form with dropdowns (encoders x264/x265/qsv_h264/qsv_h265/nvenc_h264/nvenc_h265; RF options 16–30; extensions .mkv/.mp4/.m4v). Save buttons (no form navigation). Summary line showing current HandBrake settings.
+  - MakeMKV fields default to rip_dir /mnt/ripped, min length 1200 (text inputs).
+  - Panels: Active Encodes (progress bar, stop button), Recent Jobs (scroll, clear buttons per status), Status Messages (events), Logs (filtered), Hard Reload button in header.
+  - APIs: /api/status, /api/logs, /api/events, /api/config (GET/POST), /api/stop, /api/clear.
+- SMB: scripts/setup_smb_share.sh shares /linux-video-encoder/AutoEncoder/linux-video-encoder/File as lv_file for user joe.
+
+Deployment one-liner (Ubuntu host):
+sudo apt-get update && sudo apt-get install -y curl tar file \
+&& curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_and_run.sh -o /tmp/install_and_run.sh \
+&& chmod +x /tmp/install_and_run.sh \
+&& BASE_DIR=/linux-video-encoder /tmp/install_and_run.sh
+
+Troubleshooting notes:
+- If UI shows syntax errors, do docker compose down, build --no-cache, up -d, then Hard Reload in browser.
+- Confirm container has updated files: grep for “Hard Reload”, “hb-summary”, “Ready to encode” in web_server.py/status_tracker.py.
+- Ensure config.json is writable and mounted to /linux-video-encoder/config.json; dropdown persistence depends on /api/config writes.
