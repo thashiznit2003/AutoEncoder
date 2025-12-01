@@ -91,7 +91,7 @@ class StatusTracker:
         try:
             data = self._log_path.read_text(encoding="utf-8", errors="ignore").splitlines()
         except FileNotFoundError:
-            return []
+            data = []
         filtered = []
         for line in data:
             # Skip noisy HTTP access logs
@@ -101,8 +101,11 @@ class StatusTracker:
                 continue
             filtered.append(line)
         if lines <= 0:
-            return filtered
-        return filtered[-lines:]
+            return filtered if filtered else ["Ready to encode"]
+        filtered = filtered[-lines:]
+        if not filtered:
+            filtered = ["Ready to encode"]
+        return filtered
 
     def events(self):
         with self._lock:
