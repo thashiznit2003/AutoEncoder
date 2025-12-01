@@ -147,7 +147,7 @@ HTML_PAGE = """
       try {
         const events = await fetchJSON("/api/events");
         const lines = events.map(ev => `[${new Date(ev.ts * 1000).toLocaleTimeString()}] ${ev.message}`);
-        document.getElementById("events").textContent = lines.join("\\n") || "No recent events.";
+        document.getElementById("events").textContent = lines.join("\n") || "No recent events.";
       } catch (e) {
         document.getElementById("events").textContent = "Events unavailable.";
       }
@@ -167,6 +167,10 @@ HTML_PAGE = """
     }
 
     function populateHandbrakeForm(cfg) {
+      cfg = cfg || {};
+      cfg.handbrake = cfg.handbrake || { encoder: "x264", quality: 20, extension: ".mkv" };
+      cfg.handbrake_dvd = cfg.handbrake_dvd || { quality: 20 };
+      cfg.handbrake_br = cfg.handbrake_br || { quality: 25 };
       const encSelect = document.getElementById("hb-encoder");
       const extSelect = document.getElementById("hb-ext");
       const qualitySelects = [
