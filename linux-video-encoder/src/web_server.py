@@ -36,7 +36,10 @@ HTML_PAGE = """
 <body>
   <header>
     <h1>Linux Video Encoder - Live Status</h1>
-    <div id="clock" class="muted"></div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button onclick="window.location.reload(true)">Hard Reload</button>
+      <div id="clock" class="muted"></div>
+    </div>
   </header>
   <div class="grid">
     <div class="panel">
