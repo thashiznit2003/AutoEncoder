@@ -283,7 +283,11 @@ HTML_PAGE = """
         const src = decodeURIComponent(e.target.getAttribute("data-src"));
         const ok = confirm("Stop this encode?\\nAre you sure?");
         if (!ok) return;
-        await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src }) });
+        let deleteSrc = false;
+        if (confirm("Delete the source file too?\\nChoose OK to delete, Cancel to keep.")) {
+          deleteSrc = true;
+        }
+        await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, delete_source: deleteSrc }) });
         refresh();
       }
     });

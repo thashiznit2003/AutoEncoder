@@ -404,6 +404,14 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         except Exception:
             logging.debug("Failed to stat files %s or %s; proceeding to encode", src, out_path)
 
+    # If this file was previously stopped and we're asked not to re-encode, respect marker file
+    stop_marker = src.with_suffix(src.suffix + ".stopped")
+    if stop_marker.exists():
+        logging.info("Skipping previously stopped source: %s (remove .stopped marker to re-encode)", src)
+        if status_tracker:
+            status_tracker.complete(str(src), False, dest_str, "Skipped (stopped marker present)")
+        return False
+
     # if its a bluray then rip it first
     if is_bluray:
         logging.info("Ripping Blu-ray disc from %s", video_file)

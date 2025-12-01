@@ -40,6 +40,7 @@ class StatusTracker:
     def stop_proc(self, src: str):
         with self._lock:
             proc = self._procs.pop(src, None)
+            self._active.pop(src, None)
         if proc:
             try:
                 proc.terminate()
