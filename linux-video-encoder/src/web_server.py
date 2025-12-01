@@ -62,6 +62,7 @@ HTML_PAGE = """
     </div>
     <div class="panel">
       <h2>HandBrake Settings</h2>
+      <div class="muted" id="hb-summary" style="margin-bottom:6px;"></div>
       <form id="handbrake-form">
         <label>Default encoder
           <select id="hb-encoder" name="encoder">
@@ -198,8 +199,9 @@ HTML_PAGE = """
       try {
         const cfg = await fetchJSON("/api/config");
         populateHandbrakeForm(cfg);
-        document.getElementById("mk-ripdir").value = cfg.rip_dir || "";
+        document.getElementById("mk-ripdir").value = cfg.rip_dir || "/mnt/ripped";
         document.getElementById("mk-minlen").value = cfg.makemkv_minlength ?? 1200;
+        document.getElementById("hb-summary").textContent = `Encoder: ${cfg.handbrake.encoder || "x264"} | Default RF: ${cfg.handbrake.quality ?? 20} | DVD RF: ${cfg.handbrake_dvd.quality ?? 20} | BR RF: ${cfg.handbrake_br.quality ?? 25} | Ext: ${cfg.handbrake.extension || ".mkv"}`;
       } catch (e) {
         console.error("Failed to load config", e);
       }
