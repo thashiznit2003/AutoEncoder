@@ -60,11 +60,21 @@ HTML_PAGE = """
     <div class="panel">
       <h2>HandBrake Settings</h2>
       <form id="handbrake-form">
-        <label>Default encoder <input id="hb-encoder" name="encoder" /></label>
-        <label>Default quality (RF) <input id="hb-quality" name="quality" type="number" step="1" /></label>
-        <label>DVD quality (RF) <input id="hb-dvd-quality" name="quality_dvd" type="number" step="1" /></label>
-        <label>Blu-ray quality (RF) <input id="hb-br-quality" name="quality_br" type="number" step="1" /></label>
-        <label>Output extension <input id="hb-ext" name="extension" /></label>
+        <label>Default encoder
+          <select id="hb-encoder" name="encoder"></select>
+        </label>
+        <label>Default quality (constant quality RF)
+          <select id="hb-quality" name="quality"></select>
+        </label>
+        <label>DVD quality (constant quality RF)
+          <select id="hb-dvd-quality" name="quality_dvd"></select>
+        </label>
+        <label>Blu-ray quality (constant quality RF)
+          <select id="hb-br-quality" name="quality_br"></select>
+        </label>
+        <label>Output extension
+          <select id="hb-ext" name="extension"></select>
+        </label>
         <button type="submit">Save HandBrake</button>
       </form>
     </div>
@@ -130,7 +140,7 @@ HTML_PAGE = """
       }
       try {
         const logs = await fetchJSON("/api/logs");
-        document.getElementById("logs").textContent = logs.lines.join("\\n");
+        document.getElementById("logs").textContent = logs.lines.join("\n");
       } catch (e) {
         document.getElementById("logs").textContent = "Logs unavailable.";
       }
@@ -143,11 +153,7 @@ HTML_PAGE = """
       }
       try {
         const cfg = await fetchJSON("/api/config");
-        document.getElementById("hb-encoder").value = cfg.handbrake.encoder || "";
-        document.getElementById("hb-quality").value = cfg.handbrake.quality ?? "";
-        document.getElementById("hb-dvd-quality").value = cfg.handbrake_dvd.quality ?? "";
-        document.getElementById("hb-br-quality").value = cfg.handbrake_br.quality ?? "";
-        document.getElementById("hb-ext").value = cfg.handbrake.extension || ".mp4";
+        populateHandbrakeForm(cfg);
         document.getElementById("mk-ripdir").value = cfg.rip_dir || "";
         document.getElementById("mk-minlen").value = cfg.makemkv_minlength ?? 1200;
       } catch (e) {
@@ -158,6 +164,29 @@ HTML_PAGE = """
     function tickClock() {
       const now = new Date();
       document.getElementById("clock").textContent = now.toLocaleString();
+    }
+
+    function populateHandbrakeForm(cfg) {
+      const encSelect = document.getElementById("hb-encoder");
+      const extSelect = document.getElementById("hb-ext");
+      const qualitySelects = [
+        { el: document.getElementById("hb-quality"), val: cfg.handbrake.quality },
+        { el: document.getElementById("hb-dvd-quality"), val: cfg.handbrake_dvd.quality },
+        { el: document.getElementById("hb-br-quality"), val: cfg.handbrake_br.quality }
+      ];
+      const encoders = ["x264", "x265", "qsv_h264", "qsv_h265", "nvenc_h264", "nvenc_h265"];
+      encSelect.innerHTML = encoders.map(e => `<option value="${e}">${e}</option>`).join("");
+      encSelect.value = cfg.handbrake.encoder || "x264";
+
+      const qualities = [18, 20, 22, 24, 26, 28];
+      qualitySelects.forEach(q => {
+        q.el.innerHTML = qualities.map(v => `<option value="${v}">${v}</option>`).join("");
+        q.el.value = q.val ?? 20;
+      });
+
+      const extensions = [".mkv", ".mp4", ".m4v"];
+      extSelect.innerHTML = extensions.map(x => `<option value="${x}">${x}</option>`).join("");
+      extSelect.value = cfg.handbrake.extension || ".mkv";
     }
 
     document.getElementById("handbrake-form").addEventListener("submit", async (e) => {
