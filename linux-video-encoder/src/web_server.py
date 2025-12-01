@@ -204,7 +204,11 @@ HTML_PAGE = """
         const hb = cfg.handbrake || {};
         const hbDvd = cfg.handbrake_dvd || {};
         const hbBr = cfg.handbrake_br || {};
-        document.getElementById("hb-summary").textContent = `Encoder: ${hb.encoder || "x264"} | Default RF: ${hb.quality !== undefined && hb.quality !== null ? hb.quality : 20} | DVD RF: ${hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20} | BR RF: ${hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25} | Ext: ${hb.extension || ".mkv"}`;
+        document.getElementById("hb-summary").textContent = "Encoder: " + (hb.encoder || "x264")
+          + " | Default RF: " + (hb.quality !== undefined && hb.quality !== null ? hb.quality : 20)
+          + " | DVD RF: " + (hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20)
+          + " | BR RF: " + (hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25)
+          + " | Ext: " + (hb.extension || ".mkv");
       } catch (e) {
         console.error("Failed to load config", e);
       }
