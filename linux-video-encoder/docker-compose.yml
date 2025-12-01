@@ -14,11 +14,14 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
     volumes:
-      # Point these to your host paths and keep config.json in sync with the same locations.
+      # Bind config and media paths (host-relative to repo) into the container.
       - ./config.json:/app/config.json:ro
-      - /path/to/videos:/mnt/input:rw
-      - /path/to/encoded:/mnt/output:rw
-      - /path/to/ripped:/mnt/ripped:rw
+      - ./USB:/mnt/usb:rw
+      - ./DVD:/mnt/dvd:rw
+      - ./Bluray:/mnt/bluray:rw
+      - ./File:/mnt/input:rw
+      - ./Output:/mnt/output:rw
+      - ./Ripped:/mnt/ripped:rw
     devices:
       # Map your optical drive and (optionally) generic SCSI device into the container.
       - /dev/sr0:/dev/sr0

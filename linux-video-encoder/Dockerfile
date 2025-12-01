@@ -57,6 +57,8 @@ RUN set -eux; \
       libqt5gui5 \
       libqt5network5 \
       libqt5widgets5 \
+      exfat-fuse \
+      exfatprogs \
       sg3-utils \
       udev; \
     mkdir -p /tmp/makemkv; \
