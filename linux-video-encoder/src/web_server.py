@@ -73,7 +73,7 @@ HTML_PAGE = """
             <option value="nvenc_h265">nvenc_h265</option>
           </select>
         </label>
-        <label>Default quality (constant quality RF)
+        <label>Default quality (constant quality RF, lower = higher quality)
           <select id="hb-quality" name="quality">
             <option value="18">18</option>
             <option value="20">20</option>
@@ -83,7 +83,7 @@ HTML_PAGE = """
             <option value="28">28</option>
           </select>
         </label>
-        <label>DVD quality (constant quality RF)
+        <label>DVD quality (constant quality RF, lower = higher quality)
           <select id="hb-dvd-quality" name="quality_dvd">
             <option value="18">18</option>
             <option value="20">20</option>
@@ -93,7 +93,7 @@ HTML_PAGE = """
             <option value="28">28</option>
           </select>
         </label>
-        <label>Blu-ray quality (constant quality RF)
+        <label>Blu-ray quality (constant quality RF, lower = higher quality)
           <select id="hb-br-quality" name="quality_br">
             <option value="18">18</option>
             <option value="20">20</option>
@@ -213,12 +213,11 @@ HTML_PAGE = """
         { el: document.getElementById("hb-dvd-quality"), val: cfg.handbrake_dvd.quality },
         { el: document.getElementById("hb-br-quality"), val: cfg.handbrake_br.quality }
       ];
-      if (encSelect) encSelect.value = cfg.handbrake.encoder || "x264";
-      const qualities = [18, 20, 22, 24, 26, 28];
+      if (encSelect) encSelect.value = (cfg.handbrake.encoder || "x264").toString();
       qualitySelects.forEach(q => {
         if (q.el) q.el.value = (q.val ?? 20).toString();
       });
-      if (extSelect) extSelect.value = cfg.handbrake.extension || ".mkv";
+      if (extSelect) extSelect.value = (cfg.handbrake.extension || ".mkv").toString();
     }
 
     document.getElementById("handbrake-form").addEventListener("submit", async (e) => {
