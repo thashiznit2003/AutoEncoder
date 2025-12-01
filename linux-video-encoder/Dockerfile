@@ -84,7 +84,7 @@ RUN set -eux; \
     make -s -f Makefile; \
     make -s -f Makefile install; \
     ldconfig; \
-    command -v makemkvcon >/dev/null 2>&1 && makemkvcon --version; \
+    command -v makemkvcon >/dev/null 2>&1; \
     rm -rf /tmp/makemkv; \
     rm -rf /var/lib/apt/lists/*
 
