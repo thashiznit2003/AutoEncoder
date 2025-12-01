@@ -15,7 +15,7 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
     volumes:
       # Bind config and media paths (host-relative to repo) into the container.
-      - ./config.json:/app/config.json:ro
+      - ./config.json:/app/config.json
       - ./USB:/mnt/usb:rw
       - ./DVD:/mnt/dvd:rw
       - ./Bluray:/mnt/bluray:rw
