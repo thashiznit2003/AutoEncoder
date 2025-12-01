@@ -39,6 +39,9 @@ RUN set -ex && \
       libavcodec58 \
       libavformat58 \
       libavutil56 \
+      libavcodec-dev \
+      libavformat-dev \
+      libavutil-dev \
       libbluray2 \
       libcurl4 \
       libexpat1 \
