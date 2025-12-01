@@ -48,8 +48,8 @@ RUN set -ex && \
       libssl1.1 \
       zlib1g && \
     cd /linux-video-encoder/makemkv && \
-    sudo tar xzf makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
-    sudo tar xzf makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
+    tar xzf makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
+    tar xzf makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
     cd makemkv-oss-${MAKEMKV_VERSION} && \
     ./configure && make -s && make install && \
     cd /linux-video-encoder/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
