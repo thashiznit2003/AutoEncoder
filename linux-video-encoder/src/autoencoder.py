@@ -35,16 +35,66 @@ WEB_PORT = 5959
 DEFAULT_CONFIG = {
     "search_path": None,
     "output_dir": str(Path.home() / "Videos" / "encoded"),
+    "rip_dir": str(Path.home() / "Videos" / "ripped"),
+    "final_dir": "",
+    "max_threads": 4,
+    "rescan_interval": 30,
     "min_size_mb": 100,
     "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv"],
     "handbrake": {
-        # HandBrakeCLI "quality" is RF (lower = higher quality), typical 18-23
         "encoder": "x264",
         "quality": 20,
         "audio_bitrate_kbps": 128,
-        "extra_args": []  # list of additional args to append to HandBrakeCLI
-    }
+        "extra_args": [],
+        "extension": ".mp4"
+    },
+    "handbrake_dvd": {
+        "encoder": "x264",
+        "quality": 20,
+        "width": 1920,
+        "height": 1080,
+        "extension": ".mp4",
+        "extra_args": []
+    },
+    "handbrake_br": {
+        "encoder": "x264",
+        "quality": 25,
+        "width": 3840,
+        "height": 2160,
+        "extension": ".mp4",
+        "extra_args": []
+    },
+    "makemkv_minlength": 1200
 }
+
+class ConfigManager:
+    def __init__(self, path: Path):
+        self.path = path
+        self.lock = threading.Lock()
+
+    def read(self) -> Dict[str, Any]:
+        with self.lock:
+            return load_config(self.path)
+
+    def update(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        with self.lock:
+            cfg = load_config(self.path)
+            for field in ["output_dir", "rip_dir", "final_dir", "max_threads", "rescan_interval", "min_size_mb", "makemkv_minlength", "search_path"]:
+                if field in data and data[field] is not None:
+                    cfg[field] = data[field]
+            for key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
+                if key in data and isinstance(data[key], dict):
+                    if key not in cfg or not isinstance(cfg.get(key), dict):
+                        cfg[key] = {}
+                    for k, v in data[key].items():
+                        if v is not None:
+                            cfg[key][k] = v
+            try:
+                with self.path.open("w", encoding="utf-8") as f:
+                    json.dump(cfg, f, indent=2)
+            except Exception:
+                logging.exception("Failed to write config to %s", self.path)
+            return load_config(self.path)
 
 def load_config(path: Path):
     try:
@@ -58,12 +108,15 @@ def load_config(path: Path):
     # ensure output_dir is a string path
     merged["output_dir"] = str(Path(merged["output_dir"]))
     # ensure handbrake dict exists
-    if "handbrake" not in merged or not isinstance(merged["handbrake"], dict):
-        merged["handbrake"] = DEFAULT_CONFIG["handbrake"].copy()
-    else:
-        hb = DEFAULT_CONFIG["handbrake"].copy()
-        hb.update({k: v for k, v in merged["handbrake"].items() if v is not None})
-        merged["handbrake"] = hb
+    for hb_key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
+        if hb_key not in merged or not isinstance(merged.get(hb_key), dict):
+            merged[hb_key] = DEFAULT_CONFIG.get(hb_key, {}).copy()
+        else:
+            hb = DEFAULT_CONFIG.get(hb_key, {}).copy()
+            hb.update({k: v for k, v in merged[hb_key].items() if v is not None})
+            merged[hb_key] = hb
+    if "makemkv_minlength" not in merged:
+        merged["makemkv_minlength"] = DEFAULT_CONFIG["makemkv_minlength"]
     return merged
 
 
@@ -322,7 +375,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         logging.info("Ripping Blu-ray disc from %s", video_file)
         disc_num = get_disc_number()
         if disc_num is not None:
-            rip_path = rip_disc(disc_num, rip_dir)
+            minlen = int(config.get("makemkv_minlength", 1800))
+            rip_path = rip_disc(disc_num, rip_dir, min_length=minlen)
             if rip_path is None:
                 logging.error("Blu-ray ripping failed; skipping encoding for %s", video_file)
                 if status_tracker:
@@ -385,33 +439,27 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
 def main():
     setup_logging()
     status_tracker = StatusTracker(LOG_FILE)
-    start_web_server(status_tracker, port=WEB_PORT)
-    config = load_config(CONFIG_PATH)
-    max_threads = config.get("max_threads", 4)
-    search_path = config.get("search_path")  # None => auto-detect plugged drives
-    # treat explicit "/" as "auto-detect" (don't scan the system root)
+    cfg_manager = ConfigManager(CONFIG_PATH)
+    start_web_server(status_tracker, config_manager=cfg_manager, port=WEB_PORT)
+
+    config = cfg_manager.read()
+    search_path = config.get("search_path")
     if search_path == '/':
         search_path = None
     output_dir = Path(config.get("output_dir"))
     output_dir.mkdir(parents=True, exist_ok=True)
     rip_dir = Path(config.get("rip_dir"))
     rip_dir.mkdir(parents=True, exist_ok=True)
-
-    # initialize scanner:
-    # - if config provides an explicit search_path, scan only that path
-    # - otherwise let Scanner autodetect candidate mountpoints for plugged drives
     if search_path:
         scanner = Scanner(search_path=search_path)
     else:
-        scanner = Scanner()  # Scanner default uses candidate mounts when search_path == '/'
-
-    # try to pass config into Encoder if its constructor accepts it,
-    # otherwise fall back to plain construction
+        scanner = Scanner()
     try:
         encoder = Encoder(config=config)
     except TypeError:
         encoder = Encoder()
 
+    last_search_path = search_path
     rescan_interval = float(config.get("rescan_interval", 30))
 
     logging.info("Starting continuous scanner. search_path=%s output=%s interval=%.1fs",
@@ -419,6 +467,23 @@ def main():
 
     try:
         while True:
+            config = cfg_manager.read()
+            rescan_interval = float(config.get("rescan_interval", 30))
+            max_threads = int(config.get("max_threads", 4))
+            search_path = config.get("search_path")
+            if search_path == '/':
+                search_path = None
+            output_dir = Path(config.get("output_dir"))
+            output_dir.mkdir(parents=True, exist_ok=True)
+            rip_dir = Path(config.get("rip_dir"))
+            rip_dir.mkdir(parents=True, exist_ok=True)
+            if search_path != last_search_path:
+                if search_path:
+                    scanner = Scanner(search_path=search_path)
+                else:
+                    scanner = Scanner()
+                last_search_path = search_path
+
             # decide which directories will be scanned this pass
             if search_path:
                 scan_roots = [search_path]

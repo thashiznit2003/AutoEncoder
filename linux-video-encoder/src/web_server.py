@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 
 HTML_PAGE = """
 <!doctype html>
@@ -14,6 +14,11 @@ HTML_PAGE = """
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-auto-rows: minmax(240px, auto); gap: 12px; padding: 12px; }
     .panel { background: #111827; border: 1px solid #1f2937; border-radius: 10px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     .panel h2 { margin: 0 0 8px 0; font-size: 15px; color: #93c5fd; }
+    form { display: grid; gap: 8px; margin-top: 8px; }
+    label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; }
+    input, select { padding: 6px 8px; border-radius: 6px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; }
+    button { padding: 8px 12px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; font-weight: 600; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
     .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 8px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: #0f172a; font-weight: 600; }
     .badge.running { background: #fde047; }
@@ -39,6 +44,25 @@ HTML_PAGE = """
     <div class="panel">
       <h2>Recent Jobs</h2>
       <div id="recent"></div>
+    </div>
+    <div class="panel">
+      <h2>HandBrake Settings</h2>
+      <form id="handbrake-form">
+        <label>Default encoder <input id="hb-encoder" name="encoder" /></label>
+        <label>Default quality (RF) <input id="hb-quality" name="quality" type="number" step="1" /></label>
+        <label>DVD quality (RF) <input id="hb-dvd-quality" name="quality_dvd" type="number" step="1" /></label>
+        <label>Blu-ray quality (RF) <input id="hb-br-quality" name="quality_br" type="number" step="1" /></label>
+        <label>Output extension <input id="hb-ext" name="extension" /></label>
+        <button type="submit">Save HandBrake</button>
+      </form>
+    </div>
+    <div class="panel">
+      <h2>MakeMKV Settings</h2>
+      <form id="makemkv-form">
+        <label>Rip directory <input id="mk-ripdir" name="rip_dir" /></label>
+        <label>Min title length (seconds) <input id="mk-minlen" name="min_length" type="number" step="60" /></label>
+        <button type="submit">Save MakeMKV</button>
+      </form>
     </div>
     <div class="panel" style="grid-column: 1 / -1;">
       <h2>Logs</h2>
@@ -94,12 +118,47 @@ HTML_PAGE = """
       } catch (e) {
         document.getElementById("logs").textContent = "Logs unavailable.";
       }
+      try {
+        const cfg = await fetchJSON("/api/config");
+        document.getElementById("hb-encoder").value = cfg.handbrake.encoder || "";
+        document.getElementById("hb-quality").value = cfg.handbrake.quality ?? "";
+        document.getElementById("hb-dvd-quality").value = cfg.handbrake_dvd.quality ?? "";
+        document.getElementById("hb-br-quality").value = cfg.handbrake_br.quality ?? "";
+        document.getElementById("hb-ext").value = cfg.handbrake.extension || ".mp4";
+        document.getElementById("mk-ripdir").value = cfg.rip_dir || "";
+        document.getElementById("mk-minlen").value = cfg.makemkv_minlength ?? 1200;
+      } catch (e) {
+        // ignore populate errors
+      }
     }
 
     function tickClock() {
       const now = new Date();
       document.getElementById("clock").textContent = now.toLocaleString();
     }
+
+    document.getElementById("handbrake-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = {
+        handbrake: {
+          encoder: document.getElementById("hb-encoder").value,
+          quality: Number(document.getElementById("hb-quality").value),
+          extension: document.getElementById("hb-ext").value
+        },
+        handbrake_dvd: { quality: Number(document.getElementById("hb-dvd-quality").value) },
+        handbrake_br: { quality: Number(document.getElementById("hb-br-quality").value) }
+      };
+      await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    });
+
+    document.getElementById("makemkv-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = {
+        rip_dir: document.getElementById("mk-ripdir").value,
+        makemkv_minlength: Number(document.getElementById("mk-minlen").value)
+      };
+      await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    });
 
     setInterval(refresh, 2000);
     setInterval(tickClock, 1000);
@@ -111,7 +170,7 @@ HTML_PAGE = """
 """
 
 
-def create_app(tracker):
+def create_app(tracker, config_manager=None):
     app = Flask(__name__)
 
     @app.route("/")
@@ -126,11 +185,20 @@ def create_app(tracker):
     def logs():
         return jsonify({"lines": tracker.tail_logs()})
 
+    if config_manager:
+        @app.route("/api/config", methods=["GET", "POST"])
+        def config():
+            if request.method == "GET":
+                return jsonify(config_manager.read())
+            payload = request.get_json(force=True) or {}
+            updated = config_manager.update(payload)
+            return jsonify(updated)
+
     return app
 
 
-def start_web_server(tracker, port: int = 5959):
-    app = create_app(tracker)
+def start_web_server(tracker, config_manager=None, port: int = 5959):
+    app = create_app(tracker, config_manager=config_manager)
 
     def _run():
         app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
