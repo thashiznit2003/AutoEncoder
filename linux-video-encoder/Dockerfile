@@ -42,6 +42,7 @@ RUN set -ex && \
       libbluray2 \
       libcurl4 \
       libexpat1 \
+      libexpat1-dev \
       libfdk-aac1 \
       libgomp1 \
       libqt5core5a \
