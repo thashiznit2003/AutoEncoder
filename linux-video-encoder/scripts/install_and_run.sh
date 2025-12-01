@@ -114,8 +114,15 @@ fetch_repo() {
   rm -rf "$tmpdir"
 }
 
+ensure_media_dirs() {
+  # Create standard media/output folders under the repo for compose binds.
+  local base="$REPO_DIR/linux-video-encoder"
+  mkdir -p "$base/USB" "$base/DVD" "$base/Bluray" "$base/File" "$base/Output" "$base/Ripped"
+}
+
 build_and_run() {
   cd "$REPO_DIR/linux-video-encoder" || cd "$REPO_DIR"
+  ensure_media_dirs
   # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build
   log "Ensuring MakeMKV tarballs are present (version ${MAKEMKV_VERSION})..."
   for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
