@@ -338,7 +338,7 @@ class Scanner:
     def find_video_files(self, scan_roots=None):
         import os, logging
         logger = logging.getLogger(__name__)
-        video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv')
+        video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.m4v')
         video_extensions_lower = tuple(e.lower() for e in video_extensions)
         video_files = []
         excluded_mounts = self._excluded_mounts

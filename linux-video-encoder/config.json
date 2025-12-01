@@ -1,12 +1,12 @@
 {
   "search_path": null,
-  "output_dir": "/mnt/md0/encoded_videos",
-  "rip_dir": "/mnt/md0/ripped_discs",
-  "final_dir": "/mnt/Network_HDD/Videos/encoded_videos",
+  "output_dir": "/mnt/output",
+  "rip_dir": "/mnt/ripped",
+  "final_dir": "",
   "max_threads": 4,
   "rescan_interval": 30,
   "min_size_mb": 100,
-  "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv"],
+  "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v"],
   "profile": "ffmpeg_qsv",
   "ffmpeg": {
     "encoder": "dnxhd",

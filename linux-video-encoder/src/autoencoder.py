@@ -34,13 +34,13 @@ WEB_PORT = 5959
 
 DEFAULT_CONFIG = {
     "search_path": None,
-    "output_dir": str(Path.home() / "Videos" / "encoded"),
-    "rip_dir": str(Path.home() / "Videos" / "ripped"),
+    "output_dir": "/mnt/output",
+    "rip_dir": "/mnt/ripped",
     "final_dir": "",
     "max_threads": 4,
     "rescan_interval": 30,
     "min_size_mb": 100,
-    "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv"],
+    "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v"],
     "handbrake": {
         "encoder": "x264",
         "quality": 20,
@@ -307,6 +307,8 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
         cmd.extend(map(str, extra))
         logger.info("Running HandBrakeCLI: %s", " ".join(cmd))
     try:
+        if status_tracker:
+            status_tracker.add_event(f"Encoding started: {input_path}")
         # Stream combined stdout+stderr so progress and messages appear live
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         # Iterate lines as they arrive and log them
@@ -420,11 +422,13 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                 status_tracker.complete(str(src), True, dest_str, "Fallback encoder succeeded")
         except Exception:
             logging.exception("Fallback encoder failed for %s", video_file)
-            if status_tracker:
-                status_tracker.complete(str(src), False, dest_str, "Fallback encoder failed")
+                if status_tracker:
+                    status_tracker.complete(str(src), False, dest_str, "Fallback encoder failed")
             return False
     else:
         logging.info("Encoded %s -> %s (HandBrakeCLI)", video_file, out_path)
+        if status_tracker:
+            status_tracker.add_event(f"Encoding complete: {src}")
         # move final file to final_dir if specified
         if final_dir != "":
             try:
