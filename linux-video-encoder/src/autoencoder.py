@@ -468,6 +468,14 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                 logging.info("Deleted ripped Blu-ray file: %s", rip_fp)
             except Exception:
                 logging.debug("Failed to delete ripped Blu-ray file: %s", video_file, exc_info=True)
+        # Remove source file after a successful encode to avoid re-encoding
+        if not is_dvd and not is_bluray:
+            try:
+                if src.is_file():
+                    src.unlink()
+                    logging.info("Deleted source file after successful encode: %s", src)
+            except Exception:
+                logging.debug("Failed to delete source file %s", src, exc_info=True)
         if status_tracker:
             status_tracker.complete(str(src), True, dest_str, "Encode complete")
     return True

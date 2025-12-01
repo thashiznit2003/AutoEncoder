@@ -137,6 +137,9 @@ HTML_PAGE = """
     </div>
   </div>
   <script>
+    let hbDirty = false;
+    let mkDirty = false;
+
     async function fetchJSON(url) {
       const res = await fetch(url);
       return res.json();
@@ -205,9 +208,13 @@ HTML_PAGE = """
       }
       try {
         const cfg = await fetchJSON("/api/config");
-        populateHandbrakeForm(cfg);
-        document.getElementById("mk-ripdir").value = (cfg.rip_dir || "/mnt/ripped");
-        document.getElementById("mk-minlen").value = (cfg.makemkv_minlength !== undefined && cfg.makemkv_minlength !== null) ? cfg.makemkv_minlength : 1200;
+        if (!hbDirty) {
+          populateHandbrakeForm(cfg);
+        }
+        if (!mkDirty) {
+          document.getElementById("mk-ripdir").value = (cfg.rip_dir || "/mnt/ripped");
+          document.getElementById("mk-minlen").value = (cfg.makemkv_minlength !== undefined && cfg.makemkv_minlength !== null) ? cfg.makemkv_minlength : 1200;
+        }
         const hb = cfg.handbrake || {};
         const hbDvd = cfg.handbrake_dvd || {};
         const hbBr = cfg.handbrake_br || {};
@@ -262,6 +269,7 @@ HTML_PAGE = """
         handbrake_br: { quality: qBr }
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      hbDirty = false;
       refresh();
     });
 
@@ -288,7 +296,11 @@ HTML_PAGE = """
         makemkv_minlength: Number(document.getElementById("mk-minlen").value)
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      mkDirty = false;
     });
+
+    document.getElementById("handbrake-form").addEventListener("input", () => { hbDirty = true; });
+    document.getElementById("makemkv-form").addEventListener("input", () => { mkDirty = true; });
 
     setInterval(refresh, 2000);
     setInterval(tickClock, 1000);
