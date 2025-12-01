@@ -124,7 +124,7 @@ build_and_run() {
   cd "$REPO_DIR/linux-video-encoder" || cd "$REPO_DIR"
   ensure_media_dirs
   log "Stopping any existing stack (docker compose down)..."
-  IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose down || true
+  IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" down || true
   # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build
   log "Ensuring MakeMKV tarballs are present (version ${MAKEMKV_VERSION})..."
   for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
