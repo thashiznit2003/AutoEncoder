@@ -273,7 +273,7 @@ HTML_PAGE = """
       }
       if (e.target.classList.contains("stop-btn")) {
         const src = decodeURIComponent(e.target.getAttribute("data-src"));
-        const ok = confirm("Stop this encode?\nAre you sure?");
+        const ok = confirm("Stop this encode?\\nAre you sure?");
         if (!ok) return;
         await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src }) });
         refresh();
