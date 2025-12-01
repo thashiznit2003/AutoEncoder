@@ -6,6 +6,7 @@ services:
     image: linux-video-encoder:latest
     container_name: linux-video-encoder
     restart: unless-stopped
+    runtime: nvidia
     ports:
       - "5959:5959"
     environment:
