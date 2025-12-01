@@ -193,6 +193,9 @@ HTML_PAGE = """
       extSelect.value = cfg.handbrake.extension || ".mkv";
     }
 
+    // Pre-populate dropdowns before fetching config, so options are visible even if /api/config fails.
+    populateHandbrakeForm({});
+
     document.getElementById("handbrake-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const body = {
