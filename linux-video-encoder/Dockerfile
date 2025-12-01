@@ -14,6 +14,10 @@ LABEL build.dockerfile_rev="${DOCKERFILE_REV}"
 
 WORKDIR /linux-video-encoder
 
+# Pre-stage MakeMKV tarballs if provided in build context to avoid re-downloading
+COPY makemkv-oss-${MAKEMKV_VERSION}.tar.gz /tmp/makemkv/makemkv-oss.tar.gz
+COPY makemkv-bin-${MAKEMKV_VERSION}.tar.gz /tmp/makemkv/makemkv-bin.tar.gz
+
 # Base tools, Python, FFmpeg/HandBrakeCLI
 RUN set -eux; \
     apt-get update; \
@@ -73,8 +77,9 @@ RUN set -eux; \
       esac; \
       tar -tzf "$out" >/dev/null; \
     }; \
-    download_and_verify "${MAKEMKV_OSS_URL}" makemkv-oss.tar.gz; \
-    download_and_verify "${MAKEMKV_BIN_URL}" makemkv-bin.tar.gz; \
+    # Use pre-staged tarballs if present; otherwise download
+    if [ ! -s makemkv-oss.tar.gz ]; then download_and_verify "${MAKEMKV_OSS_URL}" makemkv-oss.tar.gz; fi; \
+    if [ ! -s makemkv-bin.tar.gz ]; then download_and_verify "${MAKEMKV_BIN_URL}" makemkv-bin.tar.gz; fi; \
     tar -xzf makemkv-oss.tar.gz; \
     tar -xzf makemkv-bin.tar.gz; \
     cd makemkv-oss-"${MAKEMKV_VERSION}"; \
