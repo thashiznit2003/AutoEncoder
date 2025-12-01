@@ -209,10 +209,15 @@ build_and_run() {
   done
 
   log "Building image $IMAGE_TAG ..."
-  $SUDO docker build \
+  build_log="$BASE_DIR/build.log"
+  if ! $SUDO docker build \
     --build-arg MAKEMKV_VERSION="$MAKEMKV_VERSION" \
     --build-arg MAKEMKV_BASE_URL="$MAKEMKV_BASE_URL" \
-    -t "$IMAGE_TAG" .
+    -t "$IMAGE_TAG" . 2>&1 | tee "$build_log"; then
+    log "Docker build failed. Showing tail of $build_log"
+    tail -n 200 "$build_log" || true
+    exit 1
+  fi
   log "Starting stack with docker compose..."
   IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose up -d
   log "Stack is running. Web UI: http://<host>:5959"
