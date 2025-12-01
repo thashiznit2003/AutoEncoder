@@ -5,14 +5,14 @@
 #   sudo bash /tmp/install_nvidia_toolkit.sh
 #
 # Tunables:
-#   NVIDIA_TOOLKIT_VERSION   Version to install (default: 1.14.3)
+#   NVIDIA_TOOLKIT_VERSION   Version to install (default: 1.14.3; script will fallback to a small list)
 #   RUN_NVIDIA_TEST=1        After install, run a test container (docker run --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi)
 
 set -euo pipefail
 
-VER="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
+REQUESTED_VER="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
+FALLBACK_VERSIONS=("1.14.5" "1.14.4" "1.14.3" "1.13.5")
 ARCH="$(dpkg --print-architecture)"
-BASE_URL="https://github.com/NVIDIA/libnvidia-container/releases/download/v${VER}"
 TMPDIR="$(mktemp -d /tmp/nvidia-ctk.XXXXXX)"
 SUDO=""
 
@@ -35,18 +35,55 @@ ensure_tools() {
   fi
 }
 
+clean_bad_lists() {
+  local lst="/etc/apt/sources.list.d/nvidia-container-toolkit.list"
+  if [ -f "$lst" ]; then
+    if grep -qi '<!doctype' "$lst"; then
+      log "Detected invalid nvidia-container-toolkit list (HTML); moving aside."
+      $SUDO mv "$lst" "${lst}.bak.$(date +%s)" || true
+    fi
+  fi
+}
+
 download_debs() {
-  local files=(
-    "libnvidia-container1_${VER}-1_${ARCH}.deb"
-    "libnvidia-container-tools_${VER}-1_${ARCH}.deb"
-    "nvidia-container-toolkit-base_${VER}-1_${ARCH}.deb"
-    "nvidia-container-toolkit_${VER}-1_${ARCH}.deb"
-  )
-  for f in "${files[@]}"; do
-    local url="${BASE_URL}/${f}"
-    log "Downloading ${f}"
-    curl -fL --retry 3 --retry-delay 2 "$url" -o "${TMPDIR}/${f}"
+  local versions=()
+  versions+=("$REQUESTED_VER")
+  for v in "${FALLBACK_VERSIONS[@]}"; do
+    if [[ ! " ${versions[*]} " =~ " ${v} " ]]; then
+      versions+=("$v")
+    fi
   done
+
+  for ver in "${versions[@]}"; do
+    local base_url="https://github.com/NVIDIA/libnvidia-container/releases/download/v${ver}"
+    local files=(
+      "libnvidia-container1_${ver}-1_${ARCH}.deb"
+      "libnvidia-container-tools_${ver}-1_${ARCH}.deb"
+      "nvidia-container-toolkit-base_${ver}-1_${ARCH}.deb"
+      "nvidia-container-toolkit_${ver}-1_${ARCH}.deb"
+    )
+    log "Attempting download for version ${ver}..."
+    local ok=1
+    for f in "${files[@]}"; do
+      local url="${base_url}/${f}"
+      log "  downloading ${f}"
+      if ! curl -fL --retry 3 --retry-delay 2 "$url" -o "${TMPDIR}/${f}"; then
+        log "  failed to fetch ${url}"
+        ok=0
+        break
+      fi
+    done
+    if [ "$ok" -eq 1 ]; then
+      VER="$ver"
+      return 0
+    else
+      log "Version ${ver} failed, trying next fallback..."
+      rm -f "${TMPDIR}"/*.deb
+    fi
+  done
+
+  log "All download attempts failed. Check connectivity or specify NVIDIA_TOOLKIT_VERSION to a valid release."
+  exit 1
 }
 
 install_debs() {
@@ -83,6 +120,7 @@ test_gpu() {
 }
 
 ensure_tools
+clean_bad_lists
 download_debs
 install_debs
 configure_docker
