@@ -119,7 +119,7 @@ HTML_PAGE = """
             <option value=".m4v">.m4v</option>
           </select>
         </label>
-        <button type="submit">Save HandBrake</button>
+        <button type="button" id="hb-save">Save HandBrake</button>
       </form>
     </div>
     <div class="panel">
@@ -127,7 +127,7 @@ HTML_PAGE = """
       <form id="makemkv-form">
         <label>Rip directory <input id="mk-ripdir" name="rip_dir" /></label>
         <label>Min title length (seconds) <input id="mk-minlen" name="min_length" type="number" step="60" /></label>
-        <button type="submit">Save MakeMKV</button>
+        <button type="button" id="mk-save">Save MakeMKV</button>
       </form>
     </div>
     <div class="panel" style="grid-column: 1 / -1;">
@@ -229,8 +229,9 @@ HTML_PAGE = """
       setSelectValue(document.getElementById("hb-ext"), cfg.handbrake.extension, ".mkv");
     }
 
-    document.getElementById("handbrake-form").addEventListener("submit", async (e) => {
+    document.getElementById("hb-save").addEventListener("click", async (e) => {
       e.preventDefault();
+      e.stopPropagation();
       const qDefault = parseInt(document.getElementById("hb-quality").value || "20", 10) || 20;
       const qDvd = parseInt(document.getElementById("hb-dvd-quality").value || "20", 10) || 20;
       const qBr = parseInt(document.getElementById("hb-br-quality").value || "25", 10) || 25;
@@ -262,8 +263,9 @@ HTML_PAGE = """
       }
     });
 
-    document.getElementById("makemkv-form").addEventListener("submit", async (e) => {
+    document.getElementById("mk-save").addEventListener("click", async (e) => {
       e.preventDefault();
+      e.stopPropagation();
       const body = {
         rip_dir: document.getElementById("mk-ripdir").value,
         makemkv_minlength: Number(document.getElementById("mk-minlen").value)
