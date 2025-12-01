@@ -34,10 +34,6 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 #   REPO_DIR  - directory to clone into
 #   IMAGE_TAG - image name:tag to build
 #
-# NVIDIA Container Toolkit (offline .deb install, no apt repo):
-#   INSTALL_NVIDIA_TOOLKIT=1 to enable (default: 0)
-#   NVIDIA_TOOLKIT_VERSION (default 1.14.3)
-#   ALLOW_APT_FIX=1 to allow apt-get -f install if dpkg reports missing deps
 # MakeMKV tarballs:
 #   MAKEMKV_VERSION (default 1.18.2)
 #   MAKEMKV_BASE_URL (default raw link to your repo)
@@ -46,10 +42,6 @@ REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
 REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/thashiznit2003/AutoEncoder/archive/refs/heads/main.tar.gz}"
 REPO_DIR="${REPO_DIR:-$BASE_DIR/AutoEncoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
-# Default: skip NVIDIA toolkit unless explicitly requested
-INSTALL_NVIDIA_TOOLKIT="${INSTALL_NVIDIA_TOOLKIT:-0}"
-NVIDIA_TOOLKIT_VERSION="${NVIDIA_TOOLKIT_VERSION:-1.14.3}"
-ALLOW_APT_FIX="${ALLOW_APT_FIX:-0}"
 MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}"
 MAKEMKV_BASE_URL="${MAKEMKV_BASE_URL:-https://www.makemkv.com/download}"
 # Explicit tarball URLs (override if hosting elsewhere)
@@ -63,10 +55,10 @@ fi
 log() { printf '[installer] %s\n' "$*"; }
 
 ensure_base_tools() {
-  if ! command -v curl >/dev/null 2>&1 || ! command -v tar >/dev/null 2>&1; then
-    log "Installing curl and tar..."
+  if ! command -v curl >/dev/null 2>&1 || ! command -v tar >/dev/null 2>&1 || ! command -v file >/dev/null 2>&1; then
+    log "Installing curl, tar, and file..."
     $SUDO apt-get update
-    $SUDO apt-get install -y curl tar
+    $SUDO apt-get install -y curl tar file
   fi
 }
 
@@ -86,59 +78,6 @@ install_docker() {
   $SUDO apt-get update
   $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   log "Docker installed."
-}
-
-install_nvidia_toolkit_offline() {
-  if [ "$INSTALL_NVIDIA_TOOLKIT" != "1" ]; then
-    log "Skipping NVIDIA Container Toolkit install (INSTALL_NVIDIA_TOOLKIT!=1)."
-    return
-  fi
-
-  if dpkg -s nvidia-container-toolkit >/dev/null 2>&1; then
-    log "NVIDIA Container Toolkit already installed."
-    return
-  fi
-
-  arch=$(dpkg --print-architecture)
-  base_url="https://github.com/NVIDIA/libnvidia-container/releases/download/v${NVIDIA_TOOLKIT_VERSION}"
-  pkgs=(
-    "nvidia-container-toolkit-base_${NVIDIA_TOOLKIT_VERSION}-1_${arch}.deb"
-    "nvidia-container-runtime-hook_${NVIDIA_TOOLKIT_VERSION}-1_${arch}.deb"
-    "nvidia-container-toolkit_${NVIDIA_TOOLKIT_VERSION}-1_${arch}.deb"
-  )
-
-  tmpdir="$(mktemp -d)"
-  log "Downloading NVIDIA toolkit packages (version ${NVIDIA_TOOLKIT_VERSION})..."
-  for pkg in "${pkgs[@]}"; do
-    url="${base_url}/${pkg}"
-    log "Fetching ${url}"
-    if ! curl -fL "$url" -o "${tmpdir}/${pkg}"; then
-      log "Failed to download ${url}"
-      rm -rf "$tmpdir"
-      return
-    fi
-  done
-
-  log "Installing NVIDIA toolkit packages with dpkg..."
-  if ! $SUDO dpkg -i "${tmpdir}"/nvidia-container-*.deb; then
-    log "dpkg reported missing dependencies."
-    if [ "$ALLOW_APT_FIX" = "1" ]; then
-      log "Attempting apt-get -f install to fix dependencies..."
-      $SUDO apt-get -f install -y
-      $SUDO dpkg -i "${tmpdir}"/nvidia-container-*.deb || log "dpkg still failing after apt fix."
-    else
-      log "Skipping NVIDIA toolkit install (set ALLOW_APT_FIX=1 to let apt fix dependencies)."
-      rm -rf "$tmpdir"
-      return
-    fi
-  fi
-  rm -rf "$tmpdir"
-
-  if command -v nvidia-ctk >/dev/null 2>&1; then
-    $SUDO nvidia-ctk runtime configure --runtime=docker || true
-  fi
-  $SUDO systemctl restart docker || true
-  log "NVIDIA Container Toolkit installation attempt complete."
 }
 
 fetch_repo() {
@@ -186,24 +125,51 @@ build_and_run() {
     fi
     download_tarball() {
       log "Downloading $f from $url"
-      if ! curl -fL "$url" -o "$f"; then
+      if ! curl -fL --retry 3 --retry-delay 2 "$url" -o "$f"; then
         log "Failed to download ${f} from ${url}."
         return 1
       fi
+      mime="$(file -b --mime-type "$f" || true)"
+      case "$mime" in application/gzip|application/x-gzip) ;; *)
+        log "Downloaded $f has unexpected MIME type: ${mime:-unknown}"
+        return 1
+      esac
       $SUDO chown "$TARGET_OWNER":"$TARGET_OWNER" "$f" || true
       $SUDO chmod 644 "$f" || true
     }
 
     # If present and valid, keep it; otherwise download and validate.
+    needs_download=1
     if [ -s "$f" ] && tar -tzf "$f" >/dev/null 2>&1; then
-      log "$f already present and valid; skipping download."
-    else
+      needs_download=0
+    fi
+
+    if [ "$needs_download" -eq 1 ]; then
       log "$f missing or invalid; fetching..."
       rm -f "$f"
       download_tarball || { log "Aborting build (download failed for ${f})."; exit 1; }
-      if ! tar -tzf "$f" >/dev/null 2>&1; then
-        log "Tarball ${f} is invalid after download. Please replace it with a valid tar.gz at $url. Aborting build."
-        exit 1
+    else
+      log "$f already present and gzip-valid; reusing."
+    fi
+
+    # Do a lightweight check but don't abort if it fails—proceed to tar regardless, per request.
+    if ! tar -tzf "$f" >/dev/null 2>&1; then
+      log "Warning: ${f} failed gzip/tar listing; proceeding anyway per relaxed validation."
+    fi
+
+    # Best-effort content sanity: warn if expected markers are missing, but do not abort.
+    if echo "$f" | grep -q "oss"; then
+      if ! tar -tzf "$f" 2>/dev/null | grep -q "makemkv-oss-${MAKEMKV_VERSION}/configure"; then
+        log "Warning: ${f} missing expected configure inside makemkv-oss-${MAKEMKV_VERSION}; continuing."
+      fi
+    else
+      # Prefer configure, but accept Makefile or makefile.linux as fallbacks.
+      if ! tar -tzf "$f" 2>/dev/null | grep -E -q "makemkv-bin-${MAKEMKV_VERSION}/configure"; then
+        if tar -tzf "$f" 2>/dev/null | grep -E -q "makemkv-bin-${MAKEMKV_VERSION}/(Makefile|makefile\\.linux)"; then
+          log "Warning: ${f} missing configure but has Makefile/makefile.linux; continuing."
+        else
+          log "Warning: ${f} missing configure/Makefile/makefile.linux inside makemkv-bin-${MAKEMKV_VERSION}; continuing."
+        fi
       fi
     fi
   done
@@ -226,7 +192,6 @@ build_and_run() {
 main() {
   ensure_base_tools
   install_docker
-  install_nvidia_toolkit_offline
   fetch_repo
   build_and_run
 }
