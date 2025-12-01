@@ -422,8 +422,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                 status_tracker.complete(str(src), True, dest_str, "Fallback encoder succeeded")
         except Exception:
             logging.exception("Fallback encoder failed for %s", video_file)
-                if status_tracker:
-                    status_tracker.complete(str(src), False, dest_str, "Fallback encoder failed")
+            if status_tracker:
+                status_tracker.complete(str(src), False, dest_str, "Fallback encoder failed")
             return False
     else:
         logging.info("Encoded %s -> %s (HandBrakeCLI)", video_file, out_path)
