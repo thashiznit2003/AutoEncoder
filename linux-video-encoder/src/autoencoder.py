@@ -250,7 +250,7 @@ def safe_move(src: Path, dst: Path) -> bool:
         logging.error("Failed to move %s to %s: %s", src, dst, e)
         return False
 
-def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool) -> bool:
+def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, status_tracker: Optional[StatusTracker] = None) -> bool:
     """
     Run HandBrakeCLI or ffmpeg and stream its stdout/stderr to the logger in real time.
     Returns True on success, False otherwise.
@@ -311,8 +311,19 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool) -> 
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         # Iterate lines as they arrive and log them
         if proc.stdout is not None:
+            import re
+            progress_re = re.compile(r'([0-9]{1,3}\.?[0-9]{0,2})%')
             for line in proc.stdout:
-                logger.info(line.rstrip())
+                line = line.rstrip()
+                logger.info(line)
+                m = progress_re.search(line)
+                if m:
+                    try:
+                        pct = float(m.group(1))
+                        if status_tracker:
+                            status_tracker.update_progress(str(input_path), pct)
+                    except Exception:
+                        pass
         rc = proc.wait()
         logger.debug("exited with code %s", rc)
         return rc == 0
@@ -395,7 +406,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             status_tracker.complete(str(src), False, dest_str, "No video file to encode")
         return False
     # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available                         
-    success = run_encoder(video_file, str(out_path), hb_opts, not (is_dvd or is_bluray))
+    success = run_encoder(video_file, str(out_path), hb_opts, not (is_dvd or is_bluray), status_tracker=status_tracker)
     if not success:
         logging.warning("Encoding failed for %s -> %s; attempting Software Encoder fallback", video_file, out_path)
         try:
@@ -489,11 +500,15 @@ def main():
             if search_path:
                 scan_roots = [search_path]
             else:
+                base_roots = ["/mnt/input", "/mnt/dvd", "/mnt/bluray", "/mnt/usb"]
                 try:
-                    # ensure devices are mounted and get mountpoints to scan
-                    scan_roots = scanner.ensure_mounted_candidates()
+                    mounted = scanner.ensure_mounted_candidates()
                 except Exception:
-                    scan_roots = []
+                    mounted = []
+                scan_roots = base_roots + mounted
+                # unique preserving order
+                seen = set()
+                scan_roots = [x for x in scan_roots if not (x in seen or seen.add(x))]
 
             logging.info("Scanning directories: %s", ", ".join(scan_roots) if scan_roots else "<none>")
             # debug: show mount status and a sample of contents for each scan root

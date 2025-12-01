@@ -24,6 +24,8 @@ HTML_PAGE = """
     .badge.running { background: #fde047; }
     .badge.success { background: #34d399; }
     .badge.error { background: #f87171; }
+    .progress { background: #1f2937; border-radius: 6px; height: 8px; overflow: hidden; margin-top: 6px; }
+    .progress-bar { background: #22c55e; height: 100%; transition: width 0.2s ease; }
     .item { padding: 8px; border-bottom: 1px solid #1f2937; }
     .item:last-child { border-bottom: 0; }
     .muted { color: #94a3b8; }
@@ -95,6 +97,8 @@ HTML_PAGE = """
       container.innerHTML = items.map(item => {
         const badge = `<span class="badge ${item.state}">${item.state.toUpperCase()}</span>`;
         const duration = item.duration_sec ? fmtDuration(item.duration_sec) : (item.finished_at && item.started_at ? fmtDuration(item.finished_at - (item.started_at || item.finished_at)) : "");
+        const progress = (item.progress || item.progress === 0) ? Math.min(100, Math.max(0, item.progress)).toFixed(0) : null;
+        const progBar = progress !== null ? `<div class="progress"><div class="progress-bar" style="width:${progress}%"></div></div>` : "";
         return `<div class="item">
           <div class="flex-between">
             <div class="path">${item.source || ""}</div>
@@ -103,6 +107,7 @@ HTML_PAGE = """
           <div class="muted">-> ${item.destination || ""}</div>
           <div class="muted">${item.message || ""}</div>
           <div class="muted">${duration ? "Duration: " + duration : ""}</div>
+          ${progBar}
         </div>`;
       }).join("");
     }

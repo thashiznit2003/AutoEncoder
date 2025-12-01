@@ -29,6 +29,7 @@ class StatusTracker:
                 "destination": dest,
                 "state": "running",
                 "started_at": time.time(),
+                "progress": 0.0,
             }
 
     def complete(self, src: str, success: bool, dest: str, message: str = ""):
@@ -41,10 +42,17 @@ class StatusTracker:
                 "finished_at": time.time(),
                 "started_at": start.get("started_at") if start else None,
                 "message": message,
+                "progress": 100.0 if success else start.get("progress") if start else None,
             }
             self._history.append(record)
             if len(self._history) > self._history_size:
                 self._history = self._history[-self._history_size :]
+
+    def update_progress(self, src: str, progress: float):
+        with self._lock:
+            item = self._active.get(src)
+            if item:
+                item["progress"] = max(0.0, min(100.0, progress))
 
     def snapshot(self):
         now = time.time()
