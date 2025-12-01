@@ -1,5 +1,6 @@
 FROM ubuntu:20.04
 
+ARG DOCKERFILE_REV=2
 ARG MAKEMKV_VERSION=1.18.2
 ARG MAKEMKV_BASE_URL=https://www.makemkv.com/download
 ARG MAKEMKV_BIN_URL=${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz
@@ -8,6 +9,8 @@ ARG MAKEMKV_OSS_URL=${MAKEMKV_BASE_URL}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
+
+LABEL build.dockerfile_rev="${DOCKERFILE_REV}"
 
 WORKDIR /linux-video-encoder
 
@@ -51,7 +54,10 @@ RUN set -ex && \
     cd /linux-video-encoder/makemkv && \
     curl -fL -o makemkv-oss.tar.gz "${MAKEMKV_OSS_URL}" && \
     curl -fL -o makemkv-bin.tar.gz "${MAKEMKV_BIN_URL}" && \
+    ls -lh makemkv-*.tar.gz && \
     gzip -t makemkv-oss.tar.gz && gzip -t makemkv-bin.tar.gz && \
+    tar -tzf makemkv-oss.tar.gz >/dev/null && \
+    tar -tzf makemkv-bin.tar.gz >/dev/null && \
     tar xzf makemkv-oss.tar.gz && \
     tar xzf makemkv-bin.tar.gz && \
     cd makemkv-oss-${MAKEMKV_VERSION} && \
