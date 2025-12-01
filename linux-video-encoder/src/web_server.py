@@ -201,37 +201,41 @@ HTML_PAGE = """
       document.getElementById("clock").textContent = now.toLocaleString();
     }
 
+    function setSelectValue(sel, value, fallback) {
+      if (!sel) return;
+      const valStr = (value ?? fallback).toString();
+      const has = Array.from(sel.options).some(o => o.value === valStr);
+      sel.value = has ? valStr : fallback.toString();
+    }
+
     function populateHandbrakeForm(cfg) {
       cfg = cfg || {};
       cfg.handbrake = cfg.handbrake || { encoder: "x264", quality: 20, extension: ".mkv" };
       cfg.handbrake_dvd = cfg.handbrake_dvd || { quality: 20 };
       cfg.handbrake_br = cfg.handbrake_br || { quality: 25 };
-      const encSelect = document.getElementById("hb-encoder");
-      const extSelect = document.getElementById("hb-ext");
-      const qualitySelects = [
-        { el: document.getElementById("hb-quality"), val: cfg.handbrake.quality },
-        { el: document.getElementById("hb-dvd-quality"), val: cfg.handbrake_dvd.quality },
-        { el: document.getElementById("hb-br-quality"), val: cfg.handbrake_br.quality }
-      ];
-      if (encSelect) encSelect.value = (cfg.handbrake.encoder || "x264").toString();
-      qualitySelects.forEach(q => {
-        if (q.el) q.el.value = (q.val ?? 20).toString();
-      });
-      if (extSelect) extSelect.value = (cfg.handbrake.extension || ".mkv").toString();
+      setSelectValue(document.getElementById("hb-encoder"), cfg.handbrake.encoder, "x264");
+      setSelectValue(document.getElementById("hb-quality"), cfg.handbrake.quality, 20);
+      setSelectValue(document.getElementById("hb-dvd-quality"), cfg.handbrake_dvd.quality, 20);
+      setSelectValue(document.getElementById("hb-br-quality"), cfg.handbrake_br.quality, 25);
+      setSelectValue(document.getElementById("hb-ext"), cfg.handbrake.extension, ".mkv");
     }
 
     document.getElementById("handbrake-form").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const qDefault = parseInt(document.getElementById("hb-quality").value || "20", 10) || 20;
+      const qDvd = parseInt(document.getElementById("hb-dvd-quality").value || "20", 10) || 20;
+      const qBr = parseInt(document.getElementById("hb-br-quality").value || "25", 10) || 25;
       const body = {
         handbrake: {
           encoder: document.getElementById("hb-encoder").value,
-          quality: Number(document.getElementById("hb-quality").value),
+          quality: qDefault,
           extension: document.getElementById("hb-ext").value
         },
-        handbrake_dvd: { quality: Number(document.getElementById("hb-dvd-quality").value) },
-        handbrake_br: { quality: Number(document.getElementById("hb-br-quality").value) }
+        handbrake_dvd: { quality: qDvd },
+        handbrake_br: { quality: qBr }
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      refresh();
     });
 
     document.addEventListener("click", async (e) => {
