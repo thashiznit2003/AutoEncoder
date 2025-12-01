@@ -31,3 +31,14 @@ Troubleshooting notes:
 - If UI shows syntax errors, do docker compose down, build --no-cache, up -d, then Hard Reload in browser.
 - Confirm container has updated files: grep for “Hard Reload”, “hb-summary”, “Ready to encode” in web_server.py/status_tracker.py.
 - Ensure config.json is writable and mounted to /linux-video-encoder/config.json; dropdown persistence depends on /api/config writes.
+
+Relevant user directions/requirements to carry forward:
+- UI should display Status Messages/events and cleaner Logs (hide HTTP noise; default “Ready to encode” when idle).
+- HandBrake dropdowns must show options and persist saved values; RF labels clarified (lower = higher quality). Default output .mkv.
+- MakeMKV rip dir default /mnt/ripped; min title length default 1200.
+- Skip scanning /mnt/output to avoid re-encodes; skip temp files starting with “._”.
+- Output filenames should reuse source name; if duplicate in Output, append (1), (2), etc.
+- Status Messages should report detected files, queued encodes, MakeMKV rip events, encode start/complete; Stop button should terminate active encode (partial output remains).
+- Recent Jobs should be scrollable with Clear buttons per status; Active encodes show progress.
+- Media dirs must exist under repo (USB, DVD, Bluray, File, Output, Ripped); binds should match compose.
+- Compose should bind config.json rw to /linux-video-encoder/config.json and run privileged with /dev/sr0, /dev/sg0, /dev/bus/usb.
