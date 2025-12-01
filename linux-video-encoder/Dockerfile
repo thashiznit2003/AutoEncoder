@@ -1,15 +1,15 @@
 FROM ubuntu:20.04
 
 ARG MAKEMKV_VERSION=1.18.2
+ARG MAKEMKV_BASE_URL=https://www.makemkv.com/download
+ARG MAKEMKV_BIN_URL=${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz
+ARG MAKEMKV_OSS_URL=${MAKEMKV_BASE_URL}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /linux-video-encoder
-
-# Pre-fetch MakeMKV tarballs into build context (script downloads them before build)
-COPY makemkv-*.tar.gz /linux-video-encoder/makemkv/
 
 # Base tools, Python, FFmpeg/HandBrakeCLI, and MakeMKV ${MAKEMKV_VERSION}
 RUN set -ex && \
@@ -47,9 +47,13 @@ RUN set -ex && \
       libqt5widgets5 \
       libssl1.1 \
       zlib1g && \
+    mkdir -p /linux-video-encoder/makemkv && \
     cd /linux-video-encoder/makemkv && \
-    tar xzf makemkv-oss-${MAKEMKV_VERSION}.tar.gz && \
-    tar xzf makemkv-bin-${MAKEMKV_VERSION}.tar.gz && \
+    curl -fL -o makemkv-oss.tar.gz "${MAKEMKV_OSS_URL}" && \
+    curl -fL -o makemkv-bin.tar.gz "${MAKEMKV_BIN_URL}" && \
+    gzip -t makemkv-oss.tar.gz && gzip -t makemkv-bin.tar.gz && \
+    tar xzf makemkv-oss.tar.gz && \
+    tar xzf makemkv-bin.tar.gz && \
     cd makemkv-oss-${MAKEMKV_VERSION} && \
     ./configure && make -s && make install && \
     cd /linux-video-encoder/makemkv/makemkv-bin-${MAKEMKV_VERSION} && \
