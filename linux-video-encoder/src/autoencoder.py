@@ -21,7 +21,7 @@ import shutil
 import threading
 from typing import Optional, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from scanner import Scanner
+from scanner import Scanner, EXCLUDED_SCAN_PATHS
 from encoder import Encoder  # kept as a fallback if needed
 from status_tracker import StatusTracker
 from web_server import start_web_server
@@ -533,7 +533,7 @@ def main():
                 # unique preserving order
                 seen = set()
                 scan_roots = [x for x in scan_roots if not (x in seen or seen.add(x))]
-            scan_roots = [r for r in scan_roots if r != "/mnt/output"]
+            scan_roots = [r for r in scan_roots if r != "/mnt/output" and r not in EXCLUDED_SCAN_PATHS]
 
             logging.info("Scanning directories: %s", ", ".join(scan_roots) if scan_roots else "<none>")
             # debug: show mount status and a sample of contents for each scan root

@@ -13,6 +13,13 @@ services:
       # Enable NVIDIA GPU (requires NVIDIA Container Toolkit on the Docker host)
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     volumes:
       # Bind config and media paths (host-relative to repo) into the container.
       - ./config.json:/linux-video-encoder/config.json

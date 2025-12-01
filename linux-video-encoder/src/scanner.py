@@ -1,4 +1,12 @@
 import os
+
+# Explicit paths we never want to scan for media
+EXCLUDED_SCAN_PATHS = {
+    "/linux-video-encoder/config.json",
+    "/etc/resolv.conf",
+    "/etc/hostname",
+    "/etc/hosts",
+}
 class Scanner:
     def __init__(self, search_path='/'):
         self.search_path = search_path
@@ -146,6 +154,8 @@ class Scanner:
             # skip explicitly excluded mountpoints
             if self._is_excluded_path(mnt):
                 continue
+            if mnt in EXCLUDED_SCAN_PATHS:
+                continue
             devname = dev.rsplit('/', 1)[-1]
             # skip loop devices, ram, boot mount and optical device nodes
             if devname.startswith('loop') or devname.startswith('ram') or mnt.startswith('/boot'):
@@ -171,7 +181,7 @@ class Scanner:
         #         pass
 
         # unique, stable ordering and log candidates
-        result = sorted(set(candidates), key=len, reverse=True)
+        result = sorted({c for c in candidates if c not in EXCLUDED_SCAN_PATHS}, key=len, reverse=True)
         import logging
         logger = logging.getLogger(__name__)
         logger.info("Candidate mountpoints: %s", result if result else "<none>")
@@ -318,6 +328,8 @@ class Scanner:
                 # so skip names that match excluded mount basenames)
                 if any(name == os.path.basename(ex) or f'/dev/{name}' == ex for ex in self._excluded_mounts):
                     continue
+                if mp and mp in EXCLUDED_SCAN_PATHS:
+                    continue
                 if name.startswith(('loop', 'ram', 'sr')):
                     continue
                 # attempt mount
@@ -332,8 +344,17 @@ class Scanner:
             # be conservative: do not raise, just return what we have
             pass
 
-        # dedupe and exclude explicitly excluded mountpoints
-        return scan_roots
+        # dedupe and exclude explicitly excluded mountpoints or known non-media paths
+        seen = set()
+        filtered = []
+        for r in scan_roots:
+            if r in EXCLUDED_SCAN_PATHS:
+                continue
+            if r in seen:
+                continue
+            seen.add(r)
+            filtered.append(r)
+        return filtered
 
     def find_video_files(self, scan_roots=None):
         import os, logging
@@ -357,6 +378,8 @@ class Scanner:
         logger.info("Scanner will walk these roots: %s", ", ".join(search_paths) if search_paths else "<none>")
 
         for search_root in search_paths:
+            if search_root in EXCLUDED_SCAN_PATHS:
+                continue
             # first check for optical disc structures and prefer them over generic walk
             try:
                 dvd_files = self._scan_dvd_mount(search_root)
@@ -379,13 +402,13 @@ class Scanner:
             found_in_root = 0
             for root, dirs, files in os.walk(search_root, topdown=True):
                 # skip excluded subtrees entirely (do not process files here or descend)
-                if self._is_excluded_path(root):
+                if self._is_excluded_path(root) or root in EXCLUDED_SCAN_PATHS:
                     continue
                 # Prune only directories that are explicitly excluded, otherwise descend into all subdirectories
                 good_dirs = []
                 for d in dirs:
                     full = os.path.join(root, d)
-                    if not self._is_excluded_path(full):
+                    if not self._is_excluded_path(full) and full not in EXCLUDED_SCAN_PATHS:
                         good_dirs.append(d)
                 dirs[:] = good_dirs
 

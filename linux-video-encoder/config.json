@@ -7,12 +7,20 @@
   "rescan_interval": 30,
   "min_size_mb": 100,
   "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v"],
-  "profile": "ffmpeg_qsv",
+  "profile": "ffmpeg_nvenc",
   "ffmpeg": {
     "encoder": "dnxhd",
     "video": "scale=1920:1080,format=yuv422p",
     "profile": "dnxhr_sq",
     "extension": ".mov"
+  },
+  "ffmpeg_nvenc": {
+    "encoder": "hevc_nvenc",
+    "video": "scale=1920:1080,format=yuv420p",
+    "profile": "main",
+    "quality": 20,
+    "audio": "copy",
+    "extension": ".mp4"
   },
   "ffmpeg_qsv": {
     "hwdev": "qsv=hw",
@@ -30,7 +38,7 @@
     "extension": ".mp4"
   },
   "handbrake": {
-    "encoder": "qsv_h265",
+    "encoder": "nvenc_h265",
     "quality": "10",
     "width": 1280,
     "height": 720,
@@ -38,7 +46,7 @@
     "extra_args": []
   },
   "handbrake_dvd": {
-    "encoder": "qsv_h265",
+    "encoder": "nvenc_h265",
     "quality": "20",
     "width": 1920,
     "height": 1080,
@@ -46,7 +54,7 @@
     "extra_args": []
   },
   "handbrake_br": {
-    "encoder": "qsv_h265",
+    "encoder": "nvenc_h265",
     "quality": "25",
     "width": 3840,
     "height": 2160,
