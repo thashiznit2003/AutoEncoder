@@ -61,19 +61,51 @@ HTML_PAGE = """
       <h2>HandBrake Settings</h2>
       <form id="handbrake-form">
         <label>Default encoder
-          <select id="hb-encoder" name="encoder"></select>
+          <select id="hb-encoder" name="encoder">
+            <option value="x264">x264</option>
+            <option value="x265">x265</option>
+            <option value="qsv_h264">qsv_h264</option>
+            <option value="qsv_h265">qsv_h265</option>
+            <option value="nvenc_h264">nvenc_h264</option>
+            <option value="nvenc_h265">nvenc_h265</option>
+          </select>
         </label>
         <label>Default quality (constant quality RF)
-          <select id="hb-quality" name="quality"></select>
+          <select id="hb-quality" name="quality">
+            <option value="18">18</option>
+            <option value="20">20</option>
+            <option value="22">22</option>
+            <option value="24">24</option>
+            <option value="26">26</option>
+            <option value="28">28</option>
+          </select>
         </label>
         <label>DVD quality (constant quality RF)
-          <select id="hb-dvd-quality" name="quality_dvd"></select>
+          <select id="hb-dvd-quality" name="quality_dvd">
+            <option value="18">18</option>
+            <option value="20">20</option>
+            <option value="22">22</option>
+            <option value="24">24</option>
+            <option value="26">26</option>
+            <option value="28">28</option>
+          </select>
         </label>
         <label>Blu-ray quality (constant quality RF)
-          <select id="hb-br-quality" name="quality_br"></select>
+          <select id="hb-br-quality" name="quality_br">
+            <option value="18">18</option>
+            <option value="20">20</option>
+            <option value="22">22</option>
+            <option value="24">24</option>
+            <option value="26">26</option>
+            <option value="28">28</option>
+          </select>
         </label>
         <label>Output extension
-          <select id="hb-ext" name="extension"></select>
+          <select id="hb-ext" name="extension">
+            <option value=".mkv">.mkv</option>
+            <option value=".mp4">.mp4</option>
+            <option value=".m4v">.m4v</option>
+          </select>
         </label>
         <button type="submit">Save HandBrake</button>
       </form>
@@ -178,23 +210,13 @@ HTML_PAGE = """
         { el: document.getElementById("hb-dvd-quality"), val: cfg.handbrake_dvd.quality },
         { el: document.getElementById("hb-br-quality"), val: cfg.handbrake_br.quality }
       ];
-      const encoders = ["x264", "x265", "qsv_h264", "qsv_h265", "nvenc_h264", "nvenc_h265"];
-      encSelect.innerHTML = encoders.map(e => `<option value="${e}">${e}</option>`).join("");
-      encSelect.value = cfg.handbrake.encoder || "x264";
-
+      if (encSelect) encSelect.value = cfg.handbrake.encoder || "x264";
       const qualities = [18, 20, 22, 24, 26, 28];
       qualitySelects.forEach(q => {
-        q.el.innerHTML = qualities.map(v => `<option value="${v}">${v}</option>`).join("");
-        q.el.value = q.val ?? 20;
+        if (q.el) q.el.value = (q.val ?? 20).toString();
       });
-
-      const extensions = [".mkv", ".mp4", ".m4v"];
-      extSelect.innerHTML = extensions.map(x => `<option value="${x}">${x}</option>`).join("");
-      extSelect.value = cfg.handbrake.extension || ".mkv";
+      if (extSelect) extSelect.value = cfg.handbrake.extension || ".mkv";
     }
-
-    // Pre-populate dropdowns before fetching config, so options are visible even if /api/config fails.
-    populateHandbrakeForm({});
 
     document.getElementById("handbrake-form").addEventListener("submit", async (e) => {
       e.preventDefault();
