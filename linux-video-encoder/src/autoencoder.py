@@ -265,7 +265,7 @@ def safe_move(src: Path, dst: Path) -> bool:
         logging.error("Failed to move %s to %s: %s", src, dst, e)
         return False
 
-def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, status_tracker: Optional[StatusTracker] = None) -> bool:
+def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, status_tracker: Optional[StatusTracker] = None, job_id: Optional[str] = None) -> bool:
     """
     Run HandBrakeCLI or ffmpeg and stream its stdout/stderr to the logger in real time.
     Returns True on success, False otherwise.
@@ -350,7 +350,7 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                     try:
                         pct = float(m.group(1))
                         if status_tracker:
-                            status_tracker.update_progress(str(input_path), pct)
+                            status_tracker.update_progress(job_id or str(input_path), pct)
                     except Exception:
                         pass
                 m2 = eta_re.search(line)
@@ -358,7 +358,7 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                     try:
                         h, mn, s = m2.groups()
                         eta_sec = int(h) * 3600 + int(mn) * 60 + int(s)
-                        status_tracker.update_eta(str(input_path), eta_sec)
+                        status_tracker.update_eta(job_id or str(input_path), eta_sec)
                     except Exception:
                         pass
         rc = proc.wait()
@@ -504,7 +504,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     logging.info("Selected profile=%s encoder=%s ext=%s out=%s use_ffmpeg=%s audio_mode=%s audio_kbps=%s",
                  config_str, hb_opts.get("encoder"), extension, out_path, use_ffmpeg,
                  hb_opts.get("audio_mode"), hb_opts.get("audio_bitrate_kbps"))
-    success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker)
+    success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker, job_id=str(src))
     if not success:
         logging.warning("Encoding failed for %s -> %s; attempting Software Encoder fallback", video_file, out_path)
         if status_tracker:
