@@ -80,7 +80,7 @@ class ConfigManager:
     def update(self, data: Dict[str, Any]) -> Dict[str, Any]:
         with self.lock:
             cfg = load_config(self.path)
-            for field in ["output_dir", "rip_dir", "final_dir", "max_threads", "rescan_interval", "min_size_mb", "makemkv_minlength", "search_path"]:
+            for field in ["output_dir", "rip_dir", "final_dir", "max_threads", "rescan_interval", "min_size_mb", "makemkv_minlength", "search_path", "profile"]:
                 if field in data and data[field] is not None:
                     cfg[field] = data[field]
             for key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
@@ -436,8 +436,9 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         if status_tracker:
             status_tracker.complete(str(src), False, dest_str, "No video file to encode")
         return False
-    # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available                         
+    # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available
     use_ffmpeg = str(config_str).startswith("ffmpeg")
+    logging.info("Selected profile=%s encoder=%s ext=%s out=%s use_ffmpeg=%s", config_str, hb_opts.get("encoder"), extension, out_path, use_ffmpeg)
     success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker)
     if not success:
         logging.warning("Encoding failed for %s -> %s; attempting Software Encoder fallback", video_file, out_path)
