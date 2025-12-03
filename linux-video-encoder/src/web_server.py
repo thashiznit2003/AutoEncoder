@@ -194,6 +194,15 @@ HTML_PAGE = """
       `).join("") + '</div>';
     }
 
+    function renderLogs(lines) {
+      const el = document.getElementById("logs");
+      const atBottom = (el.scrollTop + el.clientHeight) >= (el.scrollHeight - 20);
+      el.textContent = (lines && lines.length ? lines : ["Ready to encode"]).join("\\n");
+      if (atBottom) {
+        el.scrollTop = el.scrollHeight;
+      }
+    }
+
     function fmtDuration(sec) {
       if (!sec && sec !== 0) return "";
       const s = Math.floor(sec % 60);
@@ -253,7 +262,7 @@ HTML_PAGE = """
       try {
         const logs = await fetchJSON("/api/logs");
         const lines = Array.isArray(logs.lines) ? logs.lines : [];
-        document.getElementById("logs").textContent = (lines.length ? lines : ["Ready to encode"]).join("\\n");
+        renderLogs(lines);
       } catch (e) {
         document.getElementById("logs").textContent = "Logs unavailable.";
       }

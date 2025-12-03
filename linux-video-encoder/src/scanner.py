@@ -6,6 +6,12 @@ EXCLUDED_SCAN_PATHS = {
     "/etc/resolv.conf",
     "/etc/hostname",
     "/etc/hosts",
+    "/usr",
+    "/usr/lib",
+    "/usr/bin",
+    "/usr/share",
+    "/linux-video-encoder/scripts",
+    "/etc/vulkan",
 }
 class Scanner:
     def __init__(self, search_path='/'):
@@ -117,10 +123,9 @@ class Scanner:
         Return True if path is equal to an excluded mountpoint or is a subpath
         of one. Special-case '/' so it does not match everything.
         """
-        for ex in self._excluded_mounts:
+        for ex in list(self._excluded_mounts) + list(EXCLUDED_SCAN_PATHS):
             if path == ex:
                 return True
-            # avoid treating '/' as a prefix for all absolute paths
             trimmed = ex.rstrip('/')
             if trimmed and path.startswith(trimmed + '/'):
                 return True
