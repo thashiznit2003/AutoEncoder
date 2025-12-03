@@ -34,10 +34,10 @@ HTML_PAGE = """
     .muted { color: #94a3b8; }
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
-    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
-    .metric-card { background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 10px; padding: 10px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); }
-    .metric-label { font-size: 11px; color: #8ea0bd; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; }
-    .metric-value { font-size: 15px; font-weight: 700; color: #e5edff; margin-top: 4px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; }
+    .metric-card { background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 10px; padding: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); }
+    .metric-label { font-size: 10px; color: #8ea0bd; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; }
+    .metric-value { font-size: 13px; font-weight: 700; color: #e5edff; margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -167,7 +167,7 @@ HTML_PAGE = """
         return;
       }
       const cards = [];
-      const cpuPct = metrics.cpu_pct !== undefined ? metrics.cpu_pct.toFixed(1) + "%" : "n/a";
+      const cpuPct = (metrics.cpu_pct !== undefined && metrics.cpu_pct !== null) ? metrics.cpu_pct.toFixed(1) + "%" : "n/a";
       const load = metrics.cpu_load ? metrics.cpu_load.join(", ") : "n/a";
       cards.push({
         icon: "🖥️",
@@ -528,8 +528,10 @@ def create_app(tracker, config_manager=None):
     def metrics():
         import os
         load1, load5, load15 = os.getloadavg()
+        cores = os.cpu_count() or 1
         data = {
             "cpu_load": [round(load1, 2), round(load5, 2), round(load15, 2)],
+            "cpu_pct": round((load1 / cores) * 100, 1),
             "mem": read_meminfo(),
             "net": read_netdev(),
             "block": read_diskstats(),
