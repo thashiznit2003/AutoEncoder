@@ -238,6 +238,18 @@ HTML_PAGE = """
         const duration = item.duration_sec ? fmtDuration(item.duration_sec) : ((item.finished_at && item.started_at) ? fmtDuration(item.finished_at - (item.started_at || item.finished_at)) : "");
         const hasProgress = item.progress || item.progress === 0;
         const progress = hasProgress ? Math.min(100, Math.max(0, item.progress)).toFixed(0) : null;
+        let etaText = "";
+        if (item.eta_sec !== undefined && item.eta_sec !== null) {
+          const eta = Math.max(0, Math.round(item.eta_sec));
+          const h = Math.floor(eta / 3600);
+          const m = Math.floor((eta % 3600) / 60);
+          const s = eta % 60;
+          const parts = [];
+          if (h) parts.push(h + "h");
+          if (m || h) parts.push(m + "m");
+          parts.push(s + "s");
+          etaText = "ETA " + parts.join(" ");
+        }
         const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div>' : "";
         const stopBtn = state === "running" ? '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">Stop</button>' : "";
         const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
@@ -250,7 +262,7 @@ HTML_PAGE = """
           '  <div class="muted">-> ' + (item.destination || "") + '</div>',
           '  <div class="muted">' + (item.message || "") + '</div>',
           infoLine,
-          '  <div class="muted">' + (duration ? "Encode elapsed: " + duration : "") + '</div>',
+          '  <div class="muted">' + (etaText || (duration ? "Encode elapsed: " + duration : "")) + '</div>',
           '  ' + progBar,
           '</div>'
         ].join("");
