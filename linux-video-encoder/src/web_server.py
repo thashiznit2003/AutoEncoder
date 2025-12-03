@@ -133,7 +133,10 @@ HTML_PAGE = """
       </form>
     </div>
     <div class="panel" style="grid-column: 1 / -1;">
-      <h2>Logs</h2>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+        <h2 style="margin:0;">Logs</h2>
+        <button id="copy-logs" style="padding:6px 10px;">Copy last 300</button>
+      </div>
       <div id="logs" class="log"></div>
     </div>
   </div>
@@ -321,6 +324,18 @@ HTML_PAGE = """
     document.getElementById("makemkv-form").addEventListener("input", () => { mkDirty = true; });
     document.getElementById("makemkv-form").addEventListener("change", () => { mkDirty = true; });
     document.getElementById("handbrake-form").addEventListener("change", () => { hbDirty = true; });
+
+    document.getElementById("copy-logs").addEventListener("click", async () => {
+      try {
+        const logs = await fetchJSON("/api/logs");
+        const lines = (logs.lines || []).slice(-300);
+        const text = lines.join("\n");
+        await navigator.clipboard.writeText(text);
+        alert("Copied last " + lines.length + " log lines to clipboard.");
+      } catch (e) {
+        alert("Failed to copy logs: " + e);
+      }
+    });
 
     setInterval(refresh, 2000);
     setInterval(tickClock, 1000);
