@@ -37,6 +37,7 @@ DEFAULT_CONFIG = {
     "output_dir": "/mnt/output",
     "rip_dir": "/mnt/ripped",
     "final_dir": "",
+    "profile": "handbrake",
     "max_threads": 4,
     "rescan_interval": 30,
     "min_size_mb": 100,
@@ -436,7 +437,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             status_tracker.complete(str(src), False, dest_str, "No video file to encode")
         return False
     # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available                         
-    success = run_encoder(video_file, str(out_path), hb_opts, not (is_dvd or is_bluray), status_tracker=status_tracker)
+    use_ffmpeg = str(config_str).startswith("ffmpeg")
+    success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker)
     if not success:
         logging.warning("Encoding failed for %s -> %s; attempting Software Encoder fallback", video_file, out_path)
         try:

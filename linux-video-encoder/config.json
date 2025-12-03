@@ -7,7 +7,7 @@
   "rescan_interval": 30,
   "min_size_mb": 100,
   "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v"],
-  "profile": "ffmpeg_nvenc",
+  "profile": "handbrake",
   "ffmpeg": {
     "encoder": "dnxhd",
     "video": "scale=1920:1080,format=yuv422p",
