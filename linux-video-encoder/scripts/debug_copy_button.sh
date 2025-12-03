@@ -21,6 +21,7 @@ log "Checking served HTML for \"Copy last 300\"..."
 docker exec -it linux-video-encoder sh -c "curl -s http://localhost:5959 | grep -n 'Copy last 300' || echo 'NOT FOUND in served HTML'"
 
 log "Inspecting web_server.HTML_PAGE inside the container..."
-docker exec -it linux-video-encoder sh -c "python3 - <<'PY'\nimport web_server\nprint('copy-logs present in HTML_PAGE:', 'Copy last 300' in web_server.HTML_PAGE)\nfor i, line in enumerate(web_server.HTML_PAGE.splitlines()[120:150], start=121):\n    print(f\"{i:03}: {line}\")\nPY"
+docker exec -it linux-video-encoder sh -c "python3 -c \"import web_server; print('copy-logs present in HTML_PAGE:', 'Copy last 300' in web_server.HTML_PAGE); lines=web_server.HTML_PAGE.splitlines(); start=120; end=150; \
+    [print(f'{i+1:03}: {lines[i]}') for i in range(start, min(end, len(lines)))]\""
 
 log "Done. If served HTML still lacks the button, restart from the updated repo and hard reload the browser."
