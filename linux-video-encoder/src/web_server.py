@@ -37,7 +37,7 @@ HTML_PAGE = """
     .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; }
     .metric-card { background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 10px; padding: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); }
     .metric-label { font-size: 10px; color: #8ea0bd; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; }
-    .metric-value { font-size: 13px; font-weight: 700; color: #e5edff; margin-top: 2px; }
+    .metric-value { font-size: 13px; font-weight: 700; color: #e5edff; margin-top: 2px; font-family: inherit; }
   </style>
 </head>
 <body>
