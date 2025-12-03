@@ -10,20 +10,20 @@ HTML_PAGE = """
   <meta charset="utf-8">
   <title>Linux Video Encoder</title>
   <style>
-    :root { color-scheme: dark; font-family: "Segoe UI", Arial, sans-serif; }
-    body { margin: 0; background: #0f172a; color: #e2e8f0; }
-    header { padding: 12px 16px; background: #111827; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; }
-    h1 { font-size: 18px; margin: 0; }
+    :root { color-scheme: dark; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
+    body { margin: 0; background: radial-gradient(circle at 20% 20%, rgba(59,130,246,0.08), transparent 40%), #0b1220; color: #e2e8f0; }
+    header { padding: 12px 16px; background: #0f172a; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+    h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-auto-rows: minmax(240px, auto); gap: 12px; padding: 12px; }
-    .panel { background: #111827; border: 1px solid #1f2937; border-radius: 10px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-    .panel h2 { margin: 0 0 8px 0; font-size: 15px; color: #93c5fd; }
+    .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 12px; padding: 12px; box-shadow: 0 14px 38px rgba(0,0,0,0.28); }
+    .panel h2 { margin: 0 0 8px 0; font-size: 15px; color: #93c5fd; letter-spacing: 0.3px; }
     form { display: grid; gap: 8px; margin-top: 8px; }
     label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; }
-    input, select { padding: 6px 8px; border-radius: 6px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; }
-    button { padding: 8px 12px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; font-weight: 600; cursor: pointer; }
-    button:hover { background: #1d4ed8; }
-    .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 8px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; white-space: pre-wrap; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: #0f172a; font-weight: 600; }
+    input, select { padding: 8px 10px; border-radius: 8px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; }
+    button { padding: 8px 12px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.2s; }
+    button:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37,99,235,0.35); }
+    .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 10px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; white-space: pre-wrap; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: #0f172a; font-weight: 700; }
     .badge.running { background: #fde047; }
     .badge.success { background: #34d399; }
     .badge.error { background: #f87171; }
@@ -34,6 +34,10 @@ HTML_PAGE = """
     .muted { color: #94a3b8; }
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+    .metric-card { background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 10px; padding: 10px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); }
+    .metric-label { font-size: 11px; color: #8ea0bd; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; }
+    .metric-value { font-size: 15px; font-weight: 700; color: #e5edff; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -156,6 +160,57 @@ HTML_PAGE = """
       return res.json();
     }
 
+    function renderMetrics(metrics) {
+      const el = document.getElementById("metrics");
+      if (!metrics) {
+        el.textContent = "Metrics unavailable.";
+        return;
+      }
+      const cards = [];
+      const cpuPct = metrics.cpu_pct !== undefined ? metrics.cpu_pct.toFixed(1) + "%" : "n/a";
+      const load = metrics.cpu_load ? metrics.cpu_load.join(", ") : "n/a";
+      cards.push({
+        icon: "🖥️",
+        label: "CPU",
+        value: cpuPct + " (load " + load + ")"
+      });
+      if (metrics.mem) {
+        cards.push({
+          icon: "💾",
+          label: "Memory",
+          value: metrics.mem.used_mb + " / " + metrics.mem.total_mb + " MB"
+        });
+      }
+      if (metrics.net) {
+        cards.push({
+          icon: "🌐",
+          label: "Net",
+          value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx"
+        });
+      }
+      if (metrics.block) {
+        cards.push({
+          icon: "🗄️",
+          label: "Disk",
+          value: metrics.block.read_mb + " MB r / " + metrics.block.write_mb + " MB w"
+        });
+      }
+      if (metrics.gpu) {
+        const g = metrics.gpu;
+        cards.push({
+          icon: "🎞️",
+          label: "GPU",
+          value: g.util + "% util | " + g.mem_used_mb + " / " + g.mem_total_mb + " MB"
+        });
+      }
+      el.innerHTML = '<div class="metric-grid">' + cards.map(c => `
+        <div class="metric-card">
+          <div class="metric-label">${c.icon} ${c.label}</div>
+          <div class="metric-value">${c.value}</div>
+        </div>
+      `).join("") + '</div>';
+    }
+
     function fmtDuration(sec) {
       if (!sec && sec !== 0) return "";
       const s = Math.floor(sec % 60);
@@ -230,24 +285,7 @@ HTML_PAGE = """
       }
       try {
         const metrics = await fetchJSON("/api/metrics");
-        const lines = [];
-        if (metrics.cpu_load) {
-          lines.push("CPU load (1/5/15): " + metrics.cpu_load.join(", "));
-        }
-        if (metrics.mem) {
-          lines.push("Memory: " + metrics.mem.used_mb + " MB / " + metrics.mem.total_mb + " MB");
-        }
-        if (metrics.net) {
-          lines.push("Net rx/tx: " + metrics.net.rx_mb + " MB / " + metrics.net.tx_mb + " MB");
-        }
-        if (metrics.block) {
-          lines.push("Block r/w: " + metrics.block.read_mb + " MB / " + metrics.block.write_mb + " MB");
-        }
-        if (metrics.gpu) {
-          const g = metrics.gpu;
-          lines.push("GPU util: " + g.util + "% | mem: " + g.mem_used_mb + " / " + g.mem_total_mb + " MB");
-        }
-        document.getElementById("metrics").textContent = lines.join("\\n") || "No metrics available.";
+        renderMetrics(metrics);
       } catch (e) {
         document.getElementById("metrics").textContent = "Metrics unavailable.";
       }
