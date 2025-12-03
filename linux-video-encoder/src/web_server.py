@@ -259,14 +259,15 @@ HTML_PAGE = """
       const qDefault = parseInt(document.getElementById("hb-quality").value || "20", 10) || 20;
       const qDvd = parseInt(document.getElementById("hb-dvd-quality").value || "20", 10) || 20;
       const qBr = parseInt(document.getElementById("hb-br-quality").value || "25", 10) || 25;
+      const ext = document.getElementById("hb-ext").value;
       const body = {
         handbrake: {
           encoder: document.getElementById("hb-encoder").value,
           quality: qDefault,
-          extension: document.getElementById("hb-ext").value
+          extension: ext
         },
-        handbrake_dvd: { quality: qDvd },
-        handbrake_br: { quality: qBr }
+        handbrake_dvd: { quality: qDvd, extension: ext },
+        handbrake_br: { quality: qBr, extension: ext }
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       hbDirty = false;
@@ -305,6 +306,8 @@ HTML_PAGE = """
 
     document.getElementById("handbrake-form").addEventListener("input", () => { hbDirty = true; });
     document.getElementById("makemkv-form").addEventListener("input", () => { mkDirty = true; });
+    document.getElementById("makemkv-form").addEventListener("change", () => { mkDirty = true; });
+    document.getElementById("handbrake-form").addEventListener("change", () => { hbDirty = true; });
 
     setInterval(refresh, 2000);
     setInterval(tickClock, 1000);
