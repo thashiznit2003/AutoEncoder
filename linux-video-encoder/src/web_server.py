@@ -168,46 +168,23 @@ HTML_PAGE = """
       }
       const cards = [];
       const cpuPct = (metrics.cpu_pct !== undefined && metrics.cpu_pct !== null) ? metrics.cpu_pct.toFixed(1) + "%" : "n/a";
-      cards.push({
-        icon: "🖥️",
-        label: "CPU",
-        value: cpuPct
-      });
-      if (metrics.mem) {
-        cards.push({
-          icon: "💾",
-          label: "Memory",
-          value: metrics.mem.used_mb + " / " + metrics.mem.total_mb + " MB"
-        });
-      }
-      if (metrics.net) {
-        cards.push({
-          icon: "🌐",
-          label: "Net",
-          value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx"
-        });
-      }
-      if (metrics.block) {
-        cards.push({
-          icon: "🗄️",
-          label: "Disk",
-          value: metrics.block.read_mb + " MB r / " + metrics.block.write_mb + " MB w"
-        });
-      }
-      if (metrics.fs) {
-        cards.push({
-          icon: "📂",
-          label: "Output FS",
-          value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB free"
-        });
-      }
+      // Order: CPU, GPU, Memory, Disk, Output, Net
+      cards.push({ icon: "🖥️", label: "CPU", value: cpuPct });
       if (metrics.gpu) {
         const g = metrics.gpu;
-        cards.push({
-          icon: "🎞️",
-          label: "GPU",
-          value: g.util + "% util | " + g.mem_used_mb + " / " + g.mem_total_mb + " MB"
-        });
+        cards.push({ icon: "🎞️", label: "GPU", value: g.util + "% util | " + g.mem_used_mb + " / " + g.mem_total_mb + " MB" });
+      }
+      if (metrics.mem) {
+        cards.push({ icon: "💾", label: "Memory", value: metrics.mem.used_mb + " / " + metrics.mem.total_mb + " MB" });
+      }
+      if (metrics.block) {
+        cards.push({ icon: "🗄️", label: "Disk", value: metrics.block.read_mb + " MB r / " + metrics.block.write_mb + " MB w" });
+      }
+      if (metrics.fs) {
+        cards.push({ icon: "📂", label: "Output FS", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB free" });
+      }
+      if (metrics.net) {
+        cards.push({ icon: "🌐", label: "Net", value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx" });
       }
       el.innerHTML = '<div class="metric-grid">' + cards.map(c => `
         <div class="metric-card">
