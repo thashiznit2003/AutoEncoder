@@ -194,6 +194,13 @@ HTML_PAGE = """
           value: metrics.block.read_mb + " MB r / " + metrics.block.write_mb + " MB w"
         });
       }
+      if (metrics.fs) {
+        cards.push({
+          icon: "📂",
+          label: "Output FS",
+          value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB free"
+        });
+      }
       if (metrics.gpu) {
         const g = metrics.gpu;
         cards.push({
@@ -498,6 +505,19 @@ def create_app(tracker, config_manager=None):
             pass
         return None
 
+    def read_fs(path="/mnt/output"):
+        try:
+            st = os.statvfs(path)
+            total = st.f_frsize * st.f_blocks
+            free = st.f_frsize * st.f_bavail
+            return {
+                "path": path,
+                "free_gb": round(free / (1024 ** 3), 1),
+                "total_gb": round(total / (1024 ** 3), 1),
+            }
+        except Exception:
+            return None
+
     @app.route("/")
     def index():
         return Response(HTML_PAGE, mimetype="text/html")
@@ -535,6 +555,7 @@ def create_app(tracker, config_manager=None):
             "net": read_netdev(),
             "block": read_diskstats(),
             "gpu": read_gpu(),
+            "fs": read_fs(),
             "ts": time.time(),
         }
         return jsonify(data)
