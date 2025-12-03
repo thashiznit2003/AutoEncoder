@@ -240,7 +240,7 @@ HTML_PAGE = """
         const progress = hasProgress ? Math.min(100, Math.max(0, item.progress)).toFixed(0) : null;
         const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div>' : "";
         const stopBtn = state === "running" ? '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">Stop</button>' : "";
-        const infoLine = item.info ? '<div class="muted">Src: ' + item.info + '</div>' : "";
+        const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
         return [
           '<div class="item">',
           '  <div class="flex-between">',
