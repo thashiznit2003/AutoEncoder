@@ -329,7 +329,7 @@ HTML_PAGE = """
       try {
         const logs = await fetchJSON("/api/logs");
         const lines = (logs.lines || []).slice(-300);
-        const text = lines.join("\n");
+        const text = lines.join("\\n");
         await navigator.clipboard.writeText(text);
         alert("Copied last " + lines.length + " log lines to clipboard.");
       } catch (e) {
