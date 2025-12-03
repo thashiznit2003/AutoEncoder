@@ -133,9 +133,9 @@ HTML_PAGE = """
       </form>
     </div>
     <div class="panel" style="grid-column: 1 / -1;">
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; justify-content: space-between;">
         <h2 style="margin:0;">Logs</h2>
-        <button id="copy-logs" style="padding:6px 10px;">Copy last 300</button>
+        <button id="copy-logs" style="padding:6px 10px; background:#2563eb; color:#fff; border:0; border-radius:6px; cursor:pointer;">Copy last 300</button>
       </div>
       <div id="logs" class="log"></div>
     </div>
