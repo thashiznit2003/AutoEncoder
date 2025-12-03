@@ -442,6 +442,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker)
     if not success:
         logging.warning("Encoding failed for %s -> %s; attempting Software Encoder fallback", video_file, out_path)
+        if status_tracker:
+            status_tracker.add_event("HandBrake failed; falling back to ffmpeg")
         try:
             ffmpeg_opts = config.get("ffmpeg_fallback", {})
             try:

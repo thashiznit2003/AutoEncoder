@@ -44,6 +44,7 @@ HTML_PAGE = """
   <div class="grid">
     <div class="panel">
       <h2>Active Encodes</h2>
+      <div class="muted" id="hb-runtime"></div>
       <div id="active"></div>
     </div>
     <div class="panel">
@@ -186,6 +187,17 @@ HTML_PAGE = """
         const status = await fetchJSON("/api/status");
         renderList(document.getElementById("active"), status.active, "No active encodes.");
         renderList(document.getElementById("recent"), status.recent, "No recent jobs.");
+        const hbCfg = status.handbrake_config || {};
+        const hb = hbCfg.handbrake || {};
+        const hbDvd = hbCfg.handbrake_dvd || {};
+        const hbBr = hbCfg.handbrake_br || {};
+        const hbExt = hb.extension || ".mkv";
+        document.getElementById("hb-runtime").textContent =
+          "Runtime HB settings: Encoder=" + (hb.encoder || "x264") +
+          " | Default RF=" + (hb.quality ?? 20) +
+          " | DVD RF=" + (hbDvd.quality ?? 20) +
+          " | BR RF=" + (hbBr.quality ?? 25) +
+          " | Ext=" + hbExt;
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
@@ -329,7 +341,16 @@ def create_app(tracker, config_manager=None):
 
     @app.route("/api/status")
     def status():
-        return jsonify(tracker.snapshot())
+        data = tracker.snapshot()
+        if config_manager:
+            cfg = config_manager.read()
+            data["handbrake_config"] = {
+                "profile": cfg.get("profile"),
+                "handbrake": cfg.get("handbrake", {}),
+                "handbrake_dvd": cfg.get("handbrake_dvd", {}),
+                "handbrake_br": cfg.get("handbrake_br", {}),
+            }
+        return jsonify(data)
 
     @app.route("/api/logs")
     def logs():
