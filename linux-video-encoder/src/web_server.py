@@ -261,6 +261,7 @@ HTML_PAGE = """
       const qBr = parseInt(document.getElementById("hb-br-quality").value || "25", 10) || 25;
       const ext = document.getElementById("hb-ext").value;
       const body = {
+        profile: "handbrake",
         handbrake: {
           encoder: document.getElementById("hb-encoder").value,
           quality: qDefault,
