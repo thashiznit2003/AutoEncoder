@@ -1,4 +1,7 @@
 from flask import Flask, jsonify, Response, request
+import time
+import subprocess
+import os
 
 HTML_PAGE = """
 <!doctype html>
@@ -60,6 +63,10 @@ HTML_PAGE = """
     <div class="panel">
       <h2>Status Messages</h2>
       <div id="events" class="log"></div>
+    </div>
+    <div class="panel">
+      <h2>System Metrics</h2>
+      <div id="metrics" class="log"></div>
     </div>
     <div class="panel">
       <h2>HandBrake Settings</h2>
@@ -222,6 +229,29 @@ HTML_PAGE = """
         document.getElementById("events").textContent = "Events unavailable.";
       }
       try {
+        const metrics = await fetchJSON("/api/metrics");
+        const lines = [];
+        if (metrics.cpu_load) {
+          lines.push("CPU load (1/5/15): " + metrics.cpu_load.join(", "));
+        }
+        if (metrics.mem) {
+          lines.push("Memory: " + metrics.mem.used_mb + " MB / " + metrics.mem.total_mb + " MB");
+        }
+        if (metrics.net) {
+          lines.push("Net rx/tx: " + metrics.net.rx_mb + " MB / " + metrics.net.tx_mb + " MB");
+        }
+        if (metrics.block) {
+          lines.push("Block r/w: " + metrics.block.read_mb + " MB / " + metrics.block.write_mb + " MB");
+        }
+        if (metrics.gpu) {
+          const g = metrics.gpu;
+          lines.push("GPU util: " + g.util + "% | mem: " + g.mem_used_mb + " / " + g.mem_total_mb + " MB");
+        }
+        document.getElementById("metrics").textContent = lines.join("\\n") || "No metrics available.";
+      } catch (e) {
+        document.getElementById("metrics").textContent = "Metrics unavailable.";
+      }
+      try {
         const cfg = await fetchJSON("/api/config");
         if (!hbDirty) {
           populateHandbrakeForm(cfg);
@@ -350,6 +380,87 @@ HTML_PAGE = """
 def create_app(tracker, config_manager=None):
     app = Flask(__name__)
 
+    def read_meminfo():
+        mem = {"total_mb": None, "used_mb": None}
+        try:
+            info = {}
+            with open("/proc/meminfo", "r", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.split(":")
+                    if len(parts) < 2:
+                        continue
+                    key = parts[0].strip()
+                    val = parts[1].strip().split()[0]
+                    info[key] = int(val)
+            total_kb = info.get("MemTotal", 0)
+            avail_kb = info.get("MemAvailable", 0)
+            used_kb = total_kb - avail_kb
+            mem["total_mb"] = round(total_kb / 1024, 1)
+            mem["used_mb"] = round(used_kb / 1024, 1)
+        except Exception:
+            pass
+        return mem
+
+    def read_netdev():
+        rx = tx = 0
+        try:
+            with open("/proc/net/dev", "r", encoding="utf-8") as f:
+                for line in f:
+                    if ":" not in line:
+                        continue
+                    iface, rest = line.split(":", 1)
+                    parts = rest.strip().split()
+                    if len(parts) >= 8:
+                        rx += int(parts[0])
+                        tx += int(parts[8])
+        except Exception:
+            pass
+        return {"rx_mb": round(rx / (1024 * 1024), 1), "tx_mb": round(tx / (1024 * 1024), 1)}
+
+    def read_diskstats():
+        rd = wr = 0
+        try:
+            with open("/proc/diskstats", "r", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if len(parts) < 14:
+                        continue
+                    # sectors read at index 5, written at index 9
+                    try:
+                        sectors_rd = int(parts[5])
+                        sectors_wr = int(parts[9])
+                        rd += sectors_rd
+                        wr += sectors_wr
+                    except Exception:
+                        continue
+            # assume 512 bytes per sector
+            rd_mb = round((rd * 512) / (1024 * 1024), 1)
+            wr_mb = round((wr * 512) / (1024 * 1024), 1)
+            return {"read_mb": rd_mb, "write_mb": wr_mb}
+        except Exception:
+            return None
+
+    def read_gpu():
+        try:
+            res = subprocess.run(
+                ["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total", "--format=csv,noheader,nounits"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res.returncode != 0 or not res.stdout.strip():
+                return None
+            line = res.stdout.strip().splitlines()[0]
+            parts = [p.strip() for p in line.split(",")]
+            if len(parts) >= 3:
+                util = int(parts[0])
+                mem_used = int(parts[1])
+                mem_total = int(parts[2])
+                return {"util": util, "mem_used_mb": mem_used, "mem_total_mb": mem_total}
+        except Exception:
+            pass
+        return None
+
     @app.route("/")
     def index():
         return Response(HTML_PAGE, mimetype="text/html")
@@ -374,6 +485,20 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/events")
     def events():
         return jsonify(tracker.events())
+
+    @app.route("/api/metrics")
+    def metrics():
+        import os
+        load1, load5, load15 = os.getloadavg()
+        data = {
+            "cpu_load": [round(load1, 2), round(load5, 2), round(load15, 2)],
+            "mem": read_meminfo(),
+            "net": read_netdev(),
+            "block": read_diskstats(),
+            "gpu": read_gpu(),
+            "ts": time.time(),
+        }
+        return jsonify(data)
 
     if config_manager:
         @app.route("/api/config", methods=["GET", "POST"])
