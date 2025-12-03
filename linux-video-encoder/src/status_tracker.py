@@ -17,6 +17,7 @@ class StatusTracker:
         self._procs = {}
         self._log_path = Path(log_path)
         self._history_size = history_size
+        self._etas = {}
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -43,11 +44,16 @@ class StatusTracker:
         with self._lock:
             proc = self._procs.pop(src, None)
             self._active.pop(src, None)
+            self._etas.pop(src, None)
         if proc:
             try:
                 proc.terminate()
             except Exception:
                 pass
+
+    def update_eta(self, src: str, eta_seconds: float):
+        with self._lock:
+            self._etas[src] = eta_seconds
 
     def complete(self, src: str, success: bool, dest: str, message: str = ""):
         with self._lock:
@@ -61,6 +67,7 @@ class StatusTracker:
                 "started_at": start.get("started_at") if start else None,
                 "message": message,
                 "info": start.get("info") if start else None,
+                "eta_sec": self._etas.pop(src, None),
                 "progress": 100.0 if success else start.get("progress") if start else None,
             }
             self._history.append(record)
@@ -82,6 +89,7 @@ class StatusTracker:
                     {
                         **item,
                         "duration_sec": now - item.get("started_at", now),
+                        "eta_sec": self._etas.get(item.get("source")) if item.get("source") else None,
                     }
                 )
             history = list(self._history)

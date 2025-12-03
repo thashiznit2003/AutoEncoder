@@ -341,6 +341,7 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
         if proc.stdout is not None:
             import re
             progress_re = re.compile(r'([0-9]{1,3}\.?[0-9]{0,2})%')
+            eta_re = re.compile(r'ETA\s+(\d+):(\d+):(\d+)')
             for line in proc.stdout:
                 line = line.rstrip()
                 logger.info(line)
@@ -350,6 +351,14 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                         pct = float(m.group(1))
                         if status_tracker:
                             status_tracker.update_progress(str(input_path), pct)
+                    except Exception:
+                        pass
+                m2 = eta_re.search(line)
+                if m2 and status_tracker:
+                    try:
+                        h, mn, s = m2.groups()
+                        eta_sec = int(h) * 3600 + int(mn) * 60 + int(s)
+                        status_tracker.update_eta(str(input_path), eta_sec)
                     except Exception:
                         pass
         rc = proc.wait()

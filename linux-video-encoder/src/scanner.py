@@ -368,6 +368,12 @@ class Scanner:
         video_extensions_lower = tuple(e.lower() for e in video_extensions)
         video_files = []
         excluded_mounts = self._excluded_mounts
+        stable_map = getattr(self, "_stable_map", {})
+        next_map = {}
+        import time
+        now = time.time()
+        min_age = 60  # seconds
+        stable_window = 20  # seconds
 
         # determine roots
         if scan_roots is not None:
@@ -423,14 +429,26 @@ class Scanner:
                             continue
                         if file.lower().endswith(video_extensions_lower):
                             full = os.path.join(root, file)
-                            video_files.append(full)
-                            found_in_root += 1
-                            logger.debug("Matched file: %s", full)
+                            try:
+                                st = os.stat(full)
+                                age_ok = (now - st.st_mtime) >= min_age
+                                key = full
+                                prev = stable_map.get(key)
+                                if prev and prev.get("size") == st.st_size and (now - prev.get("seen", now)) >= stable_window and age_ok:
+                                    next_map[key] = prev
+                                    video_files.append(full)
+                                    found_in_root += 1
+                                    logger.debug("Matched stable file: %s", full)
+                                else:
+                                    next_map[key] = {"size": st.st_size, "seen": now}
+                            except Exception as e:
+                                logger.debug("Stat failed for %s: %s", full, e)
                     except Exception as e:
                         logger.debug("Error checking file %s/%s: %s", root, file, e)
             logger.info("Found %d candidate video files under %s", found_in_root, search_root)
 
         logger.info("Total candidate video files found: %d", len(video_files))
+        self._stable_map = next_map
         return video_files
 
     def unmount_mountpoints(self, mountpoints=None):
