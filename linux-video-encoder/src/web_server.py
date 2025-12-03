@@ -208,7 +208,7 @@ HTML_PAGE = """
       try {
         const logs = await fetchJSON("/api/logs");
         const lines = Array.isArray(logs.lines) ? logs.lines : [];
-        document.getElementById("logs").textContent = lines.join("\\n");
+        document.getElementById("logs").textContent = (lines.length ? lines : ["Ready to encode"]).join("\\n");
       } catch (e) {
         document.getElementById("logs").textContent = "Logs unavailable.";
       }
