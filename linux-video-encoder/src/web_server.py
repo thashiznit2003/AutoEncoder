@@ -250,7 +250,7 @@ HTML_PAGE = """
           parts.push(s + "s");
           etaText = "ETA " + parts.join(" ");
         }
-        const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div>' : "";
+        const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div><div class="muted">Progress: ' + progress + '%</div>' : "";
         const stopBtn = state === "running" ? '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">Stop</button>' : "";
         const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
         return [
