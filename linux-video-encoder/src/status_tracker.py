@@ -1,6 +1,7 @@
 import threading
 import time
 from pathlib import Path
+import re
 
 
 class StatusTracker:
@@ -89,6 +90,7 @@ class StatusTracker:
         }
 
     def tail_logs(self, lines: int = 400):
+        ansi_re = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
         try:
             data = self._log_path.read_text(encoding="utf-8", errors="ignore").splitlines()
         except FileNotFoundError:
@@ -100,7 +102,7 @@ class StatusTracker:
                 continue
             if "GET /favicon.ico" in line:
                 continue
-            filtered.append(line)
+            filtered.append(ansi_re.sub("", line))
         if lines <= 0:
             return filtered if filtered else ["Ready to encode"]
         filtered = filtered[-lines:]
