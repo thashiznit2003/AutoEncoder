@@ -405,9 +405,49 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     out_path = unique_name(output_dir, base, extension)
 
     dest_str = str(out_path)
+
+    def probe_source_info(path: Path) -> Optional[str]:
+        try:
+            if not path.is_file():
+                return None
+            import json
+            proc = subprocess.run(
+                ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,bit_rate,codec_name", "-show_entries", "format=bit_rate", "-of", "json", str(path)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if proc.returncode != 0 or not proc.stdout:
+                return None
+            data = json.loads(proc.stdout)
+            stream = (data.get("streams") or [{}])[0]
+            fmt = data.get("format") or {}
+            width = stream.get("width")
+            height = stream.get("height")
+            codec = stream.get("codec_name")
+            br = stream.get("bit_rate") or fmt.get("bit_rate")
+            if br:
+                try:
+                    mbps = round(int(br) / 1_000_000, 2)
+                except Exception:
+                    mbps = None
+            else:
+                mbps = None
+            parts = []
+            if width and height:
+                parts.append(f"{width}x{height}")
+            if codec:
+                parts.append(codec)
+            if mbps is not None:
+                parts.append(f"{mbps} Mbps")
+            return "Source: " + " ".join(parts) if parts else None
+        except Exception:
+            return None
+
+    source_info = probe_source_info(Path(video_file))
     if status_tracker:
         status_tracker.add_event(f"Queued for encode: {src}")
-        status_tracker.start(str(src), dest_str)
+        status_tracker.start(str(src), dest_str, info=source_info)
 
     # skip if output already exists
     if out_path.exists():

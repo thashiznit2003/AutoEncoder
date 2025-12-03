@@ -24,7 +24,7 @@ class StatusTracker:
             if len(self._events) > self._history_size:
                 self._events = self._events[-self._history_size :]
 
-    def start(self, src: str, dest: str):
+    def start(self, src: str, dest: str, info=None):
         with self._lock:
             self._active[src] = {
                 "source": src,
@@ -32,6 +32,7 @@ class StatusTracker:
                 "state": "running",
                 "started_at": time.time(),
                 "progress": 0.0,
+                "info": info,
             }
 
     def register_proc(self, src: str, proc):
@@ -59,6 +60,7 @@ class StatusTracker:
                 "finished_at": time.time(),
                 "started_at": start.get("started_at") if start else None,
                 "message": message,
+                "info": start.get("info") if start else None,
                 "progress": 100.0 if success else start.get("progress") if start else None,
             }
             self._history.append(record)

@@ -240,6 +240,7 @@ HTML_PAGE = """
         const progress = hasProgress ? Math.min(100, Math.max(0, item.progress)).toFixed(0) : null;
         const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div>' : "";
         const stopBtn = state === "running" ? '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">Stop</button>' : "";
+        const infoLine = item.info ? '<div class="muted">Src: ' + item.info + '</div>' : "";
         return [
           '<div class="item">',
           '  <div class="flex-between">',
@@ -248,6 +249,7 @@ HTML_PAGE = """
           '  </div>',
           '  <div class="muted">-> ' + (item.destination || "") + '</div>',
           '  <div class="muted">' + (item.message || "") + '</div>',
+          infoLine,
           '  <div class="muted">' + (duration ? "Encode elapsed: " + duration : "") + '</div>',
           '  ' + progBar,
           '</div>'
