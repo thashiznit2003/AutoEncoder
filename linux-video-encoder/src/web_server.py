@@ -88,41 +88,41 @@ HTML_PAGE = """
         </label>
         <label>Default quality (constant quality RF, lower = higher quality)
           <select id="hb-quality" name="quality">
-            <option value="16">16</option>
-            <option value="18">18</option>
-            <option value="20">20</option>
-            <option value="22">22</option>
-            <option value="24">24</option>
-            <option value="25">25</option>
-            <option value="26">26</option>
-            <option value="28">28</option>
-            <option value="30">30</option>
+            <option value="16">RF 16 (~4000 kbps)</option>
+            <option value="18">RF 18 (~3500 kbps)</option>
+            <option value="20">RF 20 (~3000 kbps)</option>
+            <option value="22">RF 22 (~2500 kbps)</option>
+            <option value="24">RF 24 (~2000 kbps)</option>
+            <option value="25">RF 25 (~1750 kbps)</option>
+            <option value="26">RF 26 (~1500 kbps)</option>
+            <option value="28">RF 28 (~1200 kbps)</option>
+            <option value="30">RF 30 (~1000 kbps)</option>
           </select>
         </label>
         <label>DVD quality (constant quality RF, lower = higher quality)
           <select id="hb-dvd-quality" name="quality_dvd">
-            <option value="16">16</option>
-            <option value="18">18</option>
-            <option value="20">20</option>
-            <option value="22">22</option>
-            <option value="24">24</option>
-            <option value="25">25</option>
-            <option value="26">26</option>
-            <option value="28">28</option>
-            <option value="30">30</option>
+            <option value="16">RF 16 (~4000 kbps)</option>
+            <option value="18">RF 18 (~3500 kbps)</option>
+            <option value="20">RF 20 (~3000 kbps)</option>
+            <option value="22">RF 22 (~2500 kbps)</option>
+            <option value="24">RF 24 (~2000 kbps)</option>
+            <option value="25">RF 25 (~1750 kbps)</option>
+            <option value="26">RF 26 (~1500 kbps)</option>
+            <option value="28">RF 28 (~1200 kbps)</option>
+            <option value="30">RF 30 (~1000 kbps)</option>
           </select>
         </label>
         <label>Blu-ray quality (constant quality RF, lower = higher quality)
           <select id="hb-br-quality" name="quality_br">
-            <option value="16">16</option>
-            <option value="18">18</option>
-            <option value="20">20</option>
-            <option value="22">22</option>
-            <option value="24">24</option>
-            <option value="25">25</option>
-            <option value="26">26</option>
-            <option value="28">28</option>
-            <option value="30">30</option>
+            <option value="16">RF 16 (~4000 kbps)</option>
+            <option value="18">RF 18 (~3500 kbps)</option>
+            <option value="20">RF 20 (~3000 kbps)</option>
+            <option value="22">RF 22 (~2500 kbps)</option>
+            <option value="24">RF 24 (~2000 kbps)</option>
+            <option value="25">RF 25 (~1750 kbps)</option>
+            <option value="26">RF 26 (~1500 kbps)</option>
+            <option value="28">RF 28 (~1200 kbps)</option>
+            <option value="30">RF 30 (~1000 kbps)</option>
           </select>
         </label>
         <label>Output extension
@@ -132,7 +132,23 @@ HTML_PAGE = """
             <option value=".m4v">.m4v</option>
           </select>
         </label>
+        <label>Audio mode
+          <select id="hb-audio-mode" name="audio_mode">
+            <option value="encode">Encode (AAC)</option>
+            <option value="copy">Copy original</option>
+          </select>
+        </label>
+        <label>Audio bitrate (if encoding)
+          <select id="hb-audio-bitrate" name="audio_bitrate_kbps">
+            <option value="128">128 kbps</option>
+            <option value="160">160 kbps</option>
+            <option value="192">192 kbps</option>
+            <option value="256">256 kbps</option>
+            <option value="320">320 kbps</option>
+          </select>
+        </label>
         <button type="button" id="hb-save">Save HandBrake</button>
+        <div class="muted">Applies: Default for regular files, DVD for VIDEO_TS, BR for BDMV/STREAM.</div>
       </form>
     </div>
     <div class="panel">
@@ -254,7 +270,8 @@ HTML_PAGE = """
           " | Default RF=" + (hb.quality ?? 20) +
           " | DVD RF=" + (hbDvd.quality ?? 20) +
           " | BR RF=" + (hbBr.quality ?? 25) +
-          " | Ext=" + hbExt;
+          " | Ext=" + hbExt +
+          " | Audio=" + ((hb.audio_mode === "copy") ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
@@ -318,14 +335,16 @@ HTML_PAGE = """
 
     function populateHandbrakeForm(cfg) {
       cfg = cfg || {};
-      cfg.handbrake = cfg.handbrake || { encoder: "x264", quality: 20, extension: ".mkv" };
-      cfg.handbrake_dvd = cfg.handbrake_dvd || { quality: 20 };
-      cfg.handbrake_br = cfg.handbrake_br || { quality: 25 };
+      cfg.handbrake = cfg.handbrake || { encoder: "x264", quality: 20, extension: ".mkv", audio_mode: "encode", audio_bitrate_kbps: 128 };
+      cfg.handbrake_dvd = cfg.handbrake_dvd || { quality: 20, audio_mode: "encode", audio_bitrate_kbps: 128 };
+      cfg.handbrake_br = cfg.handbrake_br || { quality: 25, audio_mode: "encode", audio_bitrate_kbps: 128 };
       setSelectValue(document.getElementById("hb-encoder"), cfg.handbrake.encoder, "x264");
       setSelectValue(document.getElementById("hb-quality"), cfg.handbrake.quality, 20);
       setSelectValue(document.getElementById("hb-dvd-quality"), cfg.handbrake_dvd.quality, 20);
       setSelectValue(document.getElementById("hb-br-quality"), cfg.handbrake_br.quality, 25);
       setSelectValue(document.getElementById("hb-ext"), cfg.handbrake.extension, ".mkv");
+      setSelectValue(document.getElementById("hb-audio-mode"), cfg.handbrake.audio_mode || "encode", "encode");
+      setSelectValue(document.getElementById("hb-audio-bitrate"), cfg.handbrake.audio_bitrate_kbps || 128, 128);
     }
 
     document.getElementById("hb-save").addEventListener("click", async (e) => {
@@ -335,15 +354,19 @@ HTML_PAGE = """
       const qDvd = parseInt(document.getElementById("hb-dvd-quality").value || "20", 10) || 20;
       const qBr = parseInt(document.getElementById("hb-br-quality").value || "25", 10) || 25;
       const ext = document.getElementById("hb-ext").value;
+      const audioMode = document.getElementById("hb-audio-mode").value;
+      const audioBitrate = parseInt(document.getElementById("hb-audio-bitrate").value || "128", 10) || 128;
       const body = {
         profile: "handbrake",
         handbrake: {
           encoder: document.getElementById("hb-encoder").value,
           quality: qDefault,
-          extension: ext
+          extension: ext,
+          audio_mode: audioMode,
+          audio_bitrate_kbps: audioBitrate
         },
-        handbrake_dvd: { quality: qDvd, extension: ext },
-        handbrake_br: { quality: qBr, extension: ext }
+        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate },
+        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate }
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       hbDirty = false;

@@ -46,6 +46,7 @@ DEFAULT_CONFIG = {
         "encoder": "x264",
         "quality": 20,
         "audio_bitrate_kbps": 128,
+        "audio_mode": "encode",  # encode | copy
         "extra_args": [],
         "extension": ".mkv"
     },
@@ -55,7 +56,9 @@ DEFAULT_CONFIG = {
         "width": 1920,
         "height": 1080,
         "extension": ".mkv",
-        "extra_args": []
+        "extra_args": [],
+        "audio_bitrate_kbps": 128,
+        "audio_mode": "encode"
     },
     "handbrake_br": {
         "encoder": "x264",
@@ -63,7 +66,9 @@ DEFAULT_CONFIG = {
         "width": 3840,
         "height": 2160,
         "extension": ".mkv",
-        "extra_args": []
+        "extra_args": [],
+        "audio_bitrate_kbps": 128,
+        "audio_mode": "encode"
     },
     "makemkv_minlength": 1200
 }
@@ -87,9 +92,9 @@ class ConfigManager:
                 if key in data and isinstance(data[key], dict):
                     if key not in cfg or not isinstance(cfg.get(key), dict):
                         cfg[key] = {}
-                    for k, v in data[key].items():
-                        if v is not None:
-                            cfg[key][k] = v
+                for k, v in data[key].items():
+                    if v is not None:
+                        cfg[key][k] = v
             try:
                 with self.path.open("w", encoding="utf-8") as f:
                     json.dump(cfg, f, indent=2)
@@ -273,6 +278,8 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
     height = opts.get("height", 1080)
     video = opts.get("video", "")
     audio = opts.get("audio", "")
+    audio_mode = opts.get("audio_mode", "encode")
+    audio_bitrate_kbps = opts.get("audio_bitrate_kbps")
     hwdev = opts.get("hwdev", "")
     filterdev = opts.get("filterdev", "")
     #audio_bitrate_kbps = opts.get("audio_bitrate_kbps", 128)
@@ -314,6 +321,13 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
             "--height", str(height)
             #"-B", str(int(audio_bitrate_kbps))
         ]
+        if audio_mode == "copy":
+            cmd.extend(["-E", "copy"])
+        elif audio_bitrate_kbps:
+            try:
+                cmd.extend(["-B", str(int(audio_bitrate_kbps))])
+            except Exception:
+                cmd.extend(["-B", str(audio_bitrate_kbps)])
         cmd.extend(map(str, extra))
         logger.info("Running HandBrakeCLI: %s", " ".join(cmd))
     try:
@@ -438,7 +452,9 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         return False
     # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available
     use_ffmpeg = str(config_str).startswith("ffmpeg")
-    logging.info("Selected profile=%s encoder=%s ext=%s out=%s use_ffmpeg=%s", config_str, hb_opts.get("encoder"), extension, out_path, use_ffmpeg)
+    logging.info("Selected profile=%s encoder=%s ext=%s out=%s use_ffmpeg=%s audio_mode=%s audio_kbps=%s",
+                 config_str, hb_opts.get("encoder"), extension, out_path, use_ffmpeg,
+                 hb_opts.get("audio_mode"), hb_opts.get("audio_bitrate_kbps"))
     success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker)
     if not success:
         logging.warning("Encoding failed for %s -> %s; attempting Software Encoder fallback", video_file, out_path)
