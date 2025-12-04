@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.0 - 2025-12-04
+- Added HandBrake "Auto Dolby" audio mode: copy AC3/E-AC3 (all channel counts) and re-encode other codecs to E-AC3 (no upmix for sub-5.1 sources). UI option added alongside existing modes.
+
 ## 1.6.0 - 2025-12-04
 - HandBrake audio controls expanded: encoder choice (AAC/HE-AAC/Opus/AC3/E-AC3/copy), mixdown, sample rate, DRC, gain, language filter, and track list; all wired into config, presets, and UI.
 

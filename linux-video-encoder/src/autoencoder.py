@@ -52,7 +52,7 @@ DEFAULT_CONFIG = {
         "video_bitrate_kbps": None,
         "two_pass": False,
         "audio_bitrate_kbps": 128,
-        "audio_mode": "encode",  # encode | copy
+        "audio_mode": "encode",  # encode | copy | auto_dolby
         "audio_encoder": "av_aac",
         "audio_mixdown": "",
         "audio_drc": None,
@@ -489,6 +489,40 @@ def probe_source_bitrate_kbps(path: Path) -> Optional[float]:
         return None
     return None
 
+def probe_audio_stream(path: Path) -> Optional[dict]:
+    try:
+        if not path.is_file():
+            return None
+        proc = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-select_streams",
+                "a:0",
+                "-show_entries",
+                "stream=codec_name,channels",
+                "-of",
+                "json",
+                str(path),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode != 0 or not proc.stdout:
+            return None
+        data = json.loads(proc.stdout)
+        stream = (data.get("streams") or [{}])[0]
+        codec = stream.get("codec_name")
+        channels = stream.get("channels")
+        try:
+            channels = int(channels) if channels is not None else None
+        except Exception:
+            channels = None
+        return {"codec": codec, "channels": channels}
+    except Exception:
+        return None
 
 def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
     if hb_opts.get("video_bitrate_kbps"):
@@ -583,18 +617,35 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                 cmd.append("--two-pass")
         else:
             cmd.extend(["-q", str(quality)])
+        # Auto Dolby logic: copy existing AC3/E-AC3, otherwise encode to E-AC3 (no upmix when channels <5)
+        source_audio = None
+        eff_audio_mode = audio_mode
+        eff_audio_encoder = audio_encoder
+        eff_audio_mixdown = audio_mixdown
+        if audio_mode == "auto_dolby":
+            source_audio = probe_audio_stream(Path(input_path))
+            codec = (source_audio or {}).get("codec")
+            channels = (source_audio or {}).get("channels")
+            if codec in {"ac3", "eac3"}:
+                eff_audio_mode = "copy"
+            else:
+                eff_audio_mode = "encode"
+                eff_audio_encoder = "eac3"
+                if channels is not None and channels >= 5 and not eff_audio_mixdown:
+                    eff_audio_mixdown = "5point1"
+
         if audio_track_list:
             cmd.extend(["--audio", str(audio_track_list)])
         if audio_lang_list:
             cmd.extend(["--audio-lang-list", ",".join(audio_lang_list)])
-        if audio_mode == "copy":
+        if eff_audio_mode == "copy":
             cmd.extend(["-E", "copy"])
             if audio_all:
                 cmd.append("--all-audio")
         else:
-            cmd.extend(["-E", str(audio_encoder or "av_aac")])
-            if audio_mixdown:
-                cmd.extend(["-6", str(audio_mixdown)])
+            cmd.extend(["-E", str(eff_audio_encoder or "av_aac")])
+            if eff_audio_mixdown:
+                cmd.extend(["-6", str(eff_audio_mixdown)])
             if audio_samplerate:
                 cmd.extend(["-R", str(audio_samplerate)])
             if audio_drc is not None:

@@ -259,6 +259,7 @@ HTML_PAGE_TEMPLATE = """
           <select id="hb-audio-mode" name="audio_mode">
             <option value="encode">Encode (AAC)</option>
             <option value="copy">Copy original</option>
+            <option value="auto_dolby">Auto Dolby (copy AC3/E-AC3; else E-AC3)</option>
           </select>
         </label>
         <label>Audio bitrate (if encoding)
