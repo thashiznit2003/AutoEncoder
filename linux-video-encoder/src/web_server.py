@@ -148,9 +148,22 @@ HTML_PAGE_TEMPLATE = """
         <label>Target bitrate (overrides RF when set)
           <select id="hb-bitrate">
             <option value="">None (use RF)</option>
-            <option value="8000">High ~8000 kbps</option>
-            <option value="5000">Medium ~5000 kbps</option>
+            <option value="500">500 kbps</option>
+            <option value="1000">1000 kbps</option>
+            <option value="1500">1500 kbps</option>
+            <option value="2000">2000 kbps</option>
             <option value="2500">Low ~2500 kbps</option>
+            <option value="3000">3000 kbps</option>
+            <option value="3500">3500 kbps</option>
+            <option value="4000">4000 kbps</option>
+            <option value="4500">4500 kbps</option>
+            <option value="5000">Medium ~5000 kbps</option>
+            <option value="5500">5500 kbps</option>
+            <option value="6000">6000 kbps</option>
+            <option value="6500">6500 kbps</option>
+            <option value="7000">7000 kbps</option>
+            <option value="7500">7500 kbps</option>
+            <option value="8000">High ~8000 kbps</option>
             <option value="custom">Custom (enter below)</option>
           </select>
           <input id="hb-bitrate-custom" placeholder="Custom kbps" type="number" min="500" step="100" />

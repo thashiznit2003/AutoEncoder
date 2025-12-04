@@ -92,3 +92,6 @@
 - Added target bitrate options (High/Med/Low/custom) with optional two-pass; when set, overrides RF.
 - Presets now include bitrate/two-pass settings; UI fields for bitrate ladder and two-pass.
 - Low-bitrate check uses explicit target bitrate when provided.
+
+## 1.4.1 - 2025-12-04
+- Expanded bitrate ladder to 500–8000 kbps in 500 kbps steps (plus custom).
