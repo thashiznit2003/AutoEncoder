@@ -49,6 +49,8 @@ DEFAULT_CONFIG = {
     "handbrake": {
         "encoder": "x264",
         "quality": 20,
+        "video_bitrate_kbps": None,
+        "two_pass": False,
         "audio_bitrate_kbps": 128,
         "audio_mode": "encode",  # encode | copy
         "audio_all": False,
@@ -59,6 +61,8 @@ DEFAULT_CONFIG = {
     "handbrake_dvd": {
         "encoder": "x264",
         "quality": 20,
+        "video_bitrate_kbps": None,
+        "two_pass": False,
         "width": 1920,
         "height": 1080,
         "extension": ".mkv",
@@ -71,6 +75,8 @@ DEFAULT_CONFIG = {
     "handbrake_br": {
         "encoder": "x264",
         "quality": 25,
+        "video_bitrate_kbps": None,
+        "two_pass": False,
         "width": 3840,
         "height": 2160,
         "extension": ".mkv",
@@ -382,6 +388,11 @@ def probe_source_bitrate_kbps(path: Path) -> Optional[float]:
 
 
 def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
+    if hb_opts.get("video_bitrate_kbps"):
+        try:
+            return float(hb_opts.get("video_bitrate_kbps"))
+        except Exception:
+            pass
     # Approximate map from RF to kbps (from UI hints)
     rf_map = {
         16: 4000, 18: 3500, 20: 3000, 22: 2500, 24: 2000,
@@ -411,6 +422,8 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
     audio_bitrate_kbps = opts.get("audio_bitrate_kbps")
     audio_all = bool(opts.get("audio_all"))
     subtitle_mode = opts.get("subtitle_mode", "none")
+    video_bitrate_kbps = opts.get("video_bitrate_kbps")
+    two_pass = bool(opts.get("two_pass"))
     hwdev = opts.get("hwdev", "")
     filterdev = opts.get("filterdev", "")
     #audio_bitrate_kbps = opts.get("audio_bitrate_kbps", 128)
@@ -447,11 +460,19 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
             "-i", str(input_path),
             "-o", str(output_path),
             "-e", str(encoder),
-            "-q", str(quality),
             "--width", str(width),
             "--height", str(height)
             #"-B", str(int(audio_bitrate_kbps))
         ]
+        if video_bitrate_kbps:
+            try:
+                cmd.extend(["-b", str(int(video_bitrate_kbps))])
+            except Exception:
+                cmd.extend(["-b", str(video_bitrate_kbps)])
+            if two_pass:
+                cmd.append("--two-pass")
+        else:
+            cmd.extend(["-q", str(quality)])
         if audio_mode == "copy":
             if audio_all:
                 cmd.extend(["--all-audio", "-E", "copy"])

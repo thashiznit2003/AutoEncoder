@@ -145,6 +145,19 @@ HTML_PAGE_TEMPLATE = """
             <option value="30">RF 30 (~1000 kbps)</option>
           </select>
         </label>
+        <label>Target bitrate (overrides RF when set)
+          <select id="hb-bitrate">
+            <option value="">None (use RF)</option>
+            <option value="8000">High ~8000 kbps</option>
+            <option value="5000">Medium ~5000 kbps</option>
+            <option value="2500">Low ~2500 kbps</option>
+            <option value="custom">Custom (enter below)</option>
+          </select>
+          <input id="hb-bitrate-custom" placeholder="Custom kbps" type="number" min="500" step="100" />
+          <label style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="hb-two-pass" /> Two-pass when bitrate set
+          </label>
+        </label>
         <label>Audio tracks
           <select id="hb-audio-all">
             <option value="false">First track</option>
@@ -428,6 +441,18 @@ HTML_PAGE_TEMPLATE = """
       cfg.handbrake_br = cfg.handbrake_br || { quality: 25, audio_mode: "encode", audio_bitrate_kbps: 128 };
       setSelectValue(document.getElementById("hb-encoder"), cfg.handbrake.encoder, "x264");
       setSelectValue(document.getElementById("hb-quality"), cfg.handbrake.quality, 20);
+      const hbBitrate = cfg.handbrake.video_bitrate_kbps;
+      if (hbBitrate === 8000 || hbBitrate === 5000 || hbBitrate === 2500) {
+        document.getElementById("hb-bitrate").value = hbBitrate.toString();
+        document.getElementById("hb-bitrate-custom").value = "";
+      } else if (hbBitrate) {
+        document.getElementById("hb-bitrate").value = "custom";
+        document.getElementById("hb-bitrate-custom").value = hbBitrate;
+      } else {
+        document.getElementById("hb-bitrate").value = "";
+        document.getElementById("hb-bitrate-custom").value = "";
+      }
+      document.getElementById("hb-two-pass").checked = !!cfg.handbrake.two_pass;
       setSelectValue(document.getElementById("hb-dvd-quality"), cfg.handbrake_dvd.quality, 20);
       setSelectValue(document.getElementById("hb-br-quality"), cfg.handbrake_br.quality, 25);
       setSelectValue(document.getElementById("hb-ext"), cfg.handbrake.extension, ".mkv");
@@ -448,19 +473,31 @@ HTML_PAGE_TEMPLATE = """
       const audioBitrate = parseInt(document.getElementById("hb-audio-bitrate").value || "128", 10) || 128;
       const audioAll = document.getElementById("hb-audio-all").value === "true";
       const subtitleMode = document.getElementById("hb-subs").value || "none";
+      let targetBitrate = document.getElementById("hb-bitrate").value;
+      const customBitrate = parseInt(document.getElementById("hb-bitrate-custom").value || "0", 10) || 0;
+      if (targetBitrate === "custom" && customBitrate > 0) {
+        targetBitrate = customBitrate;
+      } else if (targetBitrate === "") {
+        targetBitrate = null;
+      } else {
+        targetBitrate = parseInt(targetBitrate, 10) || null;
+      }
+      const twoPass = document.getElementById("hb-two-pass").checked;
       const body = {
         profile: "handbrake",
         handbrake: {
           encoder: document.getElementById("hb-encoder").value,
           quality: qDefault,
+          video_bitrate_kbps: targetBitrate,
+          two_pass: twoPass,
           extension: ext,
           audio_mode: audioMode,
           audio_bitrate_kbps: audioBitrate,
           audio_all: audioAll,
           subtitle_mode: subtitleMode
         },
-        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode },
-        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode }
+        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass },
+        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass }
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       hbDirty = false;

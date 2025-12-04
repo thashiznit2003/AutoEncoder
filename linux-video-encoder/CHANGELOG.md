@@ -87,3 +87,8 @@
 
 ## 1.3.4 - 2025-12-04
 - Proceed now immediately marks jobs as `starting` (instead of queued) after low-bitrate confirmation to make state change visible.
+
+## 1.4.0 - 2025-12-04
+- Added target bitrate options (High/Med/Low/custom) with optional two-pass; when set, overrides RF.
+- Presets now include bitrate/two-pass settings; UI fields for bitrate ladder and two-pass.
+- Low-bitrate check uses explicit target bitrate when provided.
