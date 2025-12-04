@@ -228,7 +228,7 @@ maybe_setup_samba_shares() {
   local base="$REPO_DIR/linux-video-encoder"
   local file_share_path="$base/File"
   local output_share_path="$base/Output"
-  printf "Create Samba shares for lv_file and output? [y/N]: "
+  printf "Create Samba shares for input and output? [y/N]: "
   local ans
   if ! read -r ans; then
     log "No input detected; skipping Samba setup."
@@ -278,13 +278,13 @@ maybe_setup_samba_shares() {
   fi
 
   # Remove existing share blocks if present, then append fresh ones.
-  for share in lv_file output; do
+  for share in lv_file input output; do
     $SUDO sed -i "/^\[$share\]/,/^\[/d" /etc/samba/smb.conf
   done
 
   cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
 
-[lv_file]
+[input]
    path = $file_share_path
    browseable = yes
    read only = no
@@ -307,7 +307,7 @@ CONFIG
 
   log "Restarting Samba services..."
   $SUDO systemctl restart smbd nmbd || $SUDO systemctl restart smbd || true
-  log "Samba shares configured. Access smb://<host>/lv_file and smb://<host>/output with user '$smb_user'."
+  log "Samba shares configured. Access smb://<host>/input and smb://<host>/output with user '$smb_user'."
 }
 
 main() {

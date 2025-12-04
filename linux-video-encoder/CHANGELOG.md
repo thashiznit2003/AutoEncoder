@@ -18,3 +18,7 @@
 
 ## 1.0.4 - 2025-12-04
 - Installer now optionally sets up Samba shares for lv_file and output (prompts for yes/no and SMB username/password; installs samba if missing) before the NVIDIA prompt.
+
+## 1.0.5 - 2025-12-04
+- Renamed Samba share to `input` (from `lv_file`) across installer/scripts; optional Samba setup now provisions `input` and `output`.
+- Added `scripts/update_samba_shares.sh` to migrate existing hosts (removes legacy `lv_file`, prompts for SMB user/password).

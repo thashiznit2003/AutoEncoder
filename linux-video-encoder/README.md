@@ -116,6 +116,11 @@ MakeMKV downloads note:
 - If the drive shares the host’s boot SATA controller, passthrough won’t expose raw SCSI commands—move the drive to the HBA or use a USB Blu-ray drive with USB passthrough.
 - Proxmox checklist: enable IOMMU, identify the HBA with `lspci -nn | grep -i asm1166`, pass it with `qm set <VMID> -hostpci1 0000:XX:YY.Z,pcie=1`, remove virtual CD entries, then confirm inside the VM that `makemkvcon -r info disc:0` shows the real drive model.
 
+## Samba shares
+- Installer can optionally create SMB shares: `input` (maps to `linux-video-encoder/File`) and `output` (maps to `linux-video-encoder/Output`), prompting for SMB username/password and installing Samba if needed.
+- To update an existing host from the legacy `lv_file` share, run the provided script (on the host): \
+  `curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/update_samba_shares.sh -o /tmp/update_samba_shares.sh && sudo bash /tmp/update_samba_shares.sh`
+
 ## Versioning
 - Current version: 1.0.0 (defined in `src/version.py` and shown in the UI header).
 - Release notes live in `CHANGELOG.md`; bump `VERSION` and append to the changelog for future updates.

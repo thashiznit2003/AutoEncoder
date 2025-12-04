@@ -3,11 +3,11 @@ set -euo pipefail
 
 # This script installs Samba and shares the app's File directory over SMB.
 # Share path: /linux-video-encoder/AutoEncoder/linux-video-encoder/File
-# Share name: lv_file
+# Share name: input
 # SMB user: joe (must exist on the host)
 
 SHARE_PATH="/linux-video-encoder/AutoEncoder/linux-video-encoder/File"
-SHARE_NAME="lv_file"
+SHARE_NAME="input"
 SMB_USER="joe"
 
 log() { printf '[smb-setup] %s\n' "$*"; }
@@ -27,8 +27,9 @@ if [ ! -f /etc/samba/smb.conf.bak ]; then
 fi
 
 log "Updating smb.conf with share [$SHARE_NAME] -> $SHARE_PATH"
-# Remove existing block if present
+# Remove existing block if present (and legacy lv_file)
 sudo sed -i "/^\[$SHARE_NAME\]/,/^\[/d" /etc/samba/smb.conf
+sudo sed -i "/^\[lv_file\]/,/^\[/d" /etc/samba/smb.conf
 
 cat <<CONFIG | sudo tee -a /etc/samba/smb.conf >/dev/null
 
