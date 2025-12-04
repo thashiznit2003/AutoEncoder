@@ -86,7 +86,11 @@ DEFAULT_CONFIG = {
         "audio_all": False,
         "subtitle_mode": "none"
     },
-    "makemkv_minlength": 1200
+    "makemkv_minlength": 1200,
+    "makemkv_titles": [],
+    "makemkv_audio_langs": [],
+    "makemkv_subtitle_langs": [],
+    "makemkv_keep_ripped": False,
 }
 
 class ConfigManager:
@@ -101,7 +105,21 @@ class ConfigManager:
     def update(self, data: Dict[str, Any]) -> Dict[str, Any]:
         with self.lock:
             cfg = load_config(self.path)
-            for field in ["output_dir", "rip_dir", "final_dir", "max_threads", "rescan_interval", "min_size_mb", "makemkv_minlength", "search_path", "profile"]:
+            for field in [
+                "output_dir",
+                "rip_dir",
+                "final_dir",
+                "max_threads",
+                "rescan_interval",
+                "min_size_mb",
+                "makemkv_minlength",
+                "makemkv_titles",
+                "makemkv_audio_langs",
+                "makemkv_subtitle_langs",
+                "makemkv_keep_ripped",
+                "search_path",
+                "profile",
+            ]:
                 if field in data and data[field] is not None:
                     cfg[field] = data[field]
             for key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
@@ -141,6 +159,16 @@ def load_config(path: Path):
         merged["handbrake_presets"] = []
     if "makemkv_minlength" not in merged:
         merged["makemkv_minlength"] = DEFAULT_CONFIG["makemkv_minlength"]
+    for key in ["makemkv_titles", "makemkv_audio_langs", "makemkv_subtitle_langs"]:
+        val = merged.get(key, [])
+        if isinstance(val, str):
+            val = [v.strip() for v in val.split(",") if v.strip()]
+        elif isinstance(val, list):
+            val = [str(v).strip() for v in val if str(v).strip()]
+        else:
+            val = []
+        merged[key] = val
+    merged["makemkv_keep_ripped"] = bool(merged.get("makemkv_keep_ripped"))
     return merged
 
 
@@ -164,32 +192,67 @@ def ensure_smb_root():
     except Exception:
         logging.debug("Failed to create SMB mount root %s", SMB_MOUNT_ROOT, exc_info=True)
 
-import subprocess
-
-def rip_disc(disc_index, output_dir_path, min_length=1800, status_tracker: Optional[StatusTracker] = None):
+def rip_disc(
+    disc_index,
+    output_dir_path,
+    min_length=1800,
+    status_tracker: Optional[StatusTracker] = None,
+    titles=None,
+    audio_langs=None,
+    subtitle_langs=None,
+):
     """
     Rips a Blu-ray disc using MakeMKV CLI.
-    Returns the path to the first output file if successful, or None on failure.
+    Returns (path, reused_existing) where path is the first output file if successful, or (None, False) on failure.
     """
     # return "/mnt/md0/ripped_discs/Interstellar_t00.mkv"
     logger = logging.getLogger(__name__)
     output_dir = output_dir_path.as_posix()
+    title_list = []
+    if titles:
+        try:
+            title_list = [str(t).strip() for t in titles if str(t).strip()]
+        except Exception:
+            title_list = []
+    if title_list:
+        title_arg = ",".join(title_list)
+    else:
+        title_arg = "all"
     cmd = [
-        "makemkvcon", "mkv", f"disc:{disc_index}", "all", output_dir,
+        "makemkvcon", "mkv", f"disc:{disc_index}", title_arg, output_dir,
         f"--minlength={min_length}", "--progress=-same"
     ]
+    lang_list_audio = []
+    lang_list_subs = []
+    try:
+        if audio_langs:
+            lang_list_audio = [str(l).strip() for l in audio_langs if str(l).strip()]
+        if subtitle_langs:
+            lang_list_subs = [str(l).strip() for l in subtitle_langs if str(l).strip()]
+    except Exception:
+        lang_list_audio = []
+        lang_list_subs = []
+    if lang_list_audio:
+        cmd.append(f"--audio={','.join(lang_list_audio)}")
+    if lang_list_subs:
+        cmd.append(f"--subtitle={','.join(lang_list_subs)}")
 
-    # Check for existing MKVs
-    existing_mkvs = sorted(output_dir_path.glob("*.mkv"))
+    # Check for existing MKVs; reuse newest if present
+    existing_mkvs = sorted(output_dir_path.glob("*.mkv"), key=os.path.getmtime)
     if existing_mkvs:
         latest = existing_mkvs[-1].resolve()
-        print(f"⚠️  Found existing MKV file: {latest}\nSkipping rip.")
-        return None
+        msg_existing = f"⚠️  Found existing MKV file: {latest}\nReusing existing rip."
+        print(msg_existing)
+        if status_tracker:
+            status_tracker.add_event(f"Using existing ripped MKV: {latest}")
+        return str(latest), True
 
     msg = f"📀 Running: {' '.join(cmd)}"
     print(msg)
     if status_tracker:
-        status_tracker.add_event(f"MakeMKV rip started (disc {disc_index})")
+        status_tracker.add_event(
+            f"MakeMKV rip started (disc {disc_index}; titles={title_arg}; audio={','.join(lang_list_audio) or 'all'}; subs={','.join(lang_list_subs) or 'all'})"
+        )
 
     try:
         result = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
@@ -201,7 +264,7 @@ def rip_disc(disc_index, output_dir_path, min_length=1800, status_tracker: Optio
         logger.debug("exited with code %s", rc)
     except FileNotFoundError:
         print("❌ Error: makemkvcon not found. Is MakeMKV installed?")
-        return None
+        return None, False
 
     if status_tracker:
         if rc == 0:
@@ -215,7 +278,7 @@ def rip_disc(disc_index, output_dir_path, min_length=1800, status_tracker: Optio
     # Check for success
     if result.returncode != 0:
         print(f"❌ MakeMKV failed with code {result.returncode}.")
-        return None
+        return None, False
 
     print("✅ MakeMKV completed successfully.")
 
@@ -224,12 +287,12 @@ def rip_disc(disc_index, output_dir_path, min_length=1800, status_tracker: Optio
 
     if not mkv_files:
         print("⚠️  No MKV files found in output directory.")
-        return None
+        return None, False
 
     # Return the most recent or first MKV file path
     first_file = str(mkv_files[-1].resolve())
     print(f"🎬 Output file: {first_file}")
-    return first_file
+    return first_file, False
 
 def get_disc_number():
     """
@@ -641,12 +704,26 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         return False
 
     # if its a bluray then rip it first
+    keep_ripped = bool(config.get("makemkv_keep_ripped"))
+    reused_rip = False
+
     if is_bluray:
         logging.info("Ripping Blu-ray disc from %s", video_file)
         disc_num = get_disc_number()
         if disc_num is not None:
             minlen = int(config.get("makemkv_minlength", 1800))
-            rip_path = rip_disc(disc_num, rip_dir, min_length=minlen, status_tracker=status_tracker)
+            rip_titles = config.get("makemkv_titles", [])
+            rip_audio_langs = config.get("makemkv_audio_langs", [])
+            rip_sub_langs = config.get("makemkv_subtitle_langs", [])
+            rip_path, reused_rip = rip_disc(
+                disc_num,
+                rip_dir,
+                min_length=minlen,
+                status_tracker=status_tracker,
+                titles=rip_titles,
+                audio_langs=rip_audio_langs,
+                subtitle_langs=rip_sub_langs,
+            )
             if rip_path is None:
                 logging.error("Blu-ray ripping failed; skipping encoding for %s", video_file)
                 if status_tracker:
@@ -706,7 +783,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                     logging.info("Moved encoded file to final directory: %s", final_path)
             except Exception:
                 logging.debug("Failed to move encoded file to final directory: %s", final_dir, exc_info=True)
-        if is_bluray:
+        if is_bluray and not keep_ripped and not reused_rip:
             try:
                 # delete ripped file to save space
                 rip_fp = Path(video_file)
@@ -714,6 +791,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                 logging.info("Deleted ripped Blu-ray file: %s", rip_fp)
             except Exception:
                 logging.debug("Failed to delete ripped Blu-ray file: %s", video_file, exc_info=True)
+        elif is_bluray and (keep_ripped or reused_rip):
+            logging.info("Keeping ripped Blu-ray file per config: %s", video_file)
         # Remove source file after a successful encode to avoid re-encoding
         if not is_dvd and not is_bluray:
             try:

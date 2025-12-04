@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0 - 2025-12-04
+- MakeMKV now supports per-rip title selection plus audio/subtitle language filters; UI fields added for titles and language codes.
+- Added option to keep ripped MKVs after encoding (or reuse an existing rip instead of failing).
+- Config fields normalized for MakeMKV titles/language/keep flags; rip events include selected options.
+
 ## 1.0.0 - 2025-12-04
 - Stable release of Linux Video Encoder with web UI (active encodes, recent jobs, logs, metrics, HandBrake/MakeMKV settings).
 - Improved progress/ETA parsing for HandBrake output; Stop button wired to active job keys.

@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.0.0)
+# Linux Video Encoder (v1.5.0)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -98,6 +98,10 @@ MakeMKV downloads note:
 * __output_dir__ - Where your videos will be encoded to
 * __rip_dir__ - Where your ripped blurays will be saved
 * __final_dir__ - Where you encoded video are sent after a sucessful run. Set to null if the output_dir if where you want them to stay.
+* __makemkv_minlength__ - Minimum title length (seconds) for MakeMKV to consider.
+* __makemkv_titles__ - Optional comma-separated list of title numbers to rip instead of all (empty = all).
+* __makemkv_audio_langs__ / __makemkv_subtitle_langs__ - Optional comma-separated language codes (e.g., `eng,fre`) to keep when ripping discs.
+* __makemkv_keep_ripped__ - When true, keep the ripped MKV after encoding (and reuse existing rips if present).
 * __max_threads__ - How many simulaneous encodes you want running
 * __rescan_interval__ - Wait time between scans in seconds
 * __min_size_mb__ - The minimum size in Megabytes for a video to be encoded

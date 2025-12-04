@@ -249,6 +249,12 @@ HTML_PAGE_TEMPLATE = """
       <form id="makemkv-form">
         <label>Rip directory <input id="mk-ripdir" name="rip_dir" /></label>
         <label>Min title length (seconds) <input id="mk-minlen" name="min_length" type="number" step="60" /></label>
+        <label>Titles to rip (comma-separated, blank = all) <input id="mk-titles" name="titles" placeholder="e.g. 0,1,2" /></label>
+        <label>Audio languages to keep (comma codes, blank = all) <input id="mk-audio-langs" name="audio_langs" placeholder="e.g. eng,fre,jpn" /></label>
+        <label>Subtitle languages to keep (comma codes, blank = all) <input id="mk-sub-langs" name="subtitle_langs" placeholder="e.g. eng,spa" /></label>
+        <label style="display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="mk-keep" /> Keep ripped MKVs after encode
+        </label>
         <button type="button" id="mk-save">Save MakeMKV</button>
       </form>
     </div>
@@ -420,6 +426,10 @@ HTML_PAGE_TEMPLATE = """
         if (!mkDirty) {
           document.getElementById("mk-ripdir").value = (cfg.rip_dir || "/mnt/ripped");
           document.getElementById("mk-minlen").value = (cfg.makemkv_minlength !== undefined && cfg.makemkv_minlength !== null) ? cfg.makemkv_minlength : 1200;
+          document.getElementById("mk-titles").value = (cfg.makemkv_titles || []).join(", ");
+          document.getElementById("mk-audio-langs").value = (cfg.makemkv_audio_langs || []).join(", ");
+          document.getElementById("mk-sub-langs").value = (cfg.makemkv_subtitle_langs || []).join(", ");
+          document.getElementById("mk-keep").checked = !!cfg.makemkv_keep_ripped;
         }
         const hb = cfg.handbrake || {};
         const hbDvd = cfg.handbrake_dvd || {};
@@ -545,9 +555,14 @@ HTML_PAGE_TEMPLATE = """
     document.getElementById("mk-save").addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
+      const csvToList = (val) => (val || "").split(",").map(v => v.trim()).filter(Boolean);
       const body = {
         rip_dir: document.getElementById("mk-ripdir").value,
-        makemkv_minlength: Number(document.getElementById("mk-minlen").value)
+        makemkv_minlength: Number(document.getElementById("mk-minlen").value),
+        makemkv_titles: csvToList(document.getElementById("mk-titles").value),
+        makemkv_audio_langs: csvToList(document.getElementById("mk-audio-langs").value),
+        makemkv_subtitle_langs: csvToList(document.getElementById("mk-sub-langs").value),
+        makemkv_keep_ripped: document.getElementById("mk-keep").checked
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       mkDirty = false;
