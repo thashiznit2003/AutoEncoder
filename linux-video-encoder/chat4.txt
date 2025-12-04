@@ -9,6 +9,7 @@ User preferences / workflow
 - After changes, always provide a copy-paste one-liner for the Ubuntu host to pull and restart:
   cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate
 - Avoid destructive commands; keep changes reversible. Tags were used for major checkpoints (e.g., v1.2.0).
+- Versioning rules: bump patch (v1.0.x) for any change; bump minor for features; bump major only when the user declares a major release. UI shows the version from src/version.py. Always update changelog and push.
 
 Quick update/revert references
 - Latest UI/feature work at v1.4.1.

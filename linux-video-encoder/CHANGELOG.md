@@ -98,3 +98,6 @@
 
 ## 1.4.2 - 2025-12-04
 - Added chat4.txt transition doc summarizing app state, preferences, and next steps.
+
+## 1.4.3 - 2025-12-04
+- Updated chat4.txt with explicit versioning rules (patch/minor/major per user policy).
