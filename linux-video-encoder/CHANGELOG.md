@@ -15,3 +15,6 @@
 
 ## 1.0.3 - 2025-12-04
 - NVIDIA toolkit prompt moved to the end of the installer; if selected, installs via the bundled helper after the stack is up and restarts the stack so Docker picks up the NVIDIA runtime.
+
+## 1.0.4 - 2025-12-04
+- Installer now optionally sets up Samba shares for lv_file and output (prompts for yes/no and SMB username/password; installs samba if missing) before the NVIDIA prompt.

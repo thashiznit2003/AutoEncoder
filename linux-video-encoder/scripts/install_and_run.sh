@@ -224,11 +224,98 @@ maybe_install_nvidia_toolkit() {
   esac
 }
 
+maybe_setup_samba_shares() {
+  local base="$REPO_DIR/linux-video-encoder"
+  local file_share_path="$base/File"
+  local output_share_path="$base/Output"
+  printf "Create Samba shares for lv_file and output? [y/N]: "
+  local ans
+  if ! read -r ans; then
+    log "No input detected; skipping Samba setup."
+    return
+  fi
+  case "$ans" in
+    [yY]|[yY][eE][sS]) ;;
+    *) log "Skipping Samba setup."; return ;;
+  esac
+
+  printf "Enter Samba username (will be created if missing): "
+  local smb_user
+  read -r smb_user
+  if [ -z "${smb_user:-}" ]; then
+    log "No Samba user provided; skipping Samba setup."
+    return
+  fi
+  printf "Enter Samba password for %s: " "$smb_user"
+  local smb_pass
+  read -rs smb_pass
+  printf "\n"
+  if [ -z "${smb_pass:-}" ]; then
+    log "No Samba password provided; skipping Samba setup."
+    return
+  fi
+
+  log "Installing Samba if needed..."
+  $SUDO apt-get update
+  $SUDO apt-get install -y samba samba-common
+
+  log "Ensuring Samba user $smb_user exists..."
+  if ! id -u "$smb_user" >/dev/null 2>&1; then
+    $SUDO useradd -m "$smb_user"
+  fi
+
+  log "Setting Samba password for $smb_user..."
+  printf "%s\n%s\n" "$smb_pass" "$smb_pass" | $SUDO smbpasswd -a "$smb_user" -s
+
+  log "Preparing share directories..."
+  $SUDO mkdir -p "$file_share_path" "$output_share_path"
+  $SUDO chown -R "$smb_user":"$smb_user" "$file_share_path" "$output_share_path"
+  $SUDO chmod -R 775 "$file_share_path" "$output_share_path"
+
+  log "Backing up /etc/samba/smb.conf to /etc/samba/smb.conf.bak (once)..."
+  if [ ! -f /etc/samba/smb.conf.bak ]; then
+    $SUDO cp /etc/samba/smb.conf /etc/samba/smb.conf.bak
+  fi
+
+  # Remove existing share blocks if present, then append fresh ones.
+  for share in lv_file output; do
+    $SUDO sed -i "/^\[$share\]/,/^\[/d" /etc/samba/smb.conf
+  done
+
+  cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
+
+[lv_file]
+   path = $file_share_path
+   browseable = yes
+   read only = no
+   guest ok = no
+   valid users = $smb_user
+   force user = $smb_user
+   create mask = 0664
+   directory mask = 0775
+
+[output]
+   path = $output_share_path
+   browseable = yes
+   read only = no
+   guest ok = no
+   valid users = $smb_user
+   force user = $smb_user
+   create mask = 0664
+   directory mask = 0775
+CONFIG
+
+  log "Restarting Samba services..."
+  $SUDO systemctl restart smbd nmbd || $SUDO systemctl restart smbd || true
+  log "Samba shares configured. Access smb://<host>/lv_file and smb://<host>/output with user '$smb_user'."
+}
+
 main() {
   ensure_base_tools
   install_docker
   fetch_repo
   build_and_run
+  maybe_setup_samba_shares
   maybe_install_nvidia_toolkit
 }
 
