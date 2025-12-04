@@ -592,6 +592,9 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     if status_tracker:
         status_tracker.set_state(str(src), "running")
     success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker, job_id=str(src))
+    if status_tracker and status_tracker.was_canceled(str(src)):
+        logging.info("Job was canceled by user: %s", src)
+        return False
     if not success:
         logging.warning("Encoding failed for %s -> %s; attempting Software Encoder fallback", video_file, out_path)
         if status_tracker:
@@ -612,7 +615,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             return False
     else:
         logging.info("Encoded %s -> %s (HandBrakeCLI)", video_file, out_path)
-        if status_tracker:
+        if status_tracker and not status_tracker.was_canceled(str(src)):
             status_tracker.add_event(f"Encoding complete: {src}")
         # move final file to final_dir if specified
         if final_dir != "":

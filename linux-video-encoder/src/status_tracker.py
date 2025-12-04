@@ -20,6 +20,7 @@ class StatusTracker:
         self._etas = {}
         self._smb_mounts = {}
         self._manual_files = []
+        self._canceled = set()
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -63,6 +64,7 @@ class StatusTracker:
             except Exception:
                 pass
         if start:
+            self._canceled.add(src)
             self._history.append({
                 "source": src,
                 "destination": start.get("destination"),
@@ -80,6 +82,14 @@ class StatusTracker:
     def update_eta(self, src: str, eta_seconds: float):
         with self._lock:
             self._etas[src] = eta_seconds
+
+    def was_canceled(self, src: str) -> bool:
+        with self._lock:
+            return src in self._canceled
+
+    def clear_canceled(self, src: str):
+        with self._lock:
+            self._canceled.discard(src)
 
     def complete(self, src: str, success: bool, dest: str, message: str = ""):
         with self._lock:
@@ -156,6 +166,8 @@ class StatusTracker:
                 self._history = []
             else:
                 self._history = [h for h in self._history if h.get("state") != state]
+            if state == "canceled":
+                self._canceled.clear()
 
     # SMB mount tracking helpers
     def add_smb_mount(self, mount_id: str, path: str):

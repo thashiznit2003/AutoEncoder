@@ -49,3 +49,6 @@
 
 ## 1.1.6 - 2025-12-04
 - Pre-register queued files into Active with a queued state and destination hint so they show up immediately while waiting.
+
+## 1.1.7 - 2025-12-04
+- Prevent fallback/success entries after user cancellation; honor delete-source during stop; queued pre-registration avoids duplicates.
