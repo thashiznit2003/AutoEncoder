@@ -1042,7 +1042,7 @@ def create_app(tracker, config_manager=None):
         if action == "proceed":
             tracker.clear_confirm_required(src)
             tracker.add_confirm_ok(src)
-            tracker.set_state(src, "queued")
+            tracker.set_state(src, "starting")
             tracker.set_message(src, "")
             tracker.add_event(f"Proceeding with encode: {src}")
             return jsonify({"proceeded": src})

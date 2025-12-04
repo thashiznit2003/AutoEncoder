@@ -84,3 +84,6 @@
 
 ## 1.3.3 - 2025-12-04
 - Added interim `starting` state between queued and running to avoid apparent freezes after proceeding from low-bitrate warnings; badge added.
+
+## 1.3.4 - 2025-12-04
+- Proceed now immediately marks jobs as `starting` (instead of queued) after low-bitrate confirmation to make state change visible.
