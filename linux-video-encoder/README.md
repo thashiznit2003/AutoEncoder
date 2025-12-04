@@ -110,6 +110,12 @@ MakeMKV downloads note:
 - Profiles `ffmpeg`, `ffmpeg_nvenc`, and `ffmpeg_qsv` are sample CPU/NVIDIA/Intel QuickSync presets; pick by setting `profile` in `config.json` or via the UI.
 - RF is “constant quality” (lower number = higher quality/larger file). The HandBrake UI dropdowns include approximate bitrates as a guide.
 
+## Blu-ray drive (Proxmox passthrough)
+- The VM must see the real optical drive (not a virtual “QEMU DVD-ROM”). Pass through the physical device or its controller.
+- Best practice: attach the drive to a passthrough-capable SATA HBA such as an ASM1166-based 6-port card (PCIe x4/x8/x16; ODD/ATAPI friendly) and pass the entire PCIe device to the VM (`hostpci` in Proxmox).
+- If the drive shares the host’s boot SATA controller, passthrough won’t expose raw SCSI commands—move the drive to the HBA or use a USB Blu-ray drive with USB passthrough.
+- Proxmox checklist: enable IOMMU, identify the HBA with `lspci -nn | grep -i asm1166`, pass it with `qm set <VMID> -hostpci1 0000:XX:YY.Z,pcie=1`, remove virtual CD entries, then confirm inside the VM that `makemkvcon -r info disc:0` shows the real drive model.
+
 ## Versioning
 - Current version: 1.0.0 (defined in `src/version.py` and shown in the UI header).
 - Release notes live in `CHANGELOG.md`; bump `VERSION` and append to the changelog for future updates.
