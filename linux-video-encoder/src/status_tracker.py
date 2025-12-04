@@ -21,6 +21,7 @@ class StatusTracker:
         self._smb_mounts = {}
         self._manual_files = []
         self._canceled = set()
+        self._confirm_required = set()
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -52,6 +53,12 @@ class StatusTracker:
     def has_active(self, src: str) -> bool:
         with self._lock:
             return src in self._active
+
+    def set_message(self, src: str, message: str):
+        with self._lock:
+            item = self._active.get(src)
+            if item:
+                item["message"] = message
 
     def stop_proc(self, src: str):
         with self._lock:
@@ -90,6 +97,22 @@ class StatusTracker:
     def clear_canceled(self, src: str):
         with self._lock:
             self._canceled.discard(src)
+
+    # Confirmation flow
+    def add_confirm_required(self, src: str):
+        with self._lock:
+            self._confirm_required.add(src)
+            item = self._active.get(src)
+            if item:
+                item["state"] = "confirm"
+
+    def is_confirm_required(self, src: str) -> bool:
+        with self._lock:
+            return src in self._confirm_required
+
+    def clear_confirm_required(self, src: str):
+        with self._lock:
+            self._confirm_required.discard(src)
 
     def complete(self, src: str, success: bool, dest: str, message: str = ""):
         with self._lock:

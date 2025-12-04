@@ -20,6 +20,7 @@ import re
 import shutil
 import threading
 import uuid
+import json
 from typing import Optional, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from scanner import Scanner, EXCLUDED_SCAN_PATHS
@@ -321,7 +322,6 @@ def probe_source_info(path: Path) -> Optional[str]:
     try:
         if not path.is_file():
             return None
-        import json
         proc = subprocess.run(
             ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,bit_rate,codec_name", "-show_entries", "format=bit_rate", "-of", "json", str(path)],
             capture_output=True,
@@ -352,6 +352,44 @@ def probe_source_info(path: Path) -> Optional[str]:
         if mbps is not None:
             parts.append(f"{mbps} Mbps")
         return "Source: " + " ".join(parts) if parts else None
+    except Exception:
+        return None
+
+def probe_source_bitrate_kbps(path: Path) -> Optional[float]:
+    try:
+        if not path.is_file():
+            return None
+        proc = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=bit_rate", "-show_entries", "format=bit_rate", "-of", "json", str(path)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode != 0 or not proc.stdout:
+            return None
+        data = json.loads(proc.stdout)
+        stream = (data.get("streams") or [{}])[0]
+        fmt = data.get("format") or {}
+        br = stream.get("bit_rate") or fmt.get("bit_rate")
+        if br:
+            try:
+                return int(br) / 1000.0
+            except Exception:
+                return None
+    except Exception:
+        return None
+    return None
+
+
+def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
+    # Approximate map from RF to kbps (from UI hints)
+    rf_map = {
+        16: 4000, 18: 3500, 20: 3000, 22: 2500, 24: 2000,
+        25: 1750, 26: 1500, 28: 1200, 30: 1000
+    }
+    try:
+        q = int(hb_opts.get("quality"))
+        return rf_map.get(q)
     except Exception:
         return None
 
@@ -766,6 +804,27 @@ def main():
                     logging.debug("Failed to pre-register queued file %s", f, exc_info=True)
             # Process sequentially (FIFO)
             for video_file in video_files:
+                # Determine profile for this file
+                local_profile = config.get("profile", "handbrake")
+                is_dvd = any(s in video_file.lower() for s in ["video_ts"])
+                is_bluray = any(s in video_file.lower() for s in ["bdmv", "bluray"])
+                if is_bluray:
+                    local_profile = "handbrake_br"
+                elif is_dvd:
+                    local_profile = "handbrake_dvd"
+                hb_opts_local = config.get(local_profile, {})
+                # Skip items waiting for confirmation
+                if status_tracker and status_tracker.is_confirm_required(str(video_file)):
+                    continue
+                # Bitrate sanity check
+                source_br = probe_source_bitrate_kbps(Path(video_file))
+                target_br = estimate_target_bitrate_kbps(local_profile, hb_opts_local)
+                if source_br and target_br and source_br < target_br and status_tracker:
+                    status_tracker.add_event(f"Low source bitrate vs target for {video_file} ({int(source_br)} kbps < {int(target_br)} kbps). Confirm to proceed.")
+                    status_tracker.set_state(str(video_file), "confirm")
+                    status_tracker.set_message(str(video_file), "Low bitrate; confirm to proceed.")
+                    status_tracker.add_confirm_required(str(video_file))
+                    continue
                 try:
                     out = process_video(video_file, config, output_dir, rip_dir, encoder, status_tracker)
                     print(f"✅ {video_file} → {out}")

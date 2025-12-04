@@ -318,13 +318,19 @@ HTML_PAGE_TEMPLATE = """
           etaText = "ETA " + parts.join(" ");
         }
         const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div><div class="muted">Progress: ' + progress + '%</div>' : "";
-        const stopBtn = state === "running" ? '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">Stop</button>' : "";
+        let controls = "";
+        if (state === "running") {
+          controls = '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">Stop</button>';
+        } else if (state === "confirm") {
+          controls = '<button class="confirm-btn" data-action="proceed" data-src="' + encodeURIComponent(item.source || "") + '">Proceed</button> '
+                   + '<button class="confirm-btn" data-action="cancel" data-src="' + encodeURIComponent(item.source || "") + '">Cancel</button>';
+        }
         const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
         return [
           '<div class="item">',
           '  <div class="flex-between">',
           '    <div class="path">' + (item.source || "") + '</div>',
-          '    <div>' + badge + ' ' + stopBtn + '</div>',
+          '    <div>' + badge + ' ' + controls + '</div>',
           '  </div>',
           '  <div class="muted">-> ' + (item.destination || "") + '</div>',
           '  <div class="muted">' + (item.message || "") + '</div>',
@@ -464,6 +470,12 @@ HTML_PAGE_TEMPLATE = """
       if (e.target.classList.contains("clear-btn")) {
         const status = e.target.getAttribute("data-clear");
         await fetch("/api/clear", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+        refresh();
+      }
+      if (e.target.classList.contains("confirm-btn")) {
+        const src = decodeURIComponent(e.target.getAttribute("data-src"));
+        const action = e.target.getAttribute("data-action");
+        await fetch("/api/confirm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, action }) });
         refresh();
       }
       if (e.target.classList.contains("stop-btn")) {
@@ -1018,6 +1030,25 @@ def create_app(tracker, config_manager=None):
                 except Exception:
                     tracker.add_event(f"Failed to delete source: {src}", level="error")
         return jsonify({"stopped": bool(src)})
+
+    @app.route("/api/confirm", methods=["POST"])
+    def confirm_job():
+        payload = request.get_json(force=True) or {}
+        src = payload.get("source")
+        action = payload.get("action", "cancel")
+        if not src:
+            return jsonify({"error": "source required"}), 400
+        if action == "proceed":
+            tracker.clear_confirm_required(src)
+            tracker.set_state(src, "queued")
+            tracker.set_message(src, "")
+            tracker.add_event(f"Proceeding with encode: {src}")
+            return jsonify({"proceeded": src})
+        else:
+            tracker.stop_proc(src)
+            tracker.clear_confirm_required(src)
+            tracker.add_event(f"Canceled encode after warning: {src}")
+            return jsonify({"canceled": src})
 
     @app.route("/api/clear", methods=["POST"])
     def clear():

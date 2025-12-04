@@ -75,3 +75,6 @@
 - UI/Backend: HandBrake presets (save/load/delete) persisted in config; UI controls added.
 - Audio/Subtitles: New options to include all audio tracks and copy/burn subtitles (none/copy-all/burn forced).
 - Version bumped to 1.3.0.
+
+## 1.3.1 - 2025-12-04
+- Low-bitrate guard: jobs with source bitrate below target now require user confirmation (Proceed/Cancel) in Active; cancel stops without success entry.
