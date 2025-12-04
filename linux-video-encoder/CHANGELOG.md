@@ -30,3 +30,6 @@
 - Added optional SMB browser panel (connect with URL/user/pass, browse mounts, queue files) before Logs.
 - Backend supports SMB mount/list/unmount/queue via new APIs; manual queued files are processed by the main loop.
 - Docker image now includes cifs-utils; SMB mount root at /mnt/smb tracked via StatusTracker.
+
+## 1.1.1 - 2025-12-04
+- SMB queue now copies the selected file into `/mnt/input` (preserves the source on the SMB share) and queues the local copy for encoding.

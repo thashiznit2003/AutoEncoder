@@ -846,8 +846,22 @@ def create_app(tracker, config_manager=None):
         target = ensure_under(base, base / rel_path.lstrip("/"))
         if not target.is_file():
             return jsonify({"error": "file not found"}), 400
-        tracker.add_manual_file(str(target))
-        return jsonify({"queued": str(target)})
+        dest_root = pathlib.Path("/mnt/input")
+        dest_root.mkdir(parents=True, exist_ok=True)
+        def unique_path(root: pathlib.Path, name: str) -> pathlib.Path:
+            cand = root / name
+            stem = cand.stem
+            suffix = cand.suffix
+            idx = 1
+            while cand.exists():
+                cand = root / f"{stem}({idx}){suffix}"
+                idx += 1
+            return cand
+        dest = unique_path(dest_root, target.name)
+        shutil.copy2(target, dest)
+        tracker.add_manual_file(str(dest))
+        tracker.add_event(f"Copied from SMB and queued: {target} -> {dest}")
+        return jsonify({"queued": str(dest), "source": str(target)})
 
     @app.route("/api/stop", methods=["POST"])
     def stop():
