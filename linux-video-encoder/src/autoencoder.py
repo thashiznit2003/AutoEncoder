@@ -506,7 +506,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     source_info = probe_source_info(Path(video_file))
     if status_tracker:
         status_tracker.add_event(f"Queued for encode: {src}")
-        status_tracker.start(str(src), dest_str, info=source_info)
+        status_tracker.start(str(src), dest_str, info=source_info, state="queued")
 
     # skip if output already exists
     if out_path.exists():
@@ -554,6 +554,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     logging.info("Selected profile=%s encoder=%s ext=%s out=%s use_ffmpeg=%s audio_mode=%s audio_kbps=%s",
                  config_str, hb_opts.get("encoder"), extension, out_path, use_ffmpeg,
                  hb_opts.get("audio_mode"), hb_opts.get("audio_bitrate_kbps"))
+    if status_tracker:
+        status_tracker.set_state(str(src), "running")
     success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker, job_id=str(src))
     if not success:
         logging.warning("Encoding failed for %s -> %s; attempting Software Encoder fallback", video_file, out_path)

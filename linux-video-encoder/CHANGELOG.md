@@ -36,3 +36,7 @@
 
 ## 1.1.2 - 2025-12-04
 - Encoding now runs one file at a time (FIFO), ignoring configured max_threads to avoid concurrent encodes.
+
+## 1.1.3 - 2025-12-04
+- Active list now shows queued jobs; jobs start as `queued` then move to `running`.
+- Manual stop marks jobs as `canceled` and adds a Clear Canceled button in Recent Jobs; badges added for queued/canceled.

@@ -33,6 +33,8 @@ HTML_PAGE_TEMPLATE = """
     .badge.running { background: #fde047; }
     .badge.success { background: #34d399; }
     .badge.error { background: #f87171; }
+    .badge.queued { background: #60a5fa; }
+    .badge.canceled { background: #cbd5e1; }
     .progress { background: #1f2937; border-radius: 6px; height: 8px; overflow: hidden; margin-top: 6px; }
     .progress-bar { background: #22c55e; height: 100%; transition: width 0.2s ease; }
     .item { padding: 8px; border-bottom: 1px solid #1f2937; }
@@ -73,6 +75,7 @@ HTML_PAGE_TEMPLATE = """
         <button data-clear="success" class="clear-btn">Clear Success</button>
         <button data-clear="error" class="clear-btn">Clear Error</button>
         <button data-clear="running" class="clear-btn">Clear Running</button>
+        <button data-clear="canceled" class="clear-btn">Clear Canceled</button>
         <button data-clear="all" class="clear-btn">Clear All</button>
       </div>
     </div>

@@ -27,12 +27,12 @@ class StatusTracker:
             if len(self._events) > self._history_size:
                 self._events = self._events[-self._history_size :]
 
-    def start(self, src: str, dest: str, info=None):
+    def start(self, src: str, dest: str, info=None, state: str = "running"):
         with self._lock:
             self._active[src] = {
                 "source": src,
                 "destination": dest,
-                "state": "running",
+                "state": state,
                 "started_at": time.time(),
                 "progress": 0.0,
                 "info": info,
@@ -42,16 +42,36 @@ class StatusTracker:
         with self._lock:
             self._procs[src] = proc
 
+    def set_state(self, src: str, state: str):
+        with self._lock:
+            item = self._active.get(src)
+            if item:
+                item["state"] = state
+
     def stop_proc(self, src: str):
         with self._lock:
             proc = self._procs.pop(src, None)
-            self._active.pop(src, None)
-            self._etas.pop(src, None)
+            start = self._active.pop(src, None)
+            eta = self._etas.pop(src, None)
         if proc:
             try:
                 proc.terminate()
             except Exception:
                 pass
+        if start:
+            self._history.append({
+                "source": src,
+                "destination": start.get("destination"),
+                "state": "canceled",
+                "finished_at": time.time(),
+                "started_at": start.get("started_at"),
+                "message": "Canceled by user",
+                "info": start.get("info"),
+                "eta_sec": eta,
+                "progress": start.get("progress"),
+            })
+            if len(self._history) > self._history_size:
+                self._history = self._history[-self._history_size :]
 
     def update_eta(self, src: str, eta_seconds: float):
         with self._lock:
