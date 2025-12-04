@@ -294,8 +294,27 @@ HTML_PAGE_TEMPLATE = """
         <label style="display:flex; align-items:center; gap:6px;">
           <input type="checkbox" id="mk-keep" /> Keep ripped MKVs after encode
         </label>
+        <label>Preferred audio language(s) <input id="mk-pref-audio" placeholder="eng" /></label>
+        <label>Preferred subtitle language(s) <input id="mk-pref-sub" placeholder="eng" /></label>
+        <label style="display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="mk-exclude-commentary" /> Exclude commentary tracks when choosing
+        </label>
+        <label style="display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="mk-prefer-surround" /> Prefer surround audio (5.1+) when available
+        </label>
+        <label style="display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="mk-auto-rip" /> Auto-start rip when disc detected
+        </label>
         <button type="button" id="mk-save">Save MakeMKV</button>
       </form>
+      <div style="margin-top:8px;">
+        <div class="muted" id="mk-disc-status">Disc status: unknown</div>
+        <div style="display:flex; gap:6px; margin:6px 0;">
+          <button type="button" id="mk-refresh-info">Refresh disc info</button>
+          <button type="button" id="mk-start-rip">Start rip</button>
+        </div>
+        <textarea id="mk-info" class="log" style="height:160px; margin-top:4px;" readonly placeholder="Disc info will appear here after detection."></textarea>
+      </div>
     </div>
     <div class="panel" style="grid-column: 1 / -1;">
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; justify-content: space-between;">
@@ -431,6 +450,15 @@ HTML_PAGE_TEMPLATE = """
           " | BR RF=" + (hbBr.quality ?? 25) +
           " | Ext=" + hbExt +
           " | Audio=" + ((hb.audio_mode === "copy") ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
+        const discInfo = status.disc_info || {};
+        const discPending = !!status.disc_pending;
+        const discStatusEl = document.getElementById("mk-disc-status");
+        const discInfoEl = document.getElementById("mk-info");
+        discStatusEl.textContent = discPending ? ("Disc present (index " + (discInfo.disc_index ?? "?") + ")") : "No disc detected.";
+        discInfoEl.value = discInfo.info && discInfo.info.raw ? discInfo.info.raw : (discPending ? "Disc detected; info not available yet." : "");
+        const startBtn = document.getElementById("mk-start-rip");
+        const autoRipEnabled = document.getElementById("mk-auto-rip").checked;
+        startBtn.disabled = !discPending || autoRipEnabled;
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
@@ -462,13 +490,18 @@ HTML_PAGE_TEMPLATE = """
       if (!hbDirty) {
         populateHandbrakeForm(cfg);
       }
-      if (!mkDirty) {
+        if (!mkDirty) {
           document.getElementById("mk-ripdir").value = (cfg.rip_dir || "/mnt/ripped");
           document.getElementById("mk-minlen").value = (cfg.makemkv_minlength !== undefined && cfg.makemkv_minlength !== null) ? cfg.makemkv_minlength : 1200;
           document.getElementById("mk-titles").value = (cfg.makemkv_titles || []).join(", ");
           document.getElementById("mk-audio-langs").value = (cfg.makemkv_audio_langs || []).join(", ");
           document.getElementById("mk-sub-langs").value = (cfg.makemkv_subtitle_langs || []).join(", ");
           document.getElementById("mk-keep").checked = !!cfg.makemkv_keep_ripped;
+          document.getElementById("mk-pref-audio").value = (cfg.makemkv_preferred_audio_langs || []).join(", ") || "eng";
+          document.getElementById("mk-pref-sub").value = (cfg.makemkv_preferred_subtitle_langs || []).join(", ") || "eng";
+          document.getElementById("mk-exclude-commentary").checked = !!cfg.makemkv_exclude_commentary;
+          document.getElementById("mk-prefer-surround").checked = cfg.makemkv_prefer_surround !== false;
+          document.getElementById("mk-auto-rip").checked = !!cfg.makemkv_auto_rip;
         }
         const hb = cfg.handbrake || {};
         const hbDvd = cfg.handbrake_dvd || {};
@@ -624,7 +657,12 @@ HTML_PAGE_TEMPLATE = """
         makemkv_titles: csvToList(document.getElementById("mk-titles").value),
         makemkv_audio_langs: csvToList(document.getElementById("mk-audio-langs").value),
         makemkv_subtitle_langs: csvToList(document.getElementById("mk-sub-langs").value),
-        makemkv_keep_ripped: document.getElementById("mk-keep").checked
+        makemkv_keep_ripped: document.getElementById("mk-keep").checked,
+        makemkv_preferred_audio_langs: csvToList(document.getElementById("mk-pref-audio").value || "eng"),
+        makemkv_preferred_subtitle_langs: csvToList(document.getElementById("mk-pref-sub").value || "eng"),
+        makemkv_exclude_commentary: document.getElementById("mk-exclude-commentary").checked,
+        makemkv_prefer_surround: document.getElementById("mk-prefer-surround").checked,
+        makemkv_auto_rip: document.getElementById("mk-auto-rip").checked,
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       mkDirty = false;
@@ -784,6 +822,25 @@ HTML_PAGE_TEMPLATE = """
     document.getElementById("smb-refresh").addEventListener("click", async () => {
       await smbRefreshMounts();
       await smbList();
+    });
+
+    document.getElementById("mk-refresh-info").addEventListener("click", async () => {
+      try {
+        const info = await fetchJSON("/api/makemkv/info");
+        const discInfoEl = document.getElementById("mk-info");
+        discInfoEl.value = (info && info.info && info.info.raw) ? info.info.raw : (info && info.raw) ? info.raw : "No disc info.";
+      } catch (e) {
+        alert("Failed to fetch disc info: " + e);
+      }
+    });
+
+    document.getElementById("mk-start-rip").addEventListener("click", async () => {
+      try {
+        await fetch("/api/makemkv/rip", { method: "POST" });
+        alert("Rip requested. It will start on next scan if a disc is present.");
+      } catch (e) {
+        alert("Failed to request rip: " + e);
+      }
     });
 
     document.getElementById("smb-up").addEventListener("click", async () => {
@@ -1125,6 +1182,16 @@ def create_app(tracker, config_manager=None):
         tracker.add_manual_file(str(dest))
         tracker.add_event(f"Copied from SMB and queued: {target} -> {dest}")
         return jsonify({"queued": str(dest), "source": str(target)})
+
+    @app.route("/api/makemkv/info")
+    def makemkv_info():
+        return jsonify(tracker.disc_info() or {})
+
+    @app.route("/api/makemkv/rip", methods=["POST"])
+    def makemkv_rip():
+        tracker.request_disc_rip()
+        tracker.add_event("Manual MakeMKV rip requested.")
+        return jsonify({"requested": True})
     
     @app.route("/api/presets", methods=["GET", "POST", "DELETE"])
     def hb_presets():

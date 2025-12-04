@@ -23,6 +23,9 @@ class StatusTracker:
         self._canceled = set()
         self._confirm_required = set()
         self._confirm_ok = set()
+        self._disc_info = None
+        self._disc_pending = False
+        self._disc_rip_requested = False
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -171,10 +174,14 @@ class StatusTracker:
                     }
                 )
             history = list(self._history)
+            disc_info = self._disc_info
+            disc_pending = self._disc_pending
         return {
             "active": active,
             "recent": history[::-1],  # newest first
             "timestamp": now,
+            "disc_info": disc_info,
+            "disc_pending": disc_pending,
         }
 
     def tail_logs(self, lines: int = 400):
@@ -237,3 +244,34 @@ class StatusTracker:
             items = list(self._manual_files)
             self._manual_files = []
             return items
+
+    # Disc info/pending management
+    def set_disc_info(self, info: dict):
+        with self._lock:
+            self._disc_info = info
+            self._disc_pending = True
+
+    def clear_disc_info(self):
+        with self._lock:
+            self._disc_info = None
+            self._disc_pending = False
+            self._disc_rip_requested = False
+
+    def disc_info(self):
+        with self._lock:
+            return self._disc_info
+
+    def disc_pending(self) -> bool:
+        with self._lock:
+            return self._disc_pending
+
+    def request_disc_rip(self):
+        with self._lock:
+            self._disc_rip_requested = True
+            self._disc_pending = True
+
+    def consume_disc_rip_request(self) -> bool:
+        with self._lock:
+            req = self._disc_rip_requested
+            self._disc_rip_requested = False
+            return req

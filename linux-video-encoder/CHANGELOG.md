@@ -1,10 +1,15 @@
 # Changelog
 
-## 1.7.0 - 2025-12-04
-- Added HandBrake "Auto Dolby" audio mode: copy AC3/E-AC3 (all channel counts) and re-encode other codecs to E-AC3 (no upmix for sub-5.1 sources). UI option added alongside existing modes.
+## 1.8.0 - 2025-12-04
+- MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
+- UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.
+- Rip flow uses preferred language lists when explicit lists are unset.
 
 ## 1.7.1 - 2025-12-04
 - Clarified in the HandBrake UI that Audio mode overrides the Audio encoder when set.
+
+## 1.7.0 - 2025-12-04
+- Added HandBrake "Auto Dolby" audio mode: copy AC3/E-AC3 (all channel counts) and re-encode other codecs to E-AC3 (no upmix for sub-5.1 sources). UI option added alongside existing modes.
 
 ## 1.6.0 - 2025-12-04
 - HandBrake audio controls expanded: encoder choice (AAC/HE-AAC/Opus/AC3/E-AC3/copy), mixdown, sample rate, DRC, gain, language filter, and track list; all wired into config, presets, and UI.

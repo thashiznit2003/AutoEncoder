@@ -112,6 +112,11 @@ DEFAULT_CONFIG = {
     "makemkv_audio_langs": [],
     "makemkv_subtitle_langs": [],
     "makemkv_keep_ripped": False,
+    "makemkv_preferred_audio_langs": ["eng"],
+    "makemkv_preferred_subtitle_langs": ["eng"],
+    "makemkv_exclude_commentary": False,
+    "makemkv_prefer_surround": True,
+    "makemkv_auto_rip": False,
 }
 
 class ConfigManager:
@@ -138,6 +143,11 @@ class ConfigManager:
                 "makemkv_audio_langs",
                 "makemkv_subtitle_langs",
                 "makemkv_keep_ripped",
+                "makemkv_preferred_audio_langs",
+                "makemkv_preferred_subtitle_langs",
+                "makemkv_exclude_commentary",
+                "makemkv_prefer_surround",
+                "makemkv_auto_rip",
                 "search_path",
                 "profile",
             ]:
@@ -199,7 +209,7 @@ def load_config(path: Path):
         merged["handbrake_presets"] = []
     if "makemkv_minlength" not in merged:
         merged["makemkv_minlength"] = DEFAULT_CONFIG["makemkv_minlength"]
-    for key in ["makemkv_titles", "makemkv_audio_langs", "makemkv_subtitle_langs"]:
+    for key in ["makemkv_titles", "makemkv_audio_langs", "makemkv_subtitle_langs", "makemkv_preferred_audio_langs", "makemkv_preferred_subtitle_langs"]:
         val = merged.get(key, [])
         if isinstance(val, str):
             val = [v.strip() for v in val.split(",") if v.strip()]
@@ -209,6 +219,9 @@ def load_config(path: Path):
             val = []
         merged[key] = val
     merged["makemkv_keep_ripped"] = bool(merged.get("makemkv_keep_ripped"))
+    merged["makemkv_exclude_commentary"] = bool(merged.get("makemkv_exclude_commentary"))
+    merged["makemkv_prefer_surround"] = bool(merged.get("makemkv_prefer_surround"))
+    merged["makemkv_auto_rip"] = bool(merged.get("makemkv_auto_rip"))
     return merged
 
 
@@ -524,6 +537,43 @@ def probe_audio_stream(path: Path) -> Optional[dict]:
     except Exception:
         return None
 
+def scan_disc_info(disc_index: int) -> Optional[dict]:
+    """
+    Runs makemkvcon info to gather titles/tracks.
+    Returns a dict with raw text plus parsed titles/audio/subs when possible.
+    """
+    try:
+        res = subprocess.run(
+            ["makemkvcon", "-r", "info", f"disc:{disc_index}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        return None
+    if res.returncode != 0 and not res.stdout:
+        return None
+    raw = res.stdout or res.stderr or ""
+    titles = []
+    for line in raw.splitlines():
+        if line.startswith("TINFO"):
+            # Format: TINFO:<title>,<type>,..., "<value>"
+            parts = line.split(",")
+            if len(parts) < 3:
+                continue
+            try:
+                t_id = int(parts[1])
+            except Exception:
+                continue
+            if len(parts) >= 4:
+                val_part = ",".join(parts[3:])
+            else:
+                val_part = ""
+            if "0,\"" in line and "\"M" in line:
+                pass
+            titles.append({"line": line.strip(), "title_id": t_id})
+    return {"raw": raw, "titles": titles}
+
 def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
     if hb_opts.get("video_bitrate_kbps"):
         try:
@@ -830,8 +880,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         if disc_num is not None:
             minlen = int(config.get("makemkv_minlength", 1800))
             rip_titles = config.get("makemkv_titles", [])
-            rip_audio_langs = config.get("makemkv_audio_langs", [])
-            rip_sub_langs = config.get("makemkv_subtitle_langs", [])
+            rip_audio_langs = config.get("makemkv_audio_langs") or config.get("makemkv_preferred_audio_langs", [])
+            rip_sub_langs = config.get("makemkv_subtitle_langs") or config.get("makemkv_preferred_subtitle_langs", [])
             rip_path, reused_rip = rip_disc(
                 disc_num,
                 rip_dir,
@@ -844,17 +894,20 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             if rip_path is None:
                 logging.error("Blu-ray ripping failed; skipping encoding for %s", video_file)
                 if status_tracker:
+                    status_tracker.clear_disc_info()
                     status_tracker.complete(str(src), False, dest_str, "Blu-ray rip failed")
                 return False
         else:
             logging.error("No Blu-ray disc detected; skipping encoding for %s", video_file)
             if status_tracker:
+                status_tracker.clear_disc_info()
                 status_tracker.complete(str(src), False, dest_str, "No Blu-ray detected")
             return False
 
         video_file = rip_path  # use ripped path for encoding
     if video_file is None:
         if status_tracker:
+            status_tracker.clear_disc_info()
             status_tracker.complete(str(src), False, dest_str, "No video file to encode")
         return False
     # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available
@@ -881,15 +934,18 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             logging.info("Fallback encoder succeeded: %s -> %s", video_file, out_path)
             if status_tracker:
                 status_tracker.complete(str(src), True, dest_str, "Fallback encoder succeeded")
+                status_tracker.clear_disc_info()
         except Exception:
             logging.exception("Fallback encoder failed for %s", video_file)
             if status_tracker:
                 status_tracker.complete(str(src), False, dest_str, "Fallback encoder failed")
             return False
     else:
-        logging.info("Encoded %s -> %s (HandBrakeCLI)", video_file, out_path)
-        if status_tracker and not status_tracker.was_canceled(str(src)):
-            status_tracker.add_event(f"Encoding complete: {src}")
+            logging.info("Encoded %s -> %s (HandBrakeCLI)", video_file, out_path)
+            if status_tracker and not status_tracker.was_canceled(str(src)):
+                status_tracker.add_event(f"Encoding complete: {src}")
+            if status_tracker:
+                status_tracker.clear_disc_info()
         # move final file to final_dir if specified
         if final_dir != "":
             try:
@@ -1019,6 +1075,19 @@ def main():
                         status_tracker.start(str(f), str(dest_hint), info=None, state="queued")
                 except Exception:
                     logging.debug("Failed to pre-register queued file %s", f, exc_info=True)
+            # Disc detection / info
+            try:
+                bluray_present = any("bdmv" in str(f).lower() or "bluray" in str(f).lower() for f in video_files)
+            except Exception:
+                bluray_present = False
+            auto_rip = bool(config.get("makemkv_auto_rip"))
+            if bluray_present and status_tracker and not status_tracker.disc_pending():
+                disc_num = get_disc_number()
+                disc_info = scan_disc_info(disc_num) if disc_num is not None else None
+                info_payload = {"disc_index": disc_num, "info": disc_info}
+                status_tracker.set_disc_info(info_payload)
+                status_tracker.add_event(f"Disc detected (index={disc_num}); auto-rip={'on' if auto_rip else 'off'}")
+
             # Process sequentially (FIFO)
             for video_file in video_files:
                 # Determine profile for this file
@@ -1026,6 +1095,10 @@ def main():
                 is_dvd = any(s in video_file.lower() for s in ["video_ts"])
                 is_bluray = any(s in video_file.lower() for s in ["bdmv", "bluray"])
                 if is_bluray:
+                    if status_tracker and not auto_rip and not status_tracker.consume_disc_rip_request():
+                        # Wait for manual rip trigger
+                        status_tracker.add_event("Disc present; waiting for manual rip start.")
+                        continue
                     local_profile = "handbrake_br"
                 elif is_dvd:
                     local_profile = "handbrake_dvd"
