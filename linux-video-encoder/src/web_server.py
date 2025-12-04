@@ -33,6 +33,7 @@ HTML_PAGE_TEMPLATE = """
     .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: #0f172a; font-weight: 700; }
     .badge.running { background: #fde047; }
+    .badge.starting { background: #fb923c; color:#0b1220; }
     .badge.success { background: #34d399; }
     .badge.error { background: #f87171; }
     .badge.queued { background: #60a5fa; color: #0b1220; }

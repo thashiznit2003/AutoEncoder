@@ -81,3 +81,6 @@
 
 ## 1.3.2 - 2025-12-04
 - Confirmation loop fix: proceeding marks the job as allowed (no repeat warning) and resumes queue; cancel clears confirm flags.
+
+## 1.3.3 - 2025-12-04
+- Added interim `starting` state between queued and running to avoid apparent freezes after proceeding from low-bitrate warnings; badge added.

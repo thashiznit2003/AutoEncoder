@@ -50,6 +50,8 @@ class StatusTracker:
             item = self._active.get(src)
             if item:
                 item["state"] = state
+                if state != "confirm":
+                    self._confirm_required.discard(src)
 
     def has_active(self, src: str) -> bool:
         with self._lock:

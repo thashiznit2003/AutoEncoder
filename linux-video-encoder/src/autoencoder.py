@@ -826,6 +826,8 @@ def main():
                     status_tracker.add_confirm_required(str(video_file))
                     continue
                 try:
+                    if status_tracker:
+                        status_tracker.set_state(str(video_file), "starting")
                     out = process_video(video_file, config, output_dir, rip_dir, encoder, status_tracker)
                     print(f"✅ {video_file} → {out}")
                 except Exception as e:
