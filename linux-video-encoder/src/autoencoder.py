@@ -341,8 +341,37 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
         # Iterate output chunks (handles HandBrake carriage-return updates)
         if proc.stdout is not None:
             import re
-            progress_re = re.compile(r'([0-9]{1,3}\.?[0-9]{0,2})%')
-            eta_re = re.compile(r'ETA\s+(\d+):(\d+):(\d+)')
+            progress_re = re.compile(r'([0-9]{1,3}(?:[\\.,][0-9]{1,2})?)\\s*%')
+            eta_re = re.compile(r'ETA\\s+([0-9hms:]+)', re.IGNORECASE)
+
+            def parse_eta_seconds(token: str) -> Optional[int]:
+                try:
+                    token = token.strip()
+                    if not token:
+                        return None
+                    # Handle HH:MM:SS or MM:SS
+                    if ":" in token:
+                        parts = [int(p) for p in token.split(":") if p != ""]
+                        if len(parts) == 3:
+                            h, m, s = parts
+                        elif len(parts) == 2:
+                            h = 0
+                            m, s = parts
+                        else:
+                            return None
+                        return h * 3600 + m * 60 + s
+                    # Handle 1h2m3s / 15m30s / 45s etc.
+                    m = re.match(r'(?:(\\d+)h)?(?:(\\d+)m)?(?:(\\d+)s)?', token, re.IGNORECASE)
+                    if m:
+                        h = int(m.group(1) or 0)
+                        mn = int(m.group(2) or 0)
+                        s = int(m.group(3) or 0)
+                        if h or mn or s:
+                            return h * 3600 + mn * 60 + s
+                    return None
+                except Exception:
+                    return None
+
             buffer = ""
             while True:
                 chunk = proc.stdout.read(4096)
@@ -358,7 +387,8 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                         m = progress_re.search(line)
                         if m:
                             try:
-                                pct = float(m.group(1))
+                                pct_str = m.group(1).replace(",", ".")
+                                pct = float(pct_str)
                                 if status_tracker:
                                     status_tracker.update_progress(job_key, pct)
                             except Exception:
@@ -366,9 +396,9 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                         m2 = eta_re.search(line)
                         if m2 and status_tracker:
                             try:
-                                h, mn, s = m2.groups()
-                                eta_sec = int(h) * 3600 + int(mn) * 60 + int(s)
-                                status_tracker.update_eta(job_key, eta_sec)
+                                eta_val = parse_eta_seconds(m2.group(1))
+                                if eta_val is not None:
+                                    status_tracker.update_eta(job_key, eta_val)
                             except Exception:
                                 pass
                 elif proc.poll() is not None:
