@@ -22,3 +22,6 @@
 ## 1.0.5 - 2025-12-04
 - Renamed Samba share to `input` (from `lv_file`) across installer/scripts; optional Samba setup now provisions `input` and `output`.
 - Added `scripts/update_samba_shares.sh` to migrate existing hosts (removes legacy `lv_file`, prompts for SMB user/password).
+
+## 1.0.6 - 2025-12-04
+- Installer now prints the detected host IP (best effort) for the UI URL after the stack starts.

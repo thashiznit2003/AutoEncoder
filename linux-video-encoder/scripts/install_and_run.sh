@@ -196,6 +196,17 @@ build_and_run() {
   log "Starting stack with docker compose..."
   IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose up -d
   log "Stack is running. Web UI: http://<host>:5959"
+  # Best-effort to show host IP
+  host_ip=""
+  if command -v hostname >/dev/null 2>&1; then
+    host_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+  fi
+  if [ -z "$host_ip" ] && command -v ip >/dev/null 2>&1; then
+    host_ip=$(ip -4 route show default 2>/dev/null | awk '{print $3}')
+  fi
+  if [ -n "$host_ip" ]; then
+    log "Access the UI at: http://${host_ip}:5959"
+  fi
 }
 
 maybe_install_nvidia_toolkit() {
