@@ -52,3 +52,6 @@
 
 ## 1.1.7 - 2025-12-04
 - Prevent fallback/success entries after user cancellation; honor delete-source during stop; queued pre-registration avoids duplicates.
+
+## 1.1.8 - 2025-12-04
+- SMB mount normalization now escapes spaces (`\040`) so shares/paths with multiple spaces connect correctly.
