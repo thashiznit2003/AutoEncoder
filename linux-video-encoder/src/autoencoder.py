@@ -136,11 +136,11 @@ def setup_logging():
             LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=2, encoding="utf-8"
         ),
     ]
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(asctime)s %(levelname)s: %(message)s",
-            handlers=handlers,
-        )
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s %(levelname)s: %(message)s",
+        handlers=handlers,
+    )
 
 def ensure_smb_root():
     try:
