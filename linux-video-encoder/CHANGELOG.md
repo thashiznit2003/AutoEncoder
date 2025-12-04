@@ -95,3 +95,6 @@
 
 ## 1.4.1 - 2025-12-04
 - Expanded bitrate ladder to 500–8000 kbps in 500 kbps steps (plus custom).
+
+## 1.4.2 - 2025-12-04
+- Added chat4.txt transition doc summarizing app state, preferences, and next steps.

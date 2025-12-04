@@ -1,0 +1,66 @@
+Linux Video Encoder – Transition Notes (Chat 4)
+
+Repository/branch
+- Repo: https://github.com/thashiznit2003/AutoEncoder (branch: main)
+- Current version: 1.4.1
+
+User preferences / workflow
+- Every change should be pushed to GitHub (no local-only changes).
+- After changes, always provide a copy-paste one-liner for the Ubuntu host to pull and restart:
+  cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate
+- Avoid destructive commands; keep changes reversible. Tags were used for major checkpoints (e.g., v1.2.0).
+
+Quick update/revert references
+- Latest UI/feature work at v1.4.1.
+- Backup tags: v1.0.6-backup (pre-SMB browser), v1.2.0 (UI polish milestone).
+
+Key app behaviors
+- Docker compose binds config/media dirs and runs privileged; MakeMKV/HandBrake/FFmpeg included; cifs-utils for SMB mounts.
+- Scanner skips /mnt/output and temp “._*”; uses size stability window; now also skips /linux-video-encoder/src and /mnt/auto_media to avoid noisy mounts.
+- Jobs run FIFO, single-threaded. Source files are deleted after successful encode unless canceled or staged copies are used.
+- Low bitrate guard: if source bitrate < target, job enters CONFIRM state; Active shows Proceed/Cancel buttons. Proceed marks STARTING immediately; Cancel stops and can delete source if chosen.
+- SMB browser: connect to smb://server/share[/path] with user/pass, browse, select file → it copies into /mnt/input (preserves original) and queues.
+- Stop button cancels running job; with delete_source=true removes the source. Canceled jobs appear with CANCELED badge and can be cleared.
+- Presets: HandBrake presets (save/load/delete) stored in config, include encoder/RF or bitrate/two-pass, audio/subtitle settings.
+
+HandBrake/FFmpeg options currently exposed
+- Encoders: x264/x265/qsv_h264/qsv_h265/nvenc_h264/nvenc_h265.
+- Quality: RF dropdown; Target bitrate ladder 500–8000 kbps (500 steps) with custom, optional two-pass. Bitrate overrides RF when set.
+- Audio: copy/encode, bitrate selection, “all audio tracks” toggle.
+- Subtitles: none, copy all, burn forced (first track).
+- Container: .mkv/.mp4/.m4v per profile.
+
+MakeMKV
+- Integrated; Blu-ray/DVD auto-detection; min title length configurable; ripped MKV is encoded then deleted unless canceled/failure.
+- Pending hardware passthrough for real testing (optical drive to be on a passthrough-capable controller).
+
+UI panels (order)
+- Active Encodes (with badges: QUEUED, STARTING, RUNNING, CONFIRM, SUCCESS, ERROR, CANCELED; Proceed/Cancel for confirm; Stop for running)
+- Recent Jobs (clear per state incl. Canceled)
+- Status Messages
+- System Metrics
+- SMB Browser (connect/browse/queue)
+- HandBrake Settings (encoder/RF or bitrate/two-pass/audio/subtitles/presets)
+- MakeMKV Settings
+- Logs (Copy last 300 with clipboard fallback)
+
+Recent notable changes (post v1.0)
+- SMB browser + mount/list/queue APIs; SMB copies staged to /mnt/input.
+- Queue forced to FIFO single-thread.
+- Cancel honors delete_source; prevents false success after cancel.
+- Low-bitrate confirm flow with Proceed/Cancel and STARTING state.
+- Bitrate ladder expanded; presets store bitrate/two-pass.
+- UI polish with icons/gradients; badges for states.
+
+Open recommendations (from recommendations.txt)
+- Remaining items (not yet implemented): per-job labels/batch grouping (#4), staging/preserve options beyond SMB (#5), queue pause/skip (#7), per-job overrides UI (#8), retry/fallback policy (#9), hardware accel toggles/filters/metadata/subtitle pass-through enhancements (#11-14), MakeMKV title/audio/sub options (#15-17), monitoring enhancements (#18).
+
+Operational notes
+- Default paths: input `/mnt/input`, output `/mnt/output`, ripped `/mnt/ripped`.
+- Installer prompts for Samba shares (input/output) and NVIDIA toolkit (runs helper), and now displays host IP after start.
+- UI served on port 5959; active encodes should always show queued items immediately.
+
+How to test current fixes
+- Queue a low-bitrate file → should show CONFIRM with Proceed/Cancel; Proceed → STARTING → RUNNING without re-warning; Cancel removes from active/recent appropriately.
+- SMB path with multiple spaces should mount without escaping (passed as args).
+- Logs copy button should work even without navigator.clipboard.
