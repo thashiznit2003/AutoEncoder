@@ -40,3 +40,6 @@
 ## 1.1.3 - 2025-12-04
 - Active list now shows queued jobs; jobs start as `queued` then move to `running`.
 - Manual stop marks jobs as `canceled` and adds a Clear Canceled button in Recent Jobs; badges added for queued/canceled.
+
+## 1.1.4 - 2025-12-04
+- Fix: queued jobs now retain their eta/progress keys in snapshots (ensuring Active Encodes shows queued items reliably).

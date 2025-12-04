@@ -106,12 +106,12 @@ class StatusTracker:
         now = time.time()
         with self._lock:
             active = []
-            for item in self._active.values():
+            for key, item in self._active.items():
                 active.append(
                     {
                         **item,
                         "duration_sec": now - item.get("started_at", now),
-                        "eta_sec": self._etas.get(item.get("source")) if item.get("source") else None,
+                        "eta_sec": self._etas.get(key),
                     }
                 )
             history = list(self._history)
