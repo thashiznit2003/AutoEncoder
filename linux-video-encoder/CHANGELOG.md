@@ -46,3 +46,6 @@
 
 ## 1.1.5 - 2025-12-04
 - Stop API now honors delete_source and removes the source file when cancellation requests deletion.
+
+## 1.1.6 - 2025-12-04
+- Pre-register queued files into Active with a queued state and destination hint so they show up immediately while waiting.

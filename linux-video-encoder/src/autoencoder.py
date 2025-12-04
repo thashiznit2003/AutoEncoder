@@ -273,6 +273,79 @@ def safe_move(src: Path, dst: Path) -> bool:
         logging.error("Failed to move %s to %s: %s", src, dst, e)
         return False
 
+
+def compute_output_path(video_file: str, config: Dict[str, Any], output_dir: Path) -> Path:
+    config_str = config.get("profile", "ffmpeg")
+    is_dvd = False
+    is_bluray = False
+    if any(s in video_file.lower() for s in ["bdmv", "bluray"]):
+        is_bluray = True
+        config_str = "handbrake_br"
+    elif any(s in video_file.lower() for s in ["video_ts"]):
+        is_dvd = True
+        config_str = "handbrake_dvd"
+
+    hb_opts = config.get(config_str, {})
+    extension = hb_opts.get("extension", ".mkv")
+
+    src = Path(video_file)
+
+    def unique_name(base_dir: Path, base: str, ext: str) -> Path:
+        candidate = base_dir / f"{base}{ext}"
+        idx = 1
+        while candidate.exists():
+            candidate = base_dir / f"{base}({idx}){ext}"
+            idx += 1
+        return candidate
+
+    if is_dvd:
+        base = src.parent.name
+    elif is_bluray:
+        base = src.parent.parent.name
+    else:
+        base = src.stem
+
+    return unique_name(output_dir, base, extension)
+
+
+def probe_source_info(path: Path) -> Optional[str]:
+    try:
+        if not path.is_file():
+            return None
+        import json
+        proc = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,bit_rate,codec_name", "-show_entries", "format=bit_rate", "-of", "json", str(path)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode != 0 or not proc.stdout:
+            return None
+        data = json.loads(proc.stdout)
+        stream = (data.get("streams") or [{}])[0]
+        fmt = data.get("format") or {}
+        width = stream.get("width")
+        height = stream.get("height")
+        codec = stream.get("codec_name")
+        br = stream.get("bit_rate") or fmt.get("bit_rate")
+        if br:
+            try:
+                mbps = round(int(br) / 1_000_000, 2)
+            except Exception:
+                mbps = None
+        else:
+            mbps = None
+        parts = []
+        if width and height:
+            parts.append(f"{width}x{height}")
+        if codec:
+            parts.append(codec)
+        if mbps is not None:
+            parts.append(f"{mbps} Mbps")
+        return "Source: " + " ".join(parts) if parts else None
+    except Exception:
+        return None
+
 def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, status_tracker: Optional[StatusTracker] = None, job_id: Optional[str] = None) -> bool:
     """
     Run HandBrakeCLI or ffmpeg and stream its stdout/stderr to the logger in real time.
@@ -465,46 +538,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
 
     dest_str = str(out_path)
 
-    def probe_source_info(path: Path) -> Optional[str]:
-        try:
-            if not path.is_file():
-                return None
-            import json
-            proc = subprocess.run(
-                ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,bit_rate,codec_name", "-show_entries", "format=bit_rate", "-of", "json", str(path)],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if proc.returncode != 0 or not proc.stdout:
-                return None
-            data = json.loads(proc.stdout)
-            stream = (data.get("streams") or [{}])[0]
-            fmt = data.get("format") or {}
-            width = stream.get("width")
-            height = stream.get("height")
-            codec = stream.get("codec_name")
-            br = stream.get("bit_rate") or fmt.get("bit_rate")
-            if br:
-                try:
-                    mbps = round(int(br) / 1_000_000, 2)
-                except Exception:
-                    mbps = None
-            else:
-                mbps = None
-            parts = []
-            if width and height:
-                parts.append(f"{width}x{height}")
-            if codec:
-                parts.append(codec)
-            if mbps is not None:
-                parts.append(f"{mbps} Mbps")
-            return "Source: " + " ".join(parts) if parts else None
-        except Exception:
-            return None
-
     source_info = probe_source_info(Path(video_file))
-    if status_tracker:
+    if status_tracker and not status_tracker.has_active(str(src)):
         status_tracker.add_event(f"Queued for encode: {src}")
         status_tracker.start(str(src), dest_str, info=source_info, state="queued")
 
@@ -698,6 +733,14 @@ def main():
                     status_tracker.add_event(f"Detected new file: {f}")
             if not video_files:
                 logging.debug("No candidate video files found on this pass.")
+            # Pre-register queued items so they appear in Active
+            for f in video_files:
+                try:
+                    if status_tracker and not status_tracker.has_active(str(f)):
+                        dest_hint = compute_output_path(f, config, output_dir)
+                        status_tracker.start(str(f), str(dest_hint), info=None, state="queued")
+                except Exception:
+                    logging.debug("Failed to pre-register queued file %s", f, exc_info=True)
             # Process sequentially (FIFO)
             for video_file in video_files:
                 try:

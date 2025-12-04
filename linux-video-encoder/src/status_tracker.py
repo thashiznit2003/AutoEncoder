@@ -48,6 +48,10 @@ class StatusTracker:
             if item:
                 item["state"] = state
 
+    def has_active(self, src: str) -> bool:
+        with self._lock:
+            return src in self._active
+
     def stop_proc(self, src: str):
         with self._lock:
             proc = self._procs.pop(src, None)
