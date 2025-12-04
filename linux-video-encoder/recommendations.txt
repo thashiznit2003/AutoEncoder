@@ -1,5 +1,5 @@
 #1) Profiles/presets: allow saving/loading named HandBrake presets (encoder/RF/audio/copy vs encode) and quick switching.
-2) Audio handling: expose per-track choices (copy vs transcode, bitrate ladders), preserve multiple audio tracks.
+#2) Audio handling: expose per-track choices (copy vs transcode, bitrate ladders), preserve multiple audio tracks.
 #3) Subtitle handling: add burn/pass-through options, auto-detect forced subs, support PGS/SRT copy/burn.
 4) Queue labeling: allow per-job label/comment (esp. for SMB-picked files) and show it in Active/Recent.
 5) Staging: optional staging path for SMB copies, separate from /mnt/input, with a “preserve source” toggle.
