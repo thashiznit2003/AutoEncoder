@@ -144,6 +144,12 @@ HTML_PAGE_TEMPLATE = """
             <option value="30">RF 30 (~1000 kbps)</option>
           </select>
         </label>
+        <label>Audio tracks
+          <select id="hb-audio-all">
+            <option value="false">First track</option>
+            <option value="true">All audio tracks</option>
+          </select>
+        </label>
         <label>DVD quality (constant quality RF, lower = higher quality)
           <select id="hb-dvd-quality" name="quality_dvd">
             <option value="16">RF 16 (~4000 kbps)</option>
@@ -177,6 +183,13 @@ HTML_PAGE_TEMPLATE = """
             <option value=".m4v">.m4v</option>
           </select>
         </label>
+        <label>Subtitles
+          <select id="hb-subs">
+            <option value="none">None</option>
+            <option value="copy_all">Copy all subtitles</option>
+            <option value="burn_forced">Burn forced (first track)</option>
+          </select>
+        </label>
         <label>Audio mode
           <select id="hb-audio-mode" name="audio_mode">
             <option value="encode">Encode (AAC)</option>
@@ -193,6 +206,14 @@ HTML_PAGE_TEMPLATE = """
           </select>
         </label>
         <button type="button" id="hb-save">Save HandBrake</button>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:4px;">
+          <select id="hb-preset-select" style="flex:1;">
+            <option value="">Load preset...</option>
+          </select>
+          <input id="hb-preset-name" placeholder="Preset name" style="flex:1;"/>
+          <button type="button" id="hb-preset-save">Save Preset</button>
+          <button type="button" id="hb-preset-delete">Delete Preset</button>
+        </div>
         <div class="muted">Applies: Default for regular files, DVD for VIDEO_TS, BR for BDMV/STREAM.</div>
       </form>
     </div>
@@ -215,6 +236,7 @@ HTML_PAGE_TEMPLATE = """
   <script>
     let hbDirty = false;
     let mkDirty = false;
+    loadPresets();
 
     async function fetchJSON(url) {
       const res = await fetch(url);
@@ -404,6 +426,8 @@ HTML_PAGE_TEMPLATE = """
       setSelectValue(document.getElementById("hb-ext"), cfg.handbrake.extension, ".mkv");
       setSelectValue(document.getElementById("hb-audio-mode"), cfg.handbrake.audio_mode || "encode", "encode");
       setSelectValue(document.getElementById("hb-audio-bitrate"), cfg.handbrake.audio_bitrate_kbps || 128, 128);
+      setSelectValue(document.getElementById("hb-audio-all"), cfg.handbrake.audio_all ? "true" : "false", "false");
+      setSelectValue(document.getElementById("hb-subs"), cfg.handbrake.subtitle_mode || "none", "none");
     }
 
     document.getElementById("hb-save").addEventListener("click", async (e) => {
@@ -415,6 +439,8 @@ HTML_PAGE_TEMPLATE = """
       const ext = document.getElementById("hb-ext").value;
       const audioMode = document.getElementById("hb-audio-mode").value;
       const audioBitrate = parseInt(document.getElementById("hb-audio-bitrate").value || "128", 10) || 128;
+      const audioAll = document.getElementById("hb-audio-all").value === "true";
+      const subtitleMode = document.getElementById("hb-subs").value || "none";
       const body = {
         profile: "handbrake",
         handbrake: {
@@ -422,10 +448,12 @@ HTML_PAGE_TEMPLATE = """
           quality: qDefault,
           extension: ext,
           audio_mode: audioMode,
-          audio_bitrate_kbps: audioBitrate
+          audio_bitrate_kbps: audioBitrate,
+          audio_all: audioAll,
+          subtitle_mode: subtitleMode
         },
-        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate },
-        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate }
+        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode },
+        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode }
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       hbDirty = false;
@@ -486,6 +514,70 @@ HTML_PAGE_TEMPLATE = """
       } catch (e) {
         alert("Failed to copy logs: " + e);
       }
+    });
+
+    // Presets
+    async function loadPresets() {
+      try {
+        const res = await fetch("/api/presets");
+        const data = await res.json();
+        const sel = document.getElementById("hb-preset-select");
+        const current = sel.value;
+        sel.innerHTML = '<option value=\"\">Load preset...</option>' + (data.presets || []).map(p => '<option value=\"' + p.name + '\">' + p.name + '</option>').join(\"\\n\");
+        if (current) { sel.value = current; }
+      } catch (e) {
+        console.error(\"Failed to load presets\", e);
+      }
+    }
+
+    document.getElementById(\"hb-preset-save\").addEventListener(\"click\", async () => {
+      const name = document.getElementById(\"hb-preset-name\").value.trim();
+      if (!name) { alert(\"Enter a preset name\"); return; }
+      // reuse save handler body composition
+      const qDefault = parseInt(document.getElementById(\"hb-quality\").value || \"20\", 10) || 20;
+      const qDvd = parseInt(document.getElementById(\"hb-dvd-quality\").value || \"20\", 10) || 20;
+      const qBr = parseInt(document.getElementById(\"hb-br-quality\").value || \"25\", 10) || 25;
+      const ext = document.getElementById(\"hb-ext\").value;
+      const audioMode = document.getElementById(\"hb-audio-mode\").value;
+      const audioBitrate = parseInt(document.getElementById(\"hb-audio-bitrate\").value || \"128\", 10) || 128;
+      const audioAll = document.getElementById(\"hb-audio-all\").value === \"true\";
+      const subtitleMode = document.getElementById(\"hb-subs\").value || \"none\";
+      const body = {
+        name,
+        handbrake: {
+          encoder: document.getElementById(\"hb-encoder\").value,
+          quality: qDefault,
+          extension: ext,
+          audio_mode: audioMode,
+          audio_bitrate_kbps: audioBitrate,
+          audio_all: audioAll,
+          subtitle_mode: subtitleMode
+        },
+        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode },
+        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode }
+      };
+      await fetch(\"/api/presets\", { method: \"POST\", headers: { \"Content-Type\": \"application/json\" }, body: JSON.stringify(body) });
+      await loadPresets();
+    });
+
+    document.getElementById(\"hb-preset-delete\").addEventListener(\"click\", async () => {
+      const sel = document.getElementById(\"hb-preset-select\");
+      const name = sel.value;
+      if (!name) { alert(\"Select a preset to delete\"); return; }
+      await fetch(\"/api/presets\", { method: \"DELETE\", headers: { \"Content-Type\": \"application/json\" }, body: JSON.stringify({ name }) });
+      document.getElementById(\"hb-preset-name\").value = \"\";
+      await loadPresets();
+    });
+
+    document.getElementById(\"hb-preset-select\").addEventListener(\"change\", async () => {
+      const sel = document.getElementById(\"hb-preset-select\");
+      const name = sel.value;
+      if (!name) return;
+      const res = await fetch(\"/api/presets\");
+      const data = await res.json();
+      const preset = (data.presets || []).find(p => p.name === name);
+      if (!preset) return;
+      populateHandbrakeForm({ handbrake: preset.handbrake, handbrake_dvd: preset.handbrake_dvd, handbrake_br: preset.handbrake_br });
     });
 
     // SMB helpers
@@ -877,6 +969,39 @@ def create_app(tracker, config_manager=None):
         tracker.add_manual_file(str(dest))
         tracker.add_event(f"Copied from SMB and queued: {target} -> {dest}")
         return jsonify({"queued": str(dest), "source": str(target)})
+    
+    @app.route("/api/presets", methods=["GET", "POST", "DELETE"])
+    def hb_presets():
+        if not config_manager:
+            return jsonify({"presets": []})
+        if request.method == "GET":
+            cfg = config_manager.read()
+            return jsonify({"presets": cfg.get("handbrake_presets", [])})
+        payload = request.get_json(force=True) or {}
+        if request.method == "POST":
+            name = (payload.get("name") or "").strip()
+            if not name:
+                return jsonify({"error": "name required"}), 400
+            cfg = config_manager.read()
+            presets = cfg.get("handbrake_presets", [])
+            # replace if exists
+            presets = [p for p in presets if p.get("name") != name]
+            presets.append({
+                "name": name,
+                "handbrake": payload.get("handbrake", {}),
+                "handbrake_dvd": payload.get("handbrake_dvd", {}),
+                "handbrake_br": payload.get("handbrake_br", {}),
+            })
+            cfg["handbrake_presets"] = presets
+            config_manager.update(cfg)
+            return jsonify({"saved": name})
+        if request.method == "DELETE":
+            name = (payload.get("name") or "").strip()
+            cfg = config_manager.read()
+            presets = [p for p in cfg.get("handbrake_presets", []) if p.get("name") != name]
+            cfg["handbrake_presets"] = presets
+            config_manager.update(cfg)
+            return jsonify({"deleted": name})
 
     @app.route("/api/stop", methods=["POST"])
     def stop():

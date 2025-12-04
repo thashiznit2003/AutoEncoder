@@ -40,6 +40,7 @@ DEFAULT_CONFIG = {
     "rip_dir": "/mnt/ripped",
     "final_dir": "",
     "profile": "handbrake",
+    "handbrake_presets": [],
     "max_threads": 4,
     "rescan_interval": 30,
     "min_size_mb": 100,
@@ -49,6 +50,8 @@ DEFAULT_CONFIG = {
         "quality": 20,
         "audio_bitrate_kbps": 128,
         "audio_mode": "encode",  # encode | copy
+        "audio_all": False,
+        "subtitle_mode": "none",  # none | copy_all | burn_forced
         "extra_args": [],
         "extension": ".mkv"
     },
@@ -60,7 +63,9 @@ DEFAULT_CONFIG = {
         "extension": ".mkv",
         "extra_args": [],
         "audio_bitrate_kbps": 128,
-        "audio_mode": "encode"
+        "audio_mode": "encode",
+        "audio_all": False,
+        "subtitle_mode": "none"
     },
     "handbrake_br": {
         "encoder": "x264",
@@ -70,7 +75,9 @@ DEFAULT_CONFIG = {
         "extension": ".mkv",
         "extra_args": [],
         "audio_bitrate_kbps": 128,
-        "audio_mode": "encode"
+        "audio_mode": "encode",
+        "audio_all": False,
+        "subtitle_mode": "none"
     },
     "makemkv_minlength": 1200
 }
@@ -123,6 +130,8 @@ def load_config(path: Path):
             hb = DEFAULT_CONFIG.get(hb_key, {}).copy()
             hb.update({k: v for k, v in merged[hb_key].items() if v is not None})
             merged[hb_key] = hb
+    if "handbrake_presets" not in merged or not isinstance(merged.get("handbrake_presets"), list):
+        merged["handbrake_presets"] = []
     if "makemkv_minlength" not in merged:
         merged["makemkv_minlength"] = DEFAULT_CONFIG["makemkv_minlength"]
     return merged
@@ -362,6 +371,8 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
     audio = opts.get("audio", "")
     audio_mode = opts.get("audio_mode", "encode")
     audio_bitrate_kbps = opts.get("audio_bitrate_kbps")
+    audio_all = bool(opts.get("audio_all"))
+    subtitle_mode = opts.get("subtitle_mode", "none")
     hwdev = opts.get("hwdev", "")
     filterdev = opts.get("filterdev", "")
     #audio_bitrate_kbps = opts.get("audio_bitrate_kbps", 128)
@@ -404,12 +415,21 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
             #"-B", str(int(audio_bitrate_kbps))
         ]
         if audio_mode == "copy":
-            cmd.extend(["-E", "copy"])
+            if audio_all:
+                cmd.extend(["--all-audio", "-E", "copy"])
+            else:
+                cmd.extend(["-E", "copy"])
         elif audio_bitrate_kbps:
             try:
                 cmd.extend(["-B", str(int(audio_bitrate_kbps))])
             except Exception:
                 cmd.extend(["-B", str(audio_bitrate_kbps)])
+        if audio_mode != "copy" and audio_all:
+            cmd.append("--all-audio")
+        if subtitle_mode == "copy_all":
+            cmd.append("--all-subtitles")
+        elif subtitle_mode == "burn_forced":
+            cmd.extend(["--subtitle", "1", "--subtitle-burned"])
         cmd.extend(map(str, extra))
         logger.info("Running HandBrakeCLI: %s", " ".join(cmd))
     try:

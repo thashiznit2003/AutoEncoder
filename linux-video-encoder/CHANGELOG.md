@@ -70,3 +70,8 @@
 
 ## 1.2.3 - 2025-12-04
 - Added recommendations.txt to track future feature ideas (queue controls, presets, SMB staging, filters, MakeMKV options, etc.).
+
+## 1.3.0 - 2025-12-04
+- UI/Backend: HandBrake presets (save/load/delete) persisted in config; UI controls added.
+- Audio/Subtitles: New options to include all audio tracks and copy/burn subtitles (none/copy-all/burn forced).
+- Version bumped to 1.3.0.
