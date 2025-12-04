@@ -64,3 +64,6 @@
 
 ## 1.2.1 - 2025-12-04
 - Logs copy button now falls back to a hidden textarea when `navigator.clipboard` is unavailable.
+
+## 1.2.2 - 2025-12-04
+- Scanner now skips system paths (`/linux-video-encoder/src`, `/mnt/auto_media`) and avoids auto-mounting common system block devices (sd*/nvme*/vd*/dm*), reducing noisy mounts like /dev/sda1.

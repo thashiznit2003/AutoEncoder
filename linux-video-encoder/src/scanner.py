@@ -3,6 +3,7 @@ import os
 # Explicit paths we never want to scan for media
 EXCLUDED_SCAN_PATHS = {
     "/linux-video-encoder/config.json",
+    "/linux-video-encoder/src",
     "/etc/resolv.conf",
     "/etc/hostname",
     "/etc/hosts",
@@ -12,6 +13,7 @@ EXCLUDED_SCAN_PATHS = {
     "/usr/share",
     "/linux-video-encoder/scripts",
     "/etc/vulkan",
+    "/mnt/auto_media",
 }
 class Scanner:
     def __init__(self, search_path='/'):
@@ -328,6 +330,9 @@ class Scanner:
                 devnode = f'/dev/{name}'
                 # skip non-partition types or already-mounted entries
                 if typ != 'part' or mp:
+                    continue
+                # skip obvious system/base devices even if seen as partitions in container
+                if name.startswith(('sd', 'nvme', 'vd', 'dm')):
                     continue
                 # skip excluded devices if we can map them (we only have excluded mountpoints list,
                 # so skip names that match excluded mount basenames)
