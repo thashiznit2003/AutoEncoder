@@ -12,3 +12,6 @@
 
 ## 1.0.2 - 2025-12-04
 - Installer now prompts to install the NVIDIA Container Toolkit and runs the bundled pinned helper when accepted (avoids failing stock apt flow).
+
+## 1.0.3 - 2025-12-04
+- NVIDIA toolkit prompt moved to the end of the installer; if selected, installs via the bundled helper after the stack is up and restarts the stack so Docker picks up the NVIDIA runtime.

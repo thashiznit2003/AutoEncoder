@@ -214,6 +214,9 @@ maybe_install_nvidia_toolkit() {
     [yY]|[yY][eE][sS])
       log "Installing NVIDIA Container Toolkit via bundled helper..."
       $SUDO bash "$helper"
+      log "NVIDIA toolkit installed; restarting stack to ensure runtime picks up changes..."
+      cd "$REPO_DIR/linux-video-encoder" || cd "$REPO_DIR"
+      IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose up -d
       ;;
     *)
       log "Skipping NVIDIA toolkit install."
@@ -225,8 +228,8 @@ main() {
   ensure_base_tools
   install_docker
   fetch_repo
-  maybe_install_nvidia_toolkit
   build_and_run
+  maybe_install_nvidia_toolkit
 }
 
 main "$@"
