@@ -43,3 +43,6 @@
 
 ## 1.1.4 - 2025-12-04
 - Fix: queued jobs now retain their eta/progress keys in snapshots (ensuring Active Encodes shows queued items reliably).
+
+## 1.1.5 - 2025-12-04
+- Stop API now honors delete_source and removes the source file when cancellation requests deletion.

@@ -870,9 +870,16 @@ def create_app(tracker, config_manager=None):
     def stop():
         payload = request.get_json(force=True) or {}
         src = payload.get("source")
+        delete_src = payload.get("delete_source", False)
         if src:
             tracker.stop_proc(src)
             tracker.add_event(f"Stopped encode: {src}")
+            if delete_src:
+                try:
+                    os.remove(src)
+                    tracker.add_event(f"Deleted source: {src}")
+                except Exception:
+                    tracker.add_event(f"Failed to delete source: {src}", level="error")
         return jsonify({"stopped": bool(src)})
 
     @app.route("/api/clear", methods=["POST"])
