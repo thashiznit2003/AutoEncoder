@@ -154,12 +154,13 @@ class ConfigManager:
                 if field in data and data[field] is not None:
                     cfg[field] = data[field]
             for key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
-                if key in data and isinstance(data[key], dict):
+                hb_data = data.get(key)
+                if isinstance(hb_data, dict):
                     if key not in cfg or not isinstance(cfg.get(key), dict):
                         cfg[key] = {}
-                for k, v in data[key].items():
-                    if v is not None:
-                        cfg[key][k] = v
+                    for k, v in hb_data.items():
+                        if v is not None:
+                            cfg[key][k] = v
             try:
                 with self.path.open("w", encoding="utf-8") as f:
                     json.dump(cfg, f, indent=2)

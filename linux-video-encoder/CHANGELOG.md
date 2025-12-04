@@ -8,6 +8,9 @@
 ## 1.8.1 - 2025-12-04
 - Fix: resolved an indentation error in autoencoder.py that caused container restart loops.
 
+## 1.8.2 - 2025-12-04
+- Fix: /api/config no longer crashes when HandBrake payload is omitted (guarded missing dict keys).
+
 ## 1.7.1 - 2025-12-04
 - Clarified in the HandBrake UI that Audio mode overrides the Audio encoder when set.
 
