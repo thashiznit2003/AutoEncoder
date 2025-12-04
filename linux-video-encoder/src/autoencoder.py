@@ -341,8 +341,8 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
         # Iterate output chunks (handles HandBrake carriage-return updates)
         if proc.stdout is not None:
             import re
-            progress_re = re.compile(r'([0-9]{1,3}(?:[\\.,][0-9]{1,2})?)\\s*%')
-            eta_re = re.compile(r'ETA\\s+([0-9hms:]+)', re.IGNORECASE)
+            progress_re = re.compile(r'([0-9]{1,3}(?:[.,][0-9]{1,2})?)\s*%')
+            eta_re = re.compile(r'ETA\s+([0-9hms:]+)', re.IGNORECASE)
 
             def parse_eta_seconds(token: str) -> Optional[int]:
                 try:
@@ -361,7 +361,7 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                             return None
                         return h * 3600 + m * 60 + s
                     # Handle 1h2m3s / 15m30s / 45s etc.
-                    m = re.match(r'(?:(\\d+)h)?(?:(\\d+)m)?(?:(\\d+)s)?', token, re.IGNORECASE)
+                    m = re.match(r'(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?', token, re.IGNORECASE)
                     if m:
                         h = int(m.group(1) or 0)
                         mn = int(m.group(2) or 0)
@@ -373,38 +373,33 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                     return None
 
             buffer = ""
-            while True:
-                chunk = proc.stdout.read(4096)
-                if chunk:
-                    buffer += chunk
-                    parts = re.split(r'[\r\n]+', buffer)
-                    buffer = parts.pop()
-                    for raw in parts:
-                        line = raw.strip()
-                        if not line:
-                            continue
-                        logger.info(line)
-                        m = progress_re.search(line)
-                        if m:
-                            try:
-                                pct_str = m.group(1).replace(",", ".")
-                                pct = float(pct_str)
-                                if status_tracker:
-                                    status_tracker.update_progress(job_key, pct)
-                            except Exception:
-                                pass
-                        m2 = eta_re.search(line)
-                        if m2 and status_tracker:
-                            try:
-                                eta_val = parse_eta_seconds(m2.group(1))
-                                if eta_val is not None:
-                                    status_tracker.update_eta(job_key, eta_val)
-                            except Exception:
-                                pass
-                elif proc.poll() is not None:
+            for raw in iter(proc.stdout.readline, ""):
+                if not raw:
                     break
-                else:
-                    time.sleep(0.05)
+                buffer += raw
+                parts = re.split(r'[\r\n]+', buffer)
+                buffer = parts.pop()
+                for line in parts:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    logger.info(line)
+                    for m in progress_re.finditer(line):
+                        try:
+                            pct_str = m.group(1).replace(",", ".")
+                            pct = float(pct_str)
+                            if status_tracker:
+                                status_tracker.update_progress(job_key, pct)
+                        except Exception:
+                            continue
+                    m2 = eta_re.search(line)
+                    if m2 and status_tracker:
+                        try:
+                            eta_val = parse_eta_seconds(m2.group(1))
+                            if eta_val is not None:
+                                status_tracker.update_eta(job_key, eta_val)
+                        except Exception:
+                            pass
             tail = buffer.strip()
             if tail:
                 logger.info(tail)
