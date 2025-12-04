@@ -2,13 +2,14 @@ from flask import Flask, jsonify, Response, request
 import time
 import subprocess
 import os
+from version import VERSION
 
-HTML_PAGE = """
+HTML_PAGE_TEMPLATE = """
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Linux Video Encoder</title>
+  <title>Linux Video Encoder v__VERSION__</title>
   <style>
     :root { color-scheme: dark; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
     body { margin: 0; background: radial-gradient(circle at 20% 20%, rgba(59,130,246,0.08), transparent 40%), #0b1220; color: #e2e8f0; }
@@ -42,7 +43,7 @@ HTML_PAGE = """
 </head>
 <body>
   <header>
-    <h1>Linux Video Encoder - Live Status</h1>
+    <h1>Linux Video Encoder v__VERSION__ - Live Status</h1>
     <div style="display:flex; gap:10px; align-items:center;">
       <button onclick="window.location.reload(true)">Hard Reload</button>
       <div id="clock" class="muted"></div>
@@ -442,6 +443,7 @@ HTML_PAGE = """
 </body>
 </html>
 """
+HTML_PAGE = HTML_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
 
 
 def create_app(tracker, config_manager=None):
@@ -548,6 +550,7 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/status")
     def status():
         data = tracker.snapshot()
+        data["version"] = VERSION
         if config_manager:
             cfg = config_manager.read()
             data["handbrake_config"] = {
