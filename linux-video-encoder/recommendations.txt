@@ -1,9 +1,9 @@
-1) Profiles/presets: allow saving/loading named HandBrake presets (encoder/RF/audio/copy vs encode) and quick switching.
+#1) Profiles/presets: allow saving/loading named HandBrake presets (encoder/RF/audio/copy vs encode) and quick switching.
 2) Audio handling: expose per-track choices (copy vs transcode, bitrate ladders), preserve multiple audio tracks.
-3) Subtitle handling: add burn/pass-through options, auto-detect forced subs, support PGS/SRT copy/burn.
+#3) Subtitle handling: add burn/pass-through options, auto-detect forced subs, support PGS/SRT copy/burn.
 4) Queue labeling: allow per-job label/comment (esp. for SMB-picked files) and show it in Active/Recent.
 5) Staging: optional staging path for SMB copies, separate from /mnt/input, with a “preserve source” toggle.
-6) Size/bitrate targeting: expose HandBrake/FFmpeg bitrate/ABR presets for users who don’t want RF.
+#6) Size/bitrate targeting: expose HandBrake/FFmpeg bitrate/ABR presets for users who don’t want RF.
 7) Pause/resume/skip: queue-level pause/resume control and a “skip” that cancels a job without delete.
 8) Per-job overrides: allow RF/encoder/audio overrides when queuing (manual/SMB) without changing defaults.
 9) Error/retry policy: allow retry count or fallback order (e.g., NVENC → x264 fallback) via a flag.
@@ -12,7 +12,7 @@
 12) Filters: deinterlace/detelecine/denoise/crop/scale presets; rotate/flip for odd sources.
 13) Metadata/chapters: preserve or set title/chapters/metadata; option to keep chapter markers for non-disc files.
 14) Container options: keep .mkv/.mp4/.m4v selection per job and add a faststart/moov relocation toggle for MP4.
-15) MakeMKV title selection: choose specific titles/min-length per job instead of global.
-16) MakeMKV language/subtitles: preserve desired audio/subtitle tracks from disc through to encode.
-17) MakeMKV post-rip handling: option to keep ripped MKVs instead of deleting after encode.
+#15) MakeMKV title selection: choose specific titles/min-length per job instead of global.
+#16) MakeMKV language/subtitles: preserve desired audio/subtitle tracks from disc through to encode.
+#17) MakeMKV post-rip handling: option to keep ripped MKVs instead of deleting after encode.
 18) Monitoring: add queued count indicator in header; show per-job encoder/hw decode info in Active.
