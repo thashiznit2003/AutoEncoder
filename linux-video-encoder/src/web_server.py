@@ -472,7 +472,16 @@ HTML_PAGE_TEMPLATE = """
         const logs = await fetchJSON("/api/logs");
         const lines = (logs.lines || []).slice(-300);
         const text = lines.join("\\n");
-        await navigator.clipboard.writeText(text);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
         alert("Copied last " + lines.length + " log lines to clipboard.");
       } catch (e) {
         alert("Failed to copy logs: " + e);

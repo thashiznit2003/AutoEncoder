@@ -61,3 +61,6 @@
 
 ## 1.2.0 - 2025-12-04
 - UI polish with icons/gradients/panel styling while keeping layout; badges updated for queued/canceled; header branding tweaked.
+
+## 1.2.1 - 2025-12-04
+- Logs copy button now falls back to a hidden textarea when `navigator.clipboard` is unavailable.
