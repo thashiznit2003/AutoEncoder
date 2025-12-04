@@ -25,3 +25,8 @@
 
 ## 1.0.6 - 2025-12-04
 - Installer now prints the detected host IP (best effort) for the UI URL after the stack starts.
+
+## 1.1.0 - 2025-12-04
+- Added optional SMB browser panel (connect with URL/user/pass, browse mounts, queue files) before Logs.
+- Backend supports SMB mount/list/unmount/queue via new APIs; manual queued files are processed by the main loop.
+- Docker image now includes cifs-utils; SMB mount root at /mnt/smb tracked via StatusTracker.

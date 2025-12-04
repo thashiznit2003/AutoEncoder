@@ -19,6 +19,7 @@ import pathlib
 import re
 import shutil
 import threading
+import uuid
 from typing import Optional, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from scanner import Scanner, EXCLUDED_SCAN_PATHS
@@ -31,6 +32,7 @@ CONFIG_PATH = Path(__file__).resolve().parents[1] / "config.json"
 LOG_DIR = Path(__file__).resolve().parents[1] / "logs"
 LOG_FILE = LOG_DIR / "app.log"
 WEB_PORT = 5959
+SMB_MOUNT_ROOT = Path("/mnt/smb")
 
 DEFAULT_CONFIG = {
     "search_path": None,
@@ -134,11 +136,17 @@ def setup_logging():
             LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=2, encoding="utf-8"
         ),
     ]
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s %(levelname)s: %(message)s",
-        handlers=handlers,
-    )
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s %(levelname)s: %(message)s",
+            handlers=handlers,
+        )
+
+def ensure_smb_root():
+    try:
+        SMB_MOUNT_ROOT.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        logging.debug("Failed to create SMB mount root %s", SMB_MOUNT_ROOT, exc_info=True)
 
 import subprocess
 
@@ -601,6 +609,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
 
 def main():
     setup_logging()
+    ensure_smb_root()
     status_tracker = StatusTracker(LOG_FILE)
     cfg_manager = ConfigManager(CONFIG_PATH)
     start_web_server(status_tracker, config_manager=cfg_manager, port=WEB_PORT)
@@ -630,6 +639,7 @@ def main():
 
     try:
         while True:
+            manual_files = status_tracker.consume_manual_files()
             config = cfg_manager.read()
             rescan_interval = float(config.get("rescan_interval", 30))
             max_threads = int(config.get("max_threads", 4))
@@ -679,6 +689,7 @@ def main():
                     logging.debug("Scan root: %s inspect failed", root)
 
             video_files = scanner.find_video_files(scan_roots)
+            video_files.extend(manual_files)
             for f in video_files:
                 if status_tracker:
                     status_tracker.add_event(f"Detected new file: {f}")

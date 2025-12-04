@@ -18,6 +18,8 @@ class StatusTracker:
         self._log_path = Path(log_path)
         self._history_size = history_size
         self._etas = {}
+        self._smb_mounts = {}
+        self._manual_files = []
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -130,3 +132,30 @@ class StatusTracker:
                 self._history = []
             else:
                 self._history = [h for h in self._history if h.get("state") != state]
+
+    # SMB mount tracking helpers
+    def add_smb_mount(self, mount_id: str, path: str):
+        with self._lock:
+            self._smb_mounts[mount_id] = path
+
+    def remove_smb_mount(self, mount_id: str):
+        with self._lock:
+            self._smb_mounts.pop(mount_id, None)
+
+    def list_smb_mounts(self):
+        with self._lock:
+            return dict(self._smb_mounts)
+
+    # Manual file queue (e.g., SMB browser)
+    def add_manual_file(self, path: str):
+        with self._lock:
+            self._manual_files.append(path)
+            self._events.append({"message": f"Queued manually: {path}", "level": "info", "ts": time.time()})
+            if len(self._events) > self._history_size:
+                self._events = self._events[-self._history_size :]
+
+    def consume_manual_files(self):
+        with self._lock:
+            items = list(self._manual_files)
+            self._manual_files = []
+            return items

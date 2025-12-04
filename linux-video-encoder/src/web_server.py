@@ -3,6 +3,11 @@ import time
 import subprocess
 import os
 from version import VERSION
+import uuid
+import pathlib
+import shutil
+
+SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 
 HTML_PAGE_TEMPLATE = """
 <!doctype html>
@@ -39,6 +44,12 @@ HTML_PAGE_TEMPLATE = """
     .metric-card { background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 10px; padding: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); }
     .metric-label { font-size: 10px; color: #8ea0bd; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; }
     .metric-value { font-size: 13px; font-weight: 700; color: #e5edff; margin-top: 2px; font-family: Arial, "Helvetica Neue", sans-serif; }
+    .smb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+    .smb-list { max-height: 220px; overflow-y: auto; border: 1px solid #1f2937; border-radius: 8px; padding: 8px; background: #0b1220; }
+    .smb-item { padding: 6px 0; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .smb-item:last-child { border-bottom: 0; }
+    .smb-btn { padding: 6px 10px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+    .smb-path { word-break: break-all; flex: 1; }
   </style>
 </head>
 <body>
@@ -72,6 +83,33 @@ HTML_PAGE_TEMPLATE = """
     <div class="panel">
       <h2>System Metrics</h2>
       <div id="metrics" class="log"></div>
+    </div>
+    <div class="panel">
+      <h2>SMB Browser</h2>
+      <form id="smb-form" style="display:grid; gap:6px;">
+        <input id="smb-url" placeholder="smb://server/share[/path]" />
+        <input id="smb-user" placeholder="Username" />
+        <input id="smb-pass" placeholder="Password" type="password" />
+        <button type="button" id="smb-connect">Connect</button>
+      </form>
+      <div class="smb-grid" style="margin-top:8px;">
+        <div>
+          <div class="muted">Mounts</div>
+          <div id="smb-mounts" class="smb-list"></div>
+        </div>
+        <div>
+          <div class="muted">Browse</div>
+          <div id="smb-browse" class="smb-list"></div>
+        </div>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+        <input id="smb-current-path" readonly placeholder="Path" style="flex:1;"/>
+        <button class="smb-btn" id="smb-up">Up</button>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="smb-btn" id="smb-queue">Queue selected for encode</button>
+        <button class="smb-btn" id="smb-refresh">Refresh</button>
+      </div>
     </div>
     <div class="panel">
       <h2>HandBrake Settings</h2>
@@ -435,6 +473,93 @@ HTML_PAGE_TEMPLATE = """
       }
     });
 
+    // SMB helpers
+    let smbMountId = null;
+    let smbPath = "/";
+    let smbSelected = null;
+
+    async function smbList(pathOverride) {
+      if (!smbMountId) { return; }
+      const path = pathOverride || smbPath || "/";
+      const res = await fetch("/api/smb/list?mount_id=" + encodeURIComponent(smbMountId) + "&path=" + encodeURIComponent(path));
+      const data = await res.json();
+      smbPath = data.path || "/";
+      document.getElementById("smb-current-path").value = smbPath;
+      const entries = data.entries || [];
+      smbSelected = null;
+      document.getElementById("smb-browse").innerHTML = entries.map(e => {
+        const icon = e.is_dir ? "📁" : "📄";
+        return '<div class="smb-item" data-path="' + e.path + '" data-dir="' + (e.is_dir ? "1" : "0") + '"><span>' + icon + '</span><div class="smb-path">' + e.name + '</div></div>';
+      }).join("");
+    }
+
+    async function smbRefreshMounts() {
+      const res = await fetch("/api/smb/mounts");
+      const data = await res.json();
+      const mounts = data.mounts || {};
+      const mountItems = Object.keys(mounts).map(id => {
+        const path = mounts[id];
+        return '<div class="smb-item"><div class="smb-path">' + id + ' → ' + path + '</div><button class="smb-btn smb-unmount" data-id="' + id + '">Unmount</button></div>';
+      }).join("");
+      document.getElementById("smb-mounts").innerHTML = mountItems || "<div class='muted'>No mounts</div>";
+    }
+
+    document.getElementById("smb-connect").addEventListener("click", async () => {
+      const body = {
+        url: document.getElementById("smb-url").value,
+        username: document.getElementById("smb-user").value,
+        password: document.getElementById("smb-pass").value
+      };
+      const res = await fetch("/api/smb/mount", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await res.json();
+      smbMountId = data.mount_id;
+      smbPath = "/";
+      await smbRefreshMounts();
+      await smbList("/");
+    });
+
+    document.getElementById("smb-refresh").addEventListener("click", async () => {
+      await smbRefreshMounts();
+      await smbList();
+    });
+
+    document.getElementById("smb-up").addEventListener("click", async () => {
+      if (!smbMountId || !smbPath || smbPath === "/") return;
+      const up = smbPath.replace(/\\/+$/, "").split("/").slice(0, -1).join("/") || "/";
+      await smbList(up);
+    });
+
+    document.getElementById("smb-browse").addEventListener("click", async (e) => {
+      const item = e.target.closest(".smb-item");
+      if (!item) return;
+      const path = item.getAttribute("data-path");
+      const isDir = item.getAttribute("data-dir") === "1";
+      if (isDir) {
+        await smbList(path);
+      } else {
+        smbSelected = path;
+        document.querySelectorAll("#smb-browse .smb-item").forEach(el => el.style.background = "");
+        item.style.background = "#1f2937";
+      }
+    });
+
+    document.getElementById("smb-mounts").addEventListener("click", async (e) => {
+      if (e.target.classList.contains("smb-unmount")) {
+        const id = e.target.getAttribute("data-id");
+        await fetch("/api/smb/unmount", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mount_id: id }) });
+        if (smbMountId === id) { smbMountId = null; smbSelected = null; smbPath = "/"; document.getElementById("smb-browse").innerHTML = ""; }
+        await smbRefreshMounts();
+      }
+    });
+
+    document.getElementById("smb-queue").addEventListener("click", async () => {
+      if (!smbMountId || !smbSelected) { alert("Select a file first."); return; }
+      await fetch("/api/smb/queue", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mount_id: smbMountId, path: smbSelected }) });
+      alert("Queued: " + smbSelected);
+    });
+
+    smbRefreshMounts();
+
     setInterval(refresh, 2000);
     setInterval(tickClock, 1000);
     refresh();
@@ -448,6 +573,78 @@ HTML_PAGE = HTML_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
 
 def create_app(tracker, config_manager=None):
     app = Flask(__name__)
+    SMB_MOUNT_ROOT.mkdir(parents=True, exist_ok=True)
+
+    def normalize_smb_url(url: str) -> str:
+        url = url.strip()
+        if url.startswith("smb://"):
+            return "//" + url[len("smb://") :]
+        return url
+
+    def ensure_under(base: pathlib.Path, target: pathlib.Path) -> pathlib.Path:
+        try:
+            target = target.resolve()
+            base = base.resolve()
+            if base in target.parents or target == base:
+                return target
+        except Exception:
+            pass
+        return base
+
+    def mount_smb(url: str, username: str = "", password: str = "") -> str:
+        mid = uuid.uuid4().hex
+        mnt = SMB_MOUNT_ROOT / mid
+        mnt.mkdir(parents=True, exist_ok=True)
+        opts = []
+        if username:
+            opts.append(f"username={username}")
+        else:
+            opts.append("guest")
+        if password:
+            opts.append(f"password={password}")
+        cmd = ["mount", "-t", "cifs", normalize_smb_url(url), str(mnt), "-o", ",".join(opts)]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            try:
+                mnt.rmdir()
+            except Exception:
+                pass
+            raise RuntimeError(f"Failed to mount SMB: {res.stderr.strip() or res.stdout.strip() or res.returncode}")
+        tracker.add_smb_mount(mid, str(mnt))
+        return mid
+
+    def unmount_smb(mount_id: str):
+        mounts = tracker.list_smb_mounts()
+        mnt = mounts.get(mount_id)
+        if not mnt:
+            return
+        subprocess.run(["umount", mnt], capture_output=True, text=True)
+        try:
+            shutil.rmtree(mnt, ignore_errors=True)
+        except Exception:
+            pass
+        tracker.remove_smb_mount(mount_id)
+
+    def list_smb(mount_id: str, rel_path: str = "/"):
+        mounts = tracker.list_smb_mounts()
+        mnt = mounts.get(mount_id)
+        if not mnt:
+            raise FileNotFoundError("mount not found")
+        base = pathlib.Path(mnt)
+        target = ensure_under(base, base / rel_path.lstrip("/"))
+        if not target.exists():
+            target = base
+        entries = []
+        try:
+            for entry in sorted(target.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower())):
+                entries.append({
+                    "name": entry.name,
+                    "is_dir": entry.is_dir(),
+                    "path": "/" + entry.relative_to(base).as_posix()
+                })
+        except Exception:
+            pass
+        return {"path": "/" + target.relative_to(base).as_posix() if target != base else "/", "entries": entries}
 
     def read_meminfo():
         mem = {"total_mb": None, "used_mb": None}
@@ -594,6 +791,63 @@ def create_app(tracker, config_manager=None):
             payload = request.get_json(force=True) or {}
             updated = config_manager.update(payload)
             return jsonify(updated)
+
+    @app.route("/api/smb/mount", methods=["POST"])
+    def smb_mount():
+        payload = request.get_json(force=True) or {}
+        url = payload.get("url", "")
+        username = payload.get("username", "")
+        password = payload.get("password", "")
+        if not url:
+            return jsonify({"error": "url required"}), 400
+        try:
+            mid = mount_smb(url, username, password)
+            return jsonify({"mount_id": mid, "path": tracker.list_smb_mounts().get(mid)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/smb/mounts")
+    def smb_mounts():
+        return jsonify({"mounts": tracker.list_smb_mounts()})
+
+    @app.route("/api/smb/unmount", methods=["POST"])
+    def smb_unmount():
+        payload = request.get_json(force=True) or {}
+        mid = payload.get("mount_id")
+        if not mid:
+            return jsonify({"error": "mount_id required"}), 400
+        unmount_smb(mid)
+        return jsonify({"unmounted": mid})
+
+    @app.route("/api/smb/list")
+    def smb_list():
+        mid = request.args.get("mount_id")
+        path = request.args.get("path", "/")
+        if not mid:
+            return jsonify({"error": "mount_id required"}), 400
+        try:
+            data = list_smb(mid, path)
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/smb/queue", methods=["POST"])
+    def smb_queue():
+        payload = request.get_json(force=True) or {}
+        mid = payload.get("mount_id")
+        rel_path = payload.get("path", "/")
+        if not mid:
+            return jsonify({"error": "mount_id required"}), 400
+        mounts = tracker.list_smb_mounts()
+        mnt = mounts.get(mid)
+        if not mnt:
+            return jsonify({"error": "mount not found"}), 400
+        base = pathlib.Path(mnt)
+        target = ensure_under(base, base / rel_path.lstrip("/"))
+        if not target.is_file():
+            return jsonify({"error": "file not found"}), 400
+        tracker.add_manual_file(str(target))
+        return jsonify({"queued": str(target)})
 
     @app.route("/api/stop", methods=["POST"])
     def stop():

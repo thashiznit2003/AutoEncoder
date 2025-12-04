@@ -33,7 +33,8 @@ RUN set -eux; \
       python3-pip \
       python3-venv \
       ffmpeg \
-      handbrake-cli; \
+      handbrake-cli \
+      cifs-utils; \
     rm -rf /var/lib/apt/lists/*
 
 # Build/runtime dependencies and MakeMKV ${MAKEMKV_VERSION}
