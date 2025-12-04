@@ -819,7 +819,7 @@ def main():
                 # Bitrate sanity check
                 source_br = probe_source_bitrate_kbps(Path(video_file))
                 target_br = estimate_target_bitrate_kbps(local_profile, hb_opts_local)
-                if source_br and target_br and source_br < target_br and status_tracker:
+                if source_br and target_br and source_br < target_br and status_tracker and not status_tracker.is_confirm_ok(str(video_file)):
                     status_tracker.add_event(f"Low source bitrate vs target for {video_file} ({int(source_br)} kbps < {int(target_br)} kbps). Confirm to proceed.")
                     status_tracker.set_state(str(video_file), "confirm")
                     status_tracker.set_message(str(video_file), "Low bitrate; confirm to proceed.")

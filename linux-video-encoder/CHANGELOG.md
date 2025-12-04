@@ -78,3 +78,6 @@
 
 ## 1.3.1 - 2025-12-04
 - Low-bitrate guard: jobs with source bitrate below target now require user confirmation (Proceed/Cancel) in Active; cancel stops without success entry.
+
+## 1.3.2 - 2025-12-04
+- Confirmation loop fix: proceeding marks the job as allowed (no repeat warning) and resumes queue; cancel clears confirm flags.

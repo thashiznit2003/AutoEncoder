@@ -22,6 +22,7 @@ class StatusTracker:
         self._manual_files = []
         self._canceled = set()
         self._confirm_required = set()
+        self._confirm_ok = set()
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -65,6 +66,8 @@ class StatusTracker:
             proc = self._procs.pop(src, None)
             start = self._active.pop(src, None)
             eta = self._etas.pop(src, None)
+            self._confirm_required.discard(src)
+            self._confirm_ok.discard(src)
         if proc:
             try:
                 proc.terminate()
@@ -114,10 +117,24 @@ class StatusTracker:
         with self._lock:
             self._confirm_required.discard(src)
 
+    def add_confirm_ok(self, src: str):
+        with self._lock:
+            self._confirm_ok.add(src)
+
+    def is_confirm_ok(self, src: str) -> bool:
+        with self._lock:
+            return src in self._confirm_ok
+
+    def clear_confirm_ok(self, src: str):
+        with self._lock:
+            self._confirm_ok.discard(src)
+
     def complete(self, src: str, success: bool, dest: str, message: str = ""):
         with self._lock:
             start = self._active.pop(src, None)
             self._procs.pop(src, None)
+            self._confirm_required.discard(src)
+            self._confirm_ok.discard(src)
             record = {
                 "source": src,
                 "destination": dest,

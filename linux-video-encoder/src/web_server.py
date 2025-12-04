@@ -1040,6 +1040,7 @@ def create_app(tracker, config_manager=None):
             return jsonify({"error": "source required"}), 400
         if action == "proceed":
             tracker.clear_confirm_required(src)
+            tracker.add_confirm_ok(src)
             tracker.set_state(src, "queued")
             tracker.set_message(src, "")
             tracker.add_event(f"Proceeding with encode: {src}")
@@ -1047,6 +1048,7 @@ def create_app(tracker, config_manager=None):
         else:
             tracker.stop_proc(src)
             tracker.clear_confirm_required(src)
+            tracker.clear_confirm_ok(src)
             tracker.add_event(f"Canceled encode after warning: {src}")
             return jsonify({"canceled": src})
 
