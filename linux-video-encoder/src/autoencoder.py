@@ -941,11 +941,11 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                 status_tracker.complete(str(src), False, dest_str, "Fallback encoder failed")
             return False
     else:
-            logging.info("Encoded %s -> %s (HandBrakeCLI)", video_file, out_path)
-            if status_tracker and not status_tracker.was_canceled(str(src)):
-                status_tracker.add_event(f"Encoding complete: {src}")
-            if status_tracker:
-                status_tracker.clear_disc_info()
+        logging.info("Encoded %s -> %s (HandBrakeCLI)", video_file, out_path)
+        if status_tracker and not status_tracker.was_canceled(str(src)):
+            status_tracker.add_event(f"Encoding complete: {src}")
+        if status_tracker:
+            status_tracker.clear_disc_info()
         # move final file to final_dir if specified
         if final_dir != "":
             try:

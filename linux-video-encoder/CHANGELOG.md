@@ -5,6 +5,9 @@
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.
 - Rip flow uses preferred language lists when explicit lists are unset.
 
+## 1.8.1 - 2025-12-04
+- Fix: resolved an indentation error in autoencoder.py that caused container restart loops.
+
 ## 1.7.1 - 2025-12-04
 - Clarified in the HandBrake UI that Audio mode overrides the Audio encoder when set.
 
