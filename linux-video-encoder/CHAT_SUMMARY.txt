@@ -1,0 +1,38 @@
+AutoEncoder / linux-video-encoder – Chat Summary (Dec 2025)
+
+Repo: https://github.com/thashiznit2003/AutoEncoder (branch: main)
+Host path: /linux-video-encoder/AutoEncoder/linux-video-encoder
+Update one-liner (Ubuntu host):
+  cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate
+
+Key app behaviors/config:
+- Docker compose binds ./src and ./scripts plus media dirs and config.json; privileged with NVIDIA runtime for GPU; port 5959 UI.
+- Default profile: HandBrake (can set in UI). Profiles: handbrake, handbrake_dvd (VIDEO_TS), handbrake_br (BDMV). ffmpeg only used if ffmpeg profile selected; fallback ffmpeg if HandBrake fails.
+- Scanner: skips /mnt/output and explicit exclusions (/linux-video-encoder/config.json, /etc/{resolv.conf,hostname,hosts}, /usr, /usr/lib, /usr/bin, /usr/share, /linux-video-encoder/scripts, /etc/vulkan). Defers encoding until file size stable 20s and mtime >=60s. Skips “._*”.
+- Output filenames reuse source name; duplicates get (n). Source deleted after successful encode; if stopped and source kept, a .stopped marker prevents re-encode unless renamed/marker removed.
+- UI: panels for Active Encodes (progress bar + percent + ETA + source info), Recent, Status Messages, Logs (copy last 300 button, auto-scroll), System Metrics (CPU%, GPU, Memory, Disk I/O, Output FS free, Net). HandBrake settings panel with RF options annotated with approx video bitrate, encoder select, extension, audio mode (encode/copy) + bitrate, note on which quality applies. MakeMKV fields as before.
+- Metrics: parsed from /proc (CPU load -> pct, mem, net, diskstats), fs free (/mnt/output), GPU via nvidia-smi (util/mem). If GPU fields empty, nvidia-smi not available.
+- Logs filtered (skips API/noise, strips ANSI). Status events include HandBrake fallback notice.
+- Installer scripts:
+  - install_nvidia_toolkit.sh: installs toolkit via NVIDIA apt repo pinned to ubuntu22.04; configures Docker runtime.
+  - update_stack.sh: pulls latest main, rebuilds, restarts (used before bind-mount change).
+  - quick_pull.sh: git pull + restart without rebuild (with bind mounts).
+  - debug_copy_button.sh and sync_and_check_ui.sh for UI/log checks.
+
+Recent UI additions:
+- Copy last 300 logs button; logs auto-scroll when at bottom.
+- System Metrics cards (CPU%, GPU, Memory, Disk I/O, Output FS, Net) with compact layout.
+- Source media info shown per active job (resolution/codec/bitrate from ffprobe).
+- HandBrake runtime summary shows audio mode/bitrate.
+- Progress bar now shows percent text; ETA parsed from HandBrake logs (ensure it advances—uses job_id = source path).
+
+User preferences/notes:
+- Provide one-liner updates to run on Ubuntu host.
+- Avoid scanning obvious system paths.
+- Wants GPU usage (NVENC) and confirmation; uses NVIDIA P600, toolkit installed.
+- VLC on Mac was choppy; IINA preferred.
+- For target file size, HandBrake uses RF; bitrate-based two-pass required if size targeting.
+
+Open follow-ups / caveats:
+- Progress bar/ETA depends on parsing HandBrake output; if still stuck at 0%, check /api/status active entry for progress/eta.
+- GPU utilization may show 0% if NVENC not available; verify inside container (nvidia-smi, HandBrakeCLI --encoders, ffmpeg encoders).
