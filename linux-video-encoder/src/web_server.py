@@ -582,8 +582,7 @@ def create_app(tracker, config_manager=None):
         url = url.strip()
         if url.startswith("smb://"):
             url = "//" + url[len("smb://") :]
-        # Escape spaces for mount.cifs
-        return url.replace(" ", r"\040")
+        return url
 
     def ensure_under(base: pathlib.Path, target: pathlib.Path) -> pathlib.Path:
         try:

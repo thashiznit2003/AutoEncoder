@@ -55,3 +55,6 @@
 
 ## 1.1.8 - 2025-12-04
 - SMB mount normalization now escapes spaces (`\040`) so shares/paths with multiple spaces connect correctly.
+
+## 1.1.9 - 2025-12-04
+- SMB URL normalization rolled back to avoid breaking mounts with spaces (subprocess arg list handles spaces without escaping).
