@@ -11,6 +11,9 @@
 ## 1.8.2 - 2025-12-04
 - Fix: /api/config no longer crashes when HandBrake payload is omitted (guarded missing dict keys).
 
+## 1.8.3 - 2025-12-04
+- MakeMKV Save now posts a “settings saved” event and alert so the change is visible in Status Messages.
+
 ## 1.7.1 - 2025-12-04
 - Clarified in the HandBrake UI that Audio mode overrides the Audio encoder when set.
 

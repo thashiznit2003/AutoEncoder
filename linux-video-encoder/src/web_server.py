@@ -665,6 +665,8 @@ HTML_PAGE_TEMPLATE = """
         makemkv_auto_rip: document.getElementById("mk-auto-rip").checked,
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      try { await fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: "MakeMKV settings saved", level: "info" }) }); } catch (err) {}
+      alert("MakeMKV settings saved");
       mkDirty = false;
     });
 
@@ -1085,6 +1087,16 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/events")
     def events():
         return jsonify(tracker.events())
+
+    @app.route("/api/events", methods=["POST"])
+    def add_event():
+        payload = request.get_json(force=True) or {}
+        msg = payload.get("message", "")
+        level = payload.get("level", "info")
+        if msg:
+            tracker.add_event(msg, level=level)
+            return jsonify({"added": True})
+        return jsonify({"added": False}), 400
 
     @app.route("/api/metrics")
     def metrics():
