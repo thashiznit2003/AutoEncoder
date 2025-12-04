@@ -255,7 +255,7 @@ HTML_PAGE_TEMPLATE = """
             <option value="burn_forced">Burn forced (first track)</option>
           </select>
         </label>
-        <label>Audio mode
+        <label>Audio mode (overrides Audio encoder when set)
           <select id="hb-audio-mode" name="audio_mode">
             <option value="encode">Encode (AAC)</option>
             <option value="copy">Copy original</option>
