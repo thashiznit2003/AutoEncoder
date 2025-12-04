@@ -642,7 +642,8 @@ def main():
             manual_files = status_tracker.consume_manual_files()
             config = cfg_manager.read()
             rescan_interval = float(config.get("rescan_interval", 30))
-            max_threads = int(config.get("max_threads", 4))
+            # Force single-file processing (FIFO) regardless of configured max_threads
+            max_threads = 1
             search_path = config.get("search_path")
             if search_path == '/':
                 search_path = None
@@ -695,16 +696,13 @@ def main():
                     status_tracker.add_event(f"Detected new file: {f}")
             if not video_files:
                 logging.debug("No candidate video files found on this pass.")
-            #for video_file in video_files:               
-            with ThreadPoolExecutor(max_workers=max_threads) as ex:
-                futures = {ex.submit(process_video, f, config, output_dir, rip_dir, encoder, status_tracker): f for f in video_files}
-                for fut in as_completed(futures):
-                    src = futures[fut]
-                    try:
-                        out = fut.result()
-                        print(f"✅ {src} → {out}")
-                    except Exception as e:
-                        print(f"❌ {src}: {e}") 
+            # Process sequentially (FIFO)
+            for video_file in video_files:
+                try:
+                    out = process_video(video_file, config, output_dir, rip_dir, encoder, status_tracker)
+                    print(f"✅ {video_file} → {out}")
+                except Exception as e:
+                    print(f"❌ {video_file}: {e}")
 
             time.sleep(rescan_interval)
             # after a successful scan/pass, unmount devices the scanner mounted

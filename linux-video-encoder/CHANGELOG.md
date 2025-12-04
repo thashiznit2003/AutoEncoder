@@ -33,3 +33,6 @@
 
 ## 1.1.1 - 2025-12-04
 - SMB queue now copies the selected file into `/mnt/input` (preserves the source on the SMB share) and queues the local copy for encoding.
+
+## 1.1.2 - 2025-12-04
+- Encoding now runs one file at a time (FIFO), ignoring configured max_threads to avoid concurrent encodes.
