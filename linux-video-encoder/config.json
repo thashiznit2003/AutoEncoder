@@ -38,27 +38,33 @@
     "extension": ".mp4"
   },
   "handbrake": {
-    "encoder": "nvenc_h265",
-    "quality": "10",
-    "width": 1280,
-    "height": 720,
-    "extension": ".mp4",
-    "extra_args": []
-  },
-  "handbrake_dvd": {
-    "encoder": "nvenc_h265",
-    "quality": "20",
+    "encoder": "x264",
+    "quality": 20,
     "width": 1920,
     "height": 1080,
-    "extension": ".mp4",
-    "extra_args": []
+    "extension": ".mkv",
+    "extra_args": [],
+    "audio_bitrate_kbps": 128,
+    "audio_mode": "encode"
+  },
+  "handbrake_dvd": {
+    "encoder": "x264",
+    "quality": 20,
+    "width": 1920,
+    "height": 1080,
+    "extension": ".mkv",
+    "extra_args": [],
+    "audio_bitrate_kbps": 128,
+    "audio_mode": "encode"
   },
   "handbrake_br": {
-    "encoder": "nvenc_h265",
-    "quality": "25",
+    "encoder": "x264",
+    "quality": 25,
     "width": 3840,
     "height": 2160,
-    "extension": ".mp4",
-    "extra_args": []
+    "extension": ".mkv",
+    "extra_args": [],
+    "audio_bitrate_kbps": 128,
+    "audio_mode": "encode"
   }
 }

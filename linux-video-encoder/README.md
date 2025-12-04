@@ -103,6 +103,11 @@ MakeMKV downloads note:
 * __profile__ - The profile you want to use for encoding
 * __profiles__ - These are examples created that use the ffmpeg and HandBrakeCLI commands. See their docs for other parameters.
 
+### Defaults and profiles
+- Default HandBrake profile: x264, RF 20, 1080p output, `.mkv`, AAC audio 128 kbps (DVD uses the same, Blu-ray uses RF 25 at 2160p).
+- Profiles `ffmpeg`, `ffmpeg_nvenc`, and `ffmpeg_qsv` are sample CPU/NVIDIA/Intel QuickSync presets; pick by setting `profile` in `config.json` or via the UI.
+- RF is “constant quality” (lower number = higher quality/larger file). The HandBrake UI dropdowns include approximate bitrates as a guide.
+
 
 ## License
 

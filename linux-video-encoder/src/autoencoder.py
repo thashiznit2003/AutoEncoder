@@ -271,6 +271,7 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
     Returns True on success, False otherwise.
     """
     logger = logging.getLogger(__name__)
+    job_key = job_id or str(input_path)
     encoder = opts.get("encoder", "x264")
     quality = opts.get("quality", "")
     width = opts.get("width", 1920)
@@ -336,31 +337,47 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
         # Stream combined stdout+stderr so progress and messages appear live
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         if status_tracker:
-            status_tracker.register_proc(str(input_path), proc)
-        # Iterate lines as they arrive and log them
+            status_tracker.register_proc(job_key, proc)
+        # Iterate output chunks (handles HandBrake carriage-return updates)
         if proc.stdout is not None:
             import re
             progress_re = re.compile(r'([0-9]{1,3}\.?[0-9]{0,2})%')
             eta_re = re.compile(r'ETA\s+(\d+):(\d+):(\d+)')
-            for line in proc.stdout:
-                line = line.rstrip()
-                logger.info(line)
-                m = progress_re.search(line)
-                if m:
-                    try:
-                        pct = float(m.group(1))
-                        if status_tracker:
-                            status_tracker.update_progress(job_id or str(input_path), pct)
-                    except Exception:
-                        pass
-                m2 = eta_re.search(line)
-                if m2 and status_tracker:
-                    try:
-                        h, mn, s = m2.groups()
-                        eta_sec = int(h) * 3600 + int(mn) * 60 + int(s)
-                        status_tracker.update_eta(job_id or str(input_path), eta_sec)
-                    except Exception:
-                        pass
+            buffer = ""
+            while True:
+                chunk = proc.stdout.read(4096)
+                if chunk:
+                    buffer += chunk
+                    parts = re.split(r'[\r\n]+', buffer)
+                    buffer = parts.pop()
+                    for raw in parts:
+                        line = raw.strip()
+                        if not line:
+                            continue
+                        logger.info(line)
+                        m = progress_re.search(line)
+                        if m:
+                            try:
+                                pct = float(m.group(1))
+                                if status_tracker:
+                                    status_tracker.update_progress(job_key, pct)
+                            except Exception:
+                                pass
+                        m2 = eta_re.search(line)
+                        if m2 and status_tracker:
+                            try:
+                                h, mn, s = m2.groups()
+                                eta_sec = int(h) * 3600 + int(mn) * 60 + int(s)
+                                status_tracker.update_eta(job_key, eta_sec)
+                            except Exception:
+                                pass
+                elif proc.poll() is not None:
+                    break
+                else:
+                    time.sleep(0.05)
+            tail = buffer.strip()
+            if tail:
+                logger.info(tail)
         rc = proc.wait()
         logger.debug("exited with code %s", rc)
         return rc == 0
@@ -530,9 +547,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         # move final file to final_dir if specified
         if final_dir != "":
             try:
-                final_path = Path(final_dir) / out_name
-                out = safe_move(out_path, final_path)
-                if out:
+                final_path = Path(final_dir).expanduser() / out_path.name
+                if safe_move(out_path, final_path):
                     # create a blank file at the original location to indicate completion
                     out_path.touch()
                     logging.info("Moved encoded file to final directory: %s", final_path)
