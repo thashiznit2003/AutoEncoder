@@ -67,3 +67,6 @@
 
 ## 1.2.2 - 2025-12-04
 - Scanner now skips system paths (`/linux-video-encoder/src`, `/mnt/auto_media`) and avoids auto-mounting common system block devices (sd*/nvme*/vd*/dm*), reducing noisy mounts like /dev/sda1.
+
+## 1.2.3 - 2025-12-04
+- Added recommendations.txt to track future feature ideas (queue controls, presets, SMB staging, filters, MakeMKV options, etc.).
