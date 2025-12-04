@@ -58,3 +58,6 @@
 
 ## 1.1.9 - 2025-12-04
 - SMB URL normalization rolled back to avoid breaking mounts with spaces (subprocess arg list handles spaces without escaping).
+
+## 1.2.0 - 2025-12-04
+- UI polish with icons/gradients/panel styling while keeping layout; badges updated for queued/canceled; header branding tweaked.

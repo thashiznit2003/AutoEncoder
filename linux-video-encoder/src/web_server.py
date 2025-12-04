@@ -17,27 +17,29 @@ HTML_PAGE_TEMPLATE = """
   <title>Linux Video Encoder v__VERSION__</title>
   <style>
     :root { color-scheme: dark; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
-    body { margin: 0; background: radial-gradient(circle at 20% 20%, rgba(59,130,246,0.08), transparent 40%), #0b1220; color: #e2e8f0; }
-    header { padding: 12px 16px; background: #0f172a; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
-    h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
+    body { margin: 0; background: radial-gradient(circle at 18% 20%, rgba(59,130,246,0.12), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,0.12), transparent 32%), #0b1220; color: #e2e8f0; }
+    header { padding: 14px 16px; background: linear-gradient(120deg, #0f172a, #0c1425); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+    h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; display:flex; align-items:center; gap:10px; }
+    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg,#60a5fa,#a78bfa); box-shadow: 0 0 10px rgba(96,165,250,0.8); }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-auto-rows: minmax(240px, auto); gap: 12px; padding: 12px; }
-    .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 12px; padding: 12px; box-shadow: 0 14px 38px rgba(0,0,0,0.28); }
-    .panel h2 { margin: 0 0 8px 0; font-size: 15px; color: #93c5fd; letter-spacing: 0.3px; }
+    .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
+    .panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #a5b4fc; letter-spacing: 0.4px; display:flex; align-items:center; gap:8px; }
     form { display: grid; gap: 8px; margin-top: 8px; }
     label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; }
-    input, select { padding: 8px 10px; border-radius: 8px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; }
-    button { padding: 8px 12px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.2s; }
-    button:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37,99,235,0.35); }
-    .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 10px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; white-space: pre-wrap; }
+    input, select { padding: 9px 11px; border-radius: 10px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; transition: border 0.2s ease, box-shadow 0.2s ease; }
+    input:focus, select:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 1px rgba(96,165,250,0.5); }
+    button { padding: 9px 12px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.2s; }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,0.35); }
+    .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: #0f172a; font-weight: 700; }
     .badge.running { background: #fde047; }
     .badge.success { background: #34d399; }
     .badge.error { background: #f87171; }
-    .badge.queued { background: #60a5fa; }
-    .badge.canceled { background: #cbd5e1; }
-    .progress { background: #1f2937; border-radius: 6px; height: 8px; overflow: hidden; margin-top: 6px; }
-    .progress-bar { background: #22c55e; height: 100%; transition: width 0.2s ease; }
-    .item { padding: 8px; border-bottom: 1px solid #1f2937; }
+    .badge.queued { background: #60a5fa; color: #0b1220; }
+    .badge.canceled { background: #cbd5e1; color: #0b1220; }
+    .progress { background: #1f2937; border-radius: 8px; height: 9px; overflow: hidden; margin-top: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
+    .progress-bar { background: linear-gradient(90deg, #22c55e, #4ade80); height: 100%; transition: width 0.2s ease; }
+    .item { padding: 9px; border-bottom: 1px solid #1f2937; }
     .item:last-child { border-bottom: 0; }
     .muted { color: #94a3b8; }
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
@@ -47,16 +49,17 @@ HTML_PAGE_TEMPLATE = """
     .metric-label { font-size: 10px; color: #8ea0bd; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; }
     .metric-value { font-size: 13px; font-weight: 700; color: #e5edff; margin-top: 2px; font-family: Arial, "Helvetica Neue", sans-serif; }
     .smb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
-    .smb-list { max-height: 220px; overflow-y: auto; border: 1px solid #1f2937; border-radius: 8px; padding: 8px; background: #0b1220; }
+    .smb-list { max-height: 220px; overflow-y: auto; border: 1px solid #1f2937; border-radius: 10px; padding: 8px; background: #0b1220; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
     .smb-item { padding: 6px 0; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .smb-item:last-child { border-bottom: 0; }
-    .smb-btn { padding: 6px 10px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+    .smb-btn { padding: 7px 10px; border: 0; border-radius: 8px; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; cursor: pointer; }
     .smb-path { word-break: break-all; flex: 1; }
+    .icon { width: 16px; height: 16px; display:inline-block; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Linux Video Encoder v__VERSION__ - Live Status</h1>
+    <h1><span class="logo-dot"></span> Linux Video Encoder v__VERSION__</h1>
     <div style="display:flex; gap:10px; align-items:center;">
       <button onclick="window.location.reload(true)">Hard Reload</button>
       <div id="clock" class="muted"></div>
@@ -64,12 +67,12 @@ HTML_PAGE_TEMPLATE = """
   </header>
   <div class="grid">
     <div class="panel">
-      <h2>Active Encodes</h2>
+      <h2>🟢 Active Encodes</h2>
       <div class="muted" id="hb-runtime"></div>
       <div id="active"></div>
     </div>
     <div class="panel">
-      <h2>Recent Jobs</h2>
+      <h2>🕒 Recent Jobs</h2>
       <div id="recent" style="max-height: 260px; overflow-y: auto;"></div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
         <button data-clear="success" class="clear-btn">Clear Success</button>
@@ -80,15 +83,15 @@ HTML_PAGE_TEMPLATE = """
       </div>
     </div>
     <div class="panel">
-      <h2>Status Messages</h2>
+      <h2>📣 Status Messages</h2>
       <div id="events" class="log"></div>
     </div>
     <div class="panel">
-      <h2>System Metrics</h2>
+      <h2>📊 System Metrics</h2>
       <div id="metrics" class="log"></div>
     </div>
     <div class="panel">
-      <h2>SMB Browser</h2>
+      <h2>🌐 SMB Browser</h2>
       <form id="smb-form" style="display:grid; gap:6px;">
         <input id="smb-url" placeholder="smb://server/share[/path]" />
         <input id="smb-user" placeholder="Username" />
@@ -115,7 +118,7 @@ HTML_PAGE_TEMPLATE = """
       </div>
     </div>
     <div class="panel">
-      <h2>HandBrake Settings</h2>
+      <h2>🎛️ HandBrake Settings</h2>
       <div class="muted" id="hb-summary" style="margin-bottom:6px;"></div>
       <form id="handbrake-form">
         <label>Default encoder
@@ -194,7 +197,7 @@ HTML_PAGE_TEMPLATE = """
       </form>
     </div>
     <div class="panel">
-      <h2>MakeMKV Settings</h2>
+      <h2>📀 MakeMKV Settings</h2>
       <form id="makemkv-form">
         <label>Rip directory <input id="mk-ripdir" name="rip_dir" /></label>
         <label>Min title length (seconds) <input id="mk-minlen" name="min_length" type="number" step="60" /></label>
@@ -203,7 +206,7 @@ HTML_PAGE_TEMPLATE = """
     </div>
     <div class="panel" style="grid-column: 1 / -1;">
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; justify-content: space-between;">
-        <h2 style="margin:0;">Logs</h2>
+        <h2 style="margin:0;">🧾 Logs</h2>
         <button id="copy-logs" style="padding:6px 10px; background:#2563eb; color:#fff; border:0; border-radius:6px; cursor:pointer;">Copy last 300</button>
       </div>
       <div id="logs" class="log"></div>
