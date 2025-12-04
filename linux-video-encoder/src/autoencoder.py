@@ -53,6 +53,13 @@ DEFAULT_CONFIG = {
         "two_pass": False,
         "audio_bitrate_kbps": 128,
         "audio_mode": "encode",  # encode | copy
+        "audio_encoder": "av_aac",
+        "audio_mixdown": "",
+        "audio_drc": None,
+        "audio_gain": None,
+        "audio_samplerate": "",
+        "audio_lang_list": [],
+        "audio_track_list": "",
         "audio_all": False,
         "subtitle_mode": "none",  # none | copy_all | burn_forced
         "extra_args": [],
@@ -69,6 +76,13 @@ DEFAULT_CONFIG = {
         "extra_args": [],
         "audio_bitrate_kbps": 128,
         "audio_mode": "encode",
+        "audio_encoder": "av_aac",
+        "audio_mixdown": "",
+        "audio_drc": None,
+        "audio_gain": None,
+        "audio_samplerate": "",
+        "audio_lang_list": [],
+        "audio_track_list": "",
         "audio_all": False,
         "subtitle_mode": "none"
     },
@@ -83,6 +97,13 @@ DEFAULT_CONFIG = {
         "extra_args": [],
         "audio_bitrate_kbps": 128,
         "audio_mode": "encode",
+        "audio_encoder": "av_aac",
+        "audio_mixdown": "",
+        "audio_drc": None,
+        "audio_gain": None,
+        "audio_samplerate": "",
+        "audio_lang_list": [],
+        "audio_track_list": "",
         "audio_all": False,
         "subtitle_mode": "none"
     },
@@ -155,6 +176,25 @@ def load_config(path: Path):
             hb = DEFAULT_CONFIG.get(hb_key, {}).copy()
             hb.update({k: v for k, v in merged[hb_key].items() if v is not None})
             merged[hb_key] = hb
+        # normalize HB list fields
+        for list_key in ["audio_lang_list"]:
+            val = merged[hb_key].get(list_key, [])
+            if isinstance(val, str):
+                val = [v.strip() for v in val.split(",") if v.strip()]
+            elif isinstance(val, list):
+                val = [str(v).strip() for v in val if str(v).strip()]
+            else:
+                val = []
+            merged[hb_key][list_key] = val
+        for str_key in ["audio_track_list", "audio_mixdown", "audio_samplerate", "audio_encoder"]:
+            v = merged[hb_key].get(str_key, "")
+            merged[hb_key][str_key] = "" if v is None else str(v)
+        for num_key in ["audio_drc", "audio_gain"]:
+            val = merged[hb_key].get(num_key)
+            try:
+                merged[hb_key][num_key] = float(val) if val is not None else None
+            except Exception:
+                merged[hb_key][num_key] = None
     if "handbrake_presets" not in merged or not isinstance(merged.get("handbrake_presets"), list):
         merged["handbrake_presets"] = []
     if "makemkv_minlength" not in merged:
@@ -482,8 +522,15 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
     video = opts.get("video", "")
     audio = opts.get("audio", "")
     audio_mode = opts.get("audio_mode", "encode")
+    audio_encoder = opts.get("audio_encoder", "av_aac")
     audio_bitrate_kbps = opts.get("audio_bitrate_kbps")
     audio_all = bool(opts.get("audio_all"))
+    audio_mixdown = opts.get("audio_mixdown") or ""
+    audio_drc = opts.get("audio_drc")
+    audio_gain = opts.get("audio_gain")
+    audio_samplerate = opts.get("audio_samplerate") or ""
+    audio_lang_list = opts.get("audio_lang_list") or []
+    audio_track_list = opts.get("audio_track_list") or ""
     subtitle_mode = opts.get("subtitle_mode", "none")
     video_bitrate_kbps = opts.get("video_bitrate_kbps")
     two_pass = bool(opts.get("two_pass"))
@@ -536,18 +583,37 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                 cmd.append("--two-pass")
         else:
             cmd.extend(["-q", str(quality)])
+        if audio_track_list:
+            cmd.extend(["--audio", str(audio_track_list)])
+        if audio_lang_list:
+            cmd.extend(["--audio-lang-list", ",".join(audio_lang_list)])
         if audio_mode == "copy":
+            cmd.extend(["-E", "copy"])
             if audio_all:
-                cmd.extend(["--all-audio", "-E", "copy"])
-            else:
-                cmd.extend(["-E", "copy"])
-        elif audio_bitrate_kbps:
-            try:
-                cmd.extend(["-B", str(int(audio_bitrate_kbps))])
-            except Exception:
-                cmd.extend(["-B", str(audio_bitrate_kbps)])
-        if audio_mode != "copy" and audio_all:
-            cmd.append("--all-audio")
+                cmd.append("--all-audio")
+        else:
+            cmd.extend(["-E", str(audio_encoder or "av_aac")])
+            if audio_mixdown:
+                cmd.extend(["-6", str(audio_mixdown)])
+            if audio_samplerate:
+                cmd.extend(["-R", str(audio_samplerate)])
+            if audio_drc is not None:
+                try:
+                    cmd.extend(["--drc", str(float(audio_drc))])
+                except Exception:
+                    pass
+            if audio_gain is not None:
+                try:
+                    cmd.extend(["--gain", str(float(audio_gain))])
+                except Exception:
+                    pass
+            if audio_bitrate_kbps:
+                try:
+                    cmd.extend(["-B", str(int(audio_bitrate_kbps))])
+                except Exception:
+                    cmd.extend(["-B", str(audio_bitrate_kbps)])
+            if audio_all:
+                cmd.append("--all-audio")
         if subtitle_mode == "copy_all":
             cmd.append("--all-subtitles")
         elif subtitle_mode == "burn_forced":

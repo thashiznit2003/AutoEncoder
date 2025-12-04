@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.0 - 2025-12-04
+- HandBrake audio controls expanded: encoder choice (AAC/HE-AAC/Opus/AC3/E-AC3/copy), mixdown, sample rate, DRC, gain, language filter, and track list; all wired into config, presets, and UI.
+
 ## 1.5.0 - 2025-12-04
 - MakeMKV now supports per-rip title selection plus audio/subtitle language filters; UI fields added for titles and language codes.
 - Added option to keep ripped MKVs after encoding (or reuse an existing rip instead of failing).

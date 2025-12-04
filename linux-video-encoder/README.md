@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.5.0)
+# Linux Video Encoder (v1.6.0)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -108,6 +108,7 @@ MakeMKV downloads note:
 * __video_extensions__ - A list of video extensions that will be encoded
 * __profile__ - The profile you want to use for encoding
 * __profiles__ - These are examples created that use the ffmpeg and HandBrakeCLI commands. See their docs for other parameters.
+* HandBrake audio options now include encoder (AAC/HE-AAC/Opus/AC3/E-AC3/copy), mixdown, sample rate, DRC, gain, optional language filter, and track list (applies across default/DVD/BR profiles).
 
 ### Defaults and profiles
 - Default HandBrake profile: x264, RF 20, 1080p output, `.mkv`, AAC audio 128 kbps (DVD uses the same, Blu-ray uses RF 25 at 2160p).

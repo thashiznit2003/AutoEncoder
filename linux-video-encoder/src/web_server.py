@@ -177,6 +177,44 @@ HTML_PAGE_TEMPLATE = """
             <option value="true">All audio tracks</option>
           </select>
         </label>
+        <label>Audio encoder (when encoding)
+          <select id="hb-audio-encoder" name="audio_encoder">
+            <option value="av_aac">AAC (av_aac)</option>
+            <option value="av_aac_he">AAC HE</option>
+            <option value="opus">Opus</option>
+            <option value="ac3">AC3</option>
+            <option value="eac3">E-AC3</option>
+            <option value="copy">Copy (passthrough)</option>
+          </select>
+        </label>
+        <label>Mixdown
+          <select id="hb-audio-mix">
+            <option value="">Auto</option>
+            <option value="stereo">Stereo</option>
+            <option value="dpl2">Dolby Surround</option>
+            <option value="5point1">5.1</option>
+            <option value="7point1">7.1</option>
+          </select>
+        </label>
+        <label>Sample rate
+          <select id="hb-audio-rate">
+            <option value="">Auto</option>
+            <option value="44100">44.1 kHz</option>
+            <option value="48000">48 kHz</option>
+          </select>
+        </label>
+        <label>DRC (0-4)
+          <input id="hb-audio-drc" type="number" min="0" max="4" step="0.5" placeholder="0 (off)" />
+        </label>
+        <label>Gain (dB)
+          <input id="hb-audio-gain" type="number" step="0.5" placeholder="0" />
+        </label>
+        <label>Language filter (comma codes, e.g., eng,fre)
+          <input id="hb-audio-lang" placeholder="eng,fre" />
+        </label>
+        <label>Track list (comma indexes, blank=auto)
+          <input id="hb-audio-tracks" placeholder="1,2" />
+        </label>
         <label>DVD quality (constant quality RF, lower = higher quality)
           <select id="hb-dvd-quality" name="quality_dvd">
             <option value="16">RF 16 (~4000 kbps)</option>
@@ -419,11 +457,11 @@ HTML_PAGE_TEMPLATE = """
         document.getElementById("metrics").textContent = "Metrics unavailable.";
       }
       try {
-        const cfg = await fetchJSON("/api/config");
-        if (!hbDirty) {
-          populateHandbrakeForm(cfg);
-        }
-        if (!mkDirty) {
+      const cfg = await fetchJSON("/api/config");
+      if (!hbDirty) {
+        populateHandbrakeForm(cfg);
+      }
+      if (!mkDirty) {
           document.getElementById("mk-ripdir").value = (cfg.rip_dir || "/mnt/ripped");
           document.getElementById("mk-minlen").value = (cfg.makemkv_minlength !== undefined && cfg.makemkv_minlength !== null) ? cfg.makemkv_minlength : 1200;
           document.getElementById("mk-titles").value = (cfg.makemkv_titles || []).join(", ");
@@ -483,6 +521,13 @@ HTML_PAGE_TEMPLATE = """
       setSelectValue(document.getElementById("hb-audio-bitrate"), cfg.handbrake.audio_bitrate_kbps || 128, 128);
       setSelectValue(document.getElementById("hb-audio-all"), cfg.handbrake.audio_all ? "true" : "false", "false");
       setSelectValue(document.getElementById("hb-subs"), cfg.handbrake.subtitle_mode || "none", "none");
+      setSelectValue(document.getElementById("hb-audio-encoder"), cfg.handbrake.audio_encoder || "av_aac", "av_aac");
+      setSelectValue(document.getElementById("hb-audio-mix"), cfg.handbrake.audio_mixdown || "", "");
+      setSelectValue(document.getElementById("hb-audio-rate"), cfg.handbrake.audio_samplerate || "", "");
+      document.getElementById("hb-audio-drc").value = (cfg.handbrake.audio_drc !== undefined && cfg.handbrake.audio_drc !== null) ? cfg.handbrake.audio_drc : "";
+      document.getElementById("hb-audio-gain").value = (cfg.handbrake.audio_gain !== undefined && cfg.handbrake.audio_gain !== null) ? cfg.handbrake.audio_gain : "";
+      document.getElementById("hb-audio-lang").value = (cfg.handbrake.audio_lang_list || []).join(", ");
+      document.getElementById("hb-audio-tracks").value = cfg.handbrake.audio_track_list || "";
     }
 
     document.getElementById("hb-save").addEventListener("click", async (e) => {
@@ -496,6 +541,15 @@ HTML_PAGE_TEMPLATE = """
       const audioBitrate = parseInt(document.getElementById("hb-audio-bitrate").value || "128", 10) || 128;
       const audioAll = document.getElementById("hb-audio-all").value === "true";
       const subtitleMode = document.getElementById("hb-subs").value || "none";
+      const audioEncoder = document.getElementById("hb-audio-encoder").value || "av_aac";
+      const audioMix = document.getElementById("hb-audio-mix").value || "";
+      const audioRate = document.getElementById("hb-audio-rate").value || "";
+      const audioDrcRaw = document.getElementById("hb-audio-drc").value;
+      const audioDrc = audioDrcRaw === "" ? null : Number(audioDrcRaw);
+      const audioGainRaw = document.getElementById("hb-audio-gain").value;
+      const audioGain = audioGainRaw === "" ? null : Number(audioGainRaw);
+      const audioLang = (document.getElementById("hb-audio-lang").value || "").split(",").map(v => v.trim()).filter(Boolean);
+      const audioTracks = document.getElementById("hb-audio-tracks").value || "";
       let targetBitrate = document.getElementById("hb-bitrate").value;
       const customBitrate = parseInt(document.getElementById("hb-bitrate-custom").value || "0", 10) || 0;
       if (targetBitrate === "custom" && customBitrate > 0) {
@@ -516,11 +570,18 @@ HTML_PAGE_TEMPLATE = """
           extension: ext,
           audio_mode: audioMode,
           audio_bitrate_kbps: audioBitrate,
+          audio_encoder: audioEncoder,
+          audio_mixdown: audioMix,
+          audio_samplerate: audioRate,
+          audio_drc: audioDrc,
+          audio_gain: audioGain,
+          audio_lang_list: audioLang,
+          audio_track_list: audioTracks,
           audio_all: audioAll,
           subtitle_mode: subtitleMode
         },
-        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass },
-        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass }
+        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass },
+        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass }
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       hbDirty = false;
@@ -620,6 +681,15 @@ HTML_PAGE_TEMPLATE = """
       const audioBitrate = parseInt(document.getElementById(\"hb-audio-bitrate\").value || \"128\", 10) || 128;
       const audioAll = document.getElementById(\"hb-audio-all\").value === \"true\";
       const subtitleMode = document.getElementById(\"hb-subs\").value || \"none\";
+      const audioEncoder = document.getElementById(\"hb-audio-encoder\").value || \"av_aac\";
+      const audioMix = document.getElementById(\"hb-audio-mix\").value || \"\";
+      const audioRate = document.getElementById(\"hb-audio-rate\").value || \"\";
+      const audioLang = (document.getElementById(\"hb-audio-lang\").value || \"\").split(\",\").map(v => v.trim()).filter(Boolean);
+      const audioTracks = document.getElementById(\"hb-audio-tracks\").value || \"\";
+      const audioDrcRaw = document.getElementById(\"hb-audio-drc\").value;
+      const audioDrc = audioDrcRaw === \"\" ? null : Number(audioDrcRaw);
+      const audioGainRaw = document.getElementById(\"hb-audio-gain\").value;
+      const audioGain = audioGainRaw === \"\" ? null : Number(audioGainRaw);
       const body = {
         name,
         handbrake: {
@@ -628,11 +698,18 @@ HTML_PAGE_TEMPLATE = """
           extension: ext,
           audio_mode: audioMode,
           audio_bitrate_kbps: audioBitrate,
+          audio_encoder: audioEncoder,
+          audio_mixdown: audioMix,
+          audio_samplerate: audioRate,
+          audio_drc: audioDrc,
+          audio_gain: audioGain,
+          audio_lang_list: audioLang,
+          audio_track_list: audioTracks,
           audio_all: audioAll,
           subtitle_mode: subtitleMode
         },
-        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode },
-        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_all: audioAll, subtitle_mode: subtitleMode }
+        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode },
+        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode }
       };
       await fetch(\"/api/presets\", { method: \"POST\", headers: { \"Content-Type\": \"application/json\" }, body: JSON.stringify(body) });
       await loadPresets();
