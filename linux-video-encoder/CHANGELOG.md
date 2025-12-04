@@ -9,3 +9,6 @@
 
 ## 1.0.1 - 2025-12-04
 - Added Blu-ray passthrough notes for Proxmox: require real drive exposure (no virtual QEMU CD), recommend ASM1166 HBA, and documented IOMMU/hostpci steps.
+
+## 1.0.2 - 2025-12-04
+- Installer now prompts to install the NVIDIA Container Toolkit and runs the bundled pinned helper when accepted (avoids failing stock apt flow).

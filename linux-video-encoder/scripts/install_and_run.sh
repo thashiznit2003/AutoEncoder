@@ -198,10 +198,34 @@ build_and_run() {
   log "Stack is running. Web UI: http://<host>:5959"
 }
 
+maybe_install_nvidia_toolkit() {
+  local helper="$REPO_DIR/linux-video-encoder/scripts/install_nvidia_toolkit.sh"
+  if [ ! -f "$helper" ]; then
+    log "NVIDIA toolkit helper not found at $helper; skipping prompt."
+    return
+  fi
+  printf "Install NVIDIA Container Toolkit for NVENC? [y/N]: "
+  local ans
+  if ! read -r ans; then
+    log "No input detected; skipping NVIDIA toolkit install."
+    return
+  fi
+  case "$ans" in
+    [yY]|[yY][eE][sS])
+      log "Installing NVIDIA Container Toolkit via bundled helper..."
+      $SUDO bash "$helper"
+      ;;
+    *)
+      log "Skipping NVIDIA toolkit install."
+      ;;
+  esac
+}
+
 main() {
   ensure_base_tools
   install_docker
   fetch_repo
+  maybe_install_nvidia_toolkit
   build_and_run
 }
 
