@@ -5,6 +5,13 @@ Host path: /linux-video-encoder/AutoEncoder/linux-video-encoder
 Update one-liner (Ubuntu host):
   cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate
 
+Example one-liners:
+- For code/config/UI changes (bind mounts in place, no rebuild): cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate
+- If a rebuild is needed (e.g., dependencies/base image changes): cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose build --no-cache && docker compose up -d
+- Run quick checks (no rebuild): cd /linux-video-encoder/AutoEncoder/linux-video-encoder && bash scripts/quick_pull.sh
+- GPU toolkit install (Ubuntu host): curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_nvidia_toolkit.sh -o /tmp/install_nvidia_toolkit.sh && sudo bash /tmp/install_nvidia_toolkit.sh
+- Sync/check UI/logs: curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/sync_and_check_ui.sh -o /tmp/sync_and_check_ui.sh && bash /tmp/sync_and_check_ui.sh
+
 Key app behaviors/config:
 - Docker compose binds ./src and ./scripts plus media dirs and config.json; privileged with NVIDIA runtime for GPU; port 5959 UI.
 - Default profile: HandBrake (can set in UI). Profiles: handbrake, handbrake_dvd (VIDEO_TS), handbrake_br (BDMV). ffmpeg only used if ffmpeg profile selected; fallback ffmpeg if HandBrake fails.
