@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5ee7df"/>
+      <stop offset="100%" stop-color="#79ffe1"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c4dff"/>
+      <stop offset="100%" stop-color="#4adede"/>
+    </linearGradient>
+    <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a0b6ff"/>
+      <stop offset="100%" stop-color="#6dd5ed"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="320" height="180" rx="18" fill="#0b1220"/>
+  <circle cx="70" cy="90" r="52" fill="url(#g1)" filter="url(#glow)" opacity="0.95"/>
+  <circle cx="70" cy="90" r="52" stroke="#0b1220" stroke-width="4" opacity="0.5"/>
+  <circle cx="70" cy="90" r="16" fill="#0b1220" opacity="0.6"/>
+  <circle cx="70" cy="90" r="12" fill="#d1f4ff" opacity="0.9"/>
+  <circle cx="70" cy="90" r="6" fill="#0b1220"/>
+
+  <rect x="138" y="52" width="60" height="76" rx="10" fill="url(#g2)" filter="url(#glow)"/>
+  <path d="M198 68v-10l-12-12h-38c-3 0-5.5 2.5-5.5 5.5v58c0 3 2.5 5.5 5.5 5.5h45c3 0 5.5-2.5 5.5-5.5V68Z" stroke="#0b1220" stroke-width="3" opacity="0.6"/>
+  <path d="M186 46v12h12" fill="none" stroke="#dff7ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+  <rect x="152" y="84" width="32" height="6" rx="3" fill="#dff7ff" opacity="0.8"/>
+  <rect x="152" y="96" width="28" height="6" rx="3" fill="#dff7ff" opacity="0.7"/>
+
+  <polygon points="118,90 136,82 136,98" fill="#82ffe0" opacity="0.85"/>
+
+  <g transform="translate(210 10) scale(0.65)">
+    <circle cx="70" cy="90" r="52" fill="url(#g3)" opacity="0.7"/>
+    <circle cx="70" cy="90" r="12" fill="#d1f4ff" opacity="0.9"/>
+    <circle cx="70" cy="90" r="5" fill="#0b1220"/>
+    <rect x="138" y="52" width="60" height="76" rx="10" fill="url(#g2)" opacity="0.6"/>
+    <path d="M186 46v12h12" fill="none" stroke="#dff7ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+    <rect x="152" y="84" width="32" height="6" rx="3" fill="#dff7ff" opacity="0.6"/>
+  </g>
+
+  <polygon points="226,90 244,82 244,98" fill="#82ffe0" opacity="0.8"/>
+</svg>

@@ -1,6 +1,8 @@
-# Linux Video Encoder (v1.14.0)
+# Linux Video Encoder (v1.14.1)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
+
+Logo: `assets/logo.svg` (DVD + shrinking file motif) can be used for app branding or UI headers.
 
 Current release notes live in `CHANGELOG.md`. The UI header shows the running version pulled from `src/version.py`.
 

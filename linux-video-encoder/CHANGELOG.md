@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.1 - 2025-12-04
+- Added a lightweight SVG logo (DVD + shrinking file motif) at `assets/logo.svg` for branding use.
+
 ## 1.14.0 - 2025-12-04
 - Split UI into a main dashboard and a dedicated `/settings` page for HandBrake, MakeMKV, and Authentication panels (Settings link in header).
 - Web server now serves templates from `src/templates.py` so the settings layout stays separate from the main status view.
