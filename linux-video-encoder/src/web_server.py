@@ -963,7 +963,8 @@ def create_app(tracker, config_manager=None):
 
     def list_smb(mount_id: str, rel_path: str = "/"):
         mounts = tracker.list_smb_mounts()
-        mnt = mounts.get(mount_id)
+        entry = mounts.get(mount_id)
+        mnt = entry.get("path") if isinstance(entry, dict) else entry
         if not mnt:
             raise FileNotFoundError("mount not found")
         base = pathlib.Path(mnt)
@@ -1185,7 +1186,8 @@ def create_app(tracker, config_manager=None):
         if not mid:
             return jsonify({"error": "mount_id required"}), 400
         mounts = tracker.list_smb_mounts()
-        mnt = mounts.get(mid)
+        entry = mounts.get(mid)
+        mnt = entry.get("path") if isinstance(entry, dict) else entry
         if not mnt:
             return jsonify({"error": "mount not found"}), 400
         base = pathlib.Path(mnt)
