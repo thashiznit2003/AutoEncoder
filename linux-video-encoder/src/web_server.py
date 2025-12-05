@@ -882,7 +882,7 @@ HTML_PAGE_TEMPLATE = """
         const res = await fetch("/api/makemkv/update_check");
         const data = await res.json();
         const msg = data.message || data.stdout || data.error || "Unknown";
-        statusEl.textContent = "Update status: " + msg;
+        statusEl.textContent = "MakeMKV: " + msg.slice(0, 200);
       } catch (e) {
         statusEl.textContent = "Update status: failed to check";
       }
@@ -1321,8 +1321,13 @@ def create_app(tracker, config_manager=None):
             )
             stdout = res.stdout.strip() if res.stdout else ""
             stderr = res.stderr.strip() if res.stderr else ""
-            msg = "; ".join([p for p in [stdout, stderr] if p]) or f"exit code {res.returncode}"
-            ok = "MakeMKV v" in stdout
+            version_line = ""
+            for ln in (stdout.splitlines() if stdout else []):
+                if "MakeMKV v" in ln:
+                    version_line = ln
+                    break
+            msg = version_line or (stderr or "") or (stdout or "") or f"exit code {res.returncode}"
+            ok = res.returncode == 0 and bool(version_line)
             return jsonify({"ok": ok, "stdout": stdout, "stderr": stderr, "message": msg, "returncode": res.returncode})
         except FileNotFoundError:
             return jsonify({"ok": False, "error": "makemkvcon not found"}), 500
