@@ -1274,12 +1274,10 @@ def create_app(tracker, config_manager=None):
             res = subprocess.run(["makemkvcon", "reg", key], capture_output=True, text=True, check=False)
             if res.returncode == 0:
                 tracker.add_event("MakeMKV registered successfully.")
-                return jsonify({"registered": True})
+            return jsonify({"registered": True})
             msg = res.stderr or res.stdout or str(res.returncode)
-            # Fallback: try to write settings.conf directly
-            if write_key_to_settings(key):
-                tracker.add_event(f"MakeMKV key stored, but makemkvcon reported: {msg}", level="error")
-                return jsonify({"registered": True, "warning": msg})
+            # Always persist key even if makemkvcon rejects it, but report failure
+            write_key_to_settings(key)
             tracker.add_event(f"MakeMKV registration failed: {msg}", level="error")
             return jsonify({"registered": False, "error": msg}), 400
         except FileNotFoundError:
