@@ -52,6 +52,9 @@
 ## 1.12.1 - 2025-12-04
 - MakeMKV update check UI now only reports “installed version checked” (drops noisy makemkvcon messages).
 
+## 1.12.2 - 2025-12-04
+- Added copy button for the host MakeMKV update command in the MakeMKV panel.
+
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.

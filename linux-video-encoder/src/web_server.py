@@ -331,6 +331,7 @@ HTML_PAGE_TEMPLATE = """
         </label>
         <label>Host update command (run on Ubuntu host)
           <textarea id="mk-update-cmd" class="log" style="height:70px;" readonly></textarea>
+          <button type="button" id="mk-copy-update">Copy update command</button>
         </label>
       </div>
     </div>
@@ -907,6 +908,26 @@ HTML_PAGE_TEMPLATE = """
         statusEl.textContent = "MakeMKV installed version checked.";
       } catch (e) {
         statusEl.textContent = "Update status: failed to check";
+      }
+    });
+
+    document.getElementById("mk-copy-update").addEventListener("click", async () => {
+      const cmd = (document.getElementById("mk-update-cmd").value || "").trim();
+      if (!cmd) { alert("No update command to copy."); return; }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(cmd);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = cmd;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+        alert("Update command copied.");
+      } catch (e) {
+        alert("Failed to copy: " + e);
       }
     });
 
