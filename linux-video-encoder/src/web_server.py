@@ -322,7 +322,7 @@ HTML_PAGE_TEMPLATE = """
         </label>
         <button type="button" id="mk-register">Register MakeMKV</button>
         <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-          <button type="button" id="mk-update-check">Check MakeMKV updates</button>
+          <button type="button" id="mk-update-check">Check for MakeMKV update</button>
           <span class="muted" id="mk-update-status">Update status: unknown</span>
         </div>
       </div>
@@ -1312,7 +1312,7 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/makemkv/update_check")
     def makemkv_update_check():
         try:
-            res = subprocess.run(["makemkvcon", "--update"], capture_output=True, text=True, check=False, timeout=15)
+            res = subprocess.run(["makemkvcon", "--version"], capture_output=True, text=True, check=False, timeout=15)
             stdout = res.stdout.strip() if res.stdout else ""
             stderr = res.stderr.strip() if res.stderr else ""
             msg = "; ".join([p for p in [stdout, stderr] if p]) or f"exit code {res.returncode}"
