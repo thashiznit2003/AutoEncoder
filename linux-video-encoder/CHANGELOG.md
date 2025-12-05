@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.2 - 2025-12-04
+- Added the new SVG logo to the dashboard and settings headers; static assets are now served from `/assets` and mounted via compose.
+
 ## 1.14.1 - 2025-12-04
 - Added a lightweight SVG logo (DVD + shrinking file motif) at `assets/logo.svg` for branding use.
 

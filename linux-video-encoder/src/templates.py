@@ -9,7 +9,8 @@ MAIN_PAGE_TEMPLATE = """
     body { margin: 0; background: radial-gradient(circle at 18% 20%, rgba(59,130,246,0.12), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,0.12), transparent 32%), #0b1220; color: #e2e8f0; }
     header { padding: 14px 16px; background: linear-gradient(120deg, #0f172a, #0c1425); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
     h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; display:flex; align-items:center; gap:10px; }
-    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg,#60a5fa,#a78bfa); box-shadow: 0 0 10px rgba(96,165,250,0.8); }
+    .brand { display:flex; align-items:center; gap:10px; }
+    .logo-img { height: 32px; width: auto; filter: drop-shadow(0 0 6px rgba(79,70,229,0.4)); }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-auto-rows: minmax(240px, auto); gap: 12px; padding: 12px; }
     .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
     .panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #a5b4fc; letter-spacing: 0.4px; display:flex; align-items:center; gap:8px; }
@@ -50,7 +51,7 @@ MAIN_PAGE_TEMPLATE = """
 </head>
 <body>
   <header>
-    <h1><span class="logo-dot"></span> Linux Video Encoder v__VERSION__</h1>
+    <h1 class="brand"><img src="/assets/logo.svg" alt="Logo" class="logo-img" /> <span>Linux Video Encoder v__VERSION__</span></h1>
     <div style="display:flex; gap:10px; align-items:center;">
       <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button">Settings</button></a>
       <button onclick="window.location.reload(true)">Hard Reload</button>
@@ -444,7 +445,8 @@ SETTINGS_PAGE_TEMPLATE = """
     body { margin: 0; background: radial-gradient(circle at 18% 20%, rgba(59,130,246,0.12), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,0.12), transparent 32%), #0b1220; color: #e2e8f0; }
     header { padding: 14px 16px; background: linear-gradient(120deg, #0f172a, #0c1425); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
     h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; display:flex; align-items:center; gap:10px; }
-    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg,#60a5fa,#a78bfa); box-shadow: 0 0 10px rgba(96,165,250,0.8); }
+    .brand { display:flex; align-items:center; gap:10px; }
+    .logo-img { height: 32px; width: auto; filter: drop-shadow(0 0 6px rgba(79,70,229,0.4)); }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-auto-rows: minmax(240px, auto); gap: 12px; padding: 12px; }
     .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
     .panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #a5b4fc; letter-spacing: 0.4px; display:flex; align-items:center; gap:8px; }
@@ -461,7 +463,7 @@ SETTINGS_PAGE_TEMPLATE = """
 </head>
 <body>
   <header>
-    <h1><span class="logo-dot"></span> Settings – Linux Video Encoder v__VERSION__</h1>
+    <h1 class="brand"><img src="/assets/logo.svg" alt="Logo" class="logo-img" /> <span>Settings – Linux Video Encoder v__VERSION__</span></h1>
     <div style="display:flex; gap:10px; align-items:center;">
       <a href="/" style="color:#fff; text-decoration:none;"><button type="button">Back to Main</button></a>
     </div>

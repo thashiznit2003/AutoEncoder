@@ -10,6 +10,7 @@ from functools import wraps
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
+ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
 
 HTML_PAGE_TEMPLATE = """
 <!doctype html>
@@ -1019,7 +1020,12 @@ SETTINGS_PAGE = SETTINGS_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
 
 
 def create_app(tracker, config_manager=None):
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        static_folder=str(ASSETS_ROOT),
+        static_url_path="/assets",
+    )
+    ASSETS_ROOT.mkdir(parents=True, exist_ok=True)
     SMB_MOUNT_ROOT.mkdir(parents=True, exist_ok=True)
 
     def require_auth(f):
