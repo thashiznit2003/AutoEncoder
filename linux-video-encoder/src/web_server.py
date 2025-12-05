@@ -806,8 +806,9 @@ HTML_PAGE_TEMPLATE = """
       const data = await res.json();
       const mounts = data.mounts || {};
       const mountItems = Object.keys(mounts).map(id => {
-        const path = mounts[id];
-        const label = path ? path.split("/").filter(Boolean).pop() : id;
+        const m = mounts[id];
+        const path = (m && m.path) ? m.path : m;
+        const label = (m && m.label) ? m.label : (path ? path.split("/").filter(Boolean).pop() : id);
         return '<div class="smb-item"><div class="smb-path">' + (label || id) + '</div><button class="smb-btn smb-unmount" data-id="' + id + '">Unmount</button></div>';
       }).join("");
       document.getElementById("smb-mounts").innerHTML = mountItems || "<div class='muted'>No mounts</div>";
@@ -929,6 +930,7 @@ def create_app(tracker, config_manager=None):
         mid = uuid.uuid4().hex
         mnt = SMB_MOUNT_ROOT / mid
         mnt.mkdir(parents=True, exist_ok=True)
+        label = url.rstrip("/").split("/")[-1] if url else mid
         opts = []
         if username:
             opts.append(f"username={username}")
@@ -944,7 +946,7 @@ def create_app(tracker, config_manager=None):
             except Exception:
                 pass
             raise RuntimeError(f"Failed to mount SMB: {res.stderr.strip() or res.stdout.strip() or res.returncode}")
-        tracker.add_smb_mount(mid, str(mnt))
+        tracker.add_smb_mount(mid, str(mnt), label=label)
         return mid
 
     def unmount_smb(mount_id: str):

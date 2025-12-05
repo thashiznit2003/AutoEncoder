@@ -219,9 +219,12 @@ class StatusTracker:
                 self._canceled.clear()
 
     # SMB mount tracking helpers
-    def add_smb_mount(self, mount_id: str, path: str):
+    def add_smb_mount(self, mount_id: str, path: str, label: str = None):
         with self._lock:
-            self._smb_mounts[mount_id] = path
+            entry = {"path": path}
+            if label:
+                entry["label"] = label
+            self._smb_mounts[mount_id] = entry
 
     def remove_smb_mount(self, mount_id: str):
         with self._lock:

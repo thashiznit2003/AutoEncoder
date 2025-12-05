@@ -12,6 +12,9 @@
 - SMB connect now responds to Enter within the SMB form; mount list shows the share name (last path segment) instead of the UUID.
 - Status Messages wrap long lines to avoid horizontal scrolling.
 
+## 1.9.3 - 2025-12-04
+- SMB mounts now carry a readable label derived from the share path (instead of the UUID) and are displayed accordingly in the UI.
+
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.
