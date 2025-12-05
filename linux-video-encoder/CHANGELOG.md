@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.3 - 2025-12-04
+- Swapped header logo to the updated `linux-video-encoder-icon.svg`, baked into the image (assets now copied in Dockerfile; compose bind removed).
+
 ## 1.14.2 - 2025-12-04
 - Added the new SVG logo to the dashboard and settings headers; static assets are now served from `/assets` and mounted via compose.
 

@@ -51,7 +51,7 @@ MAIN_PAGE_TEMPLATE = """
 </head>
 <body>
   <header>
-    <h1 class="brand"><img src="/assets/logo.svg" alt="Logo" class="logo-img" /> <span>Linux Video Encoder v__VERSION__</span></h1>
+    <h1 class="brand"><img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" /> <span>Linux Video Encoder v__VERSION__</span></h1>
     <div style="display:flex; gap:10px; align-items:center;">
       <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button">Settings</button></a>
       <button onclick="window.location.reload(true)">Hard Reload</button>
@@ -463,7 +463,7 @@ SETTINGS_PAGE_TEMPLATE = """
 </head>
 <body>
   <header>
-    <h1 class="brand"><img src="/assets/logo.svg" alt="Logo" class="logo-img" /> <span>Settings – Linux Video Encoder v__VERSION__</span></h1>
+    <h1 class="brand"><img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" /> <span>Settings – Linux Video Encoder v__VERSION__</span></h1>
     <div style="display:flex; gap:10px; align-items:center;">
       <a href="/" style="color:#fff; text-decoration:none;"><button type="button">Back to Main</button></a>
     </div>

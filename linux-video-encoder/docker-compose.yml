@@ -26,7 +26,6 @@ services:
       - ./config.json:/linux-video-encoder/config.json
       - ./src:/linux-video-encoder/src
       - ./scripts:/linux-video-encoder/scripts
-      - ./assets:/linux-video-encoder/assets:ro
       - ./USB:/mnt/usb:rw
       - ./DVD:/mnt/dvd:rw
       - ./Bluray:/mnt/bluray:rw

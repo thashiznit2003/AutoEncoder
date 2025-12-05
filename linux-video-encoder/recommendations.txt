@@ -9,4 +9,3 @@
 13) Metadata/chapters: preserve or set title/chapters/metadata; option to keep chapter markers for non-disc files.
 14) Container options: keep .mkv/.mp4/.m4v selection per job and add a faststart/moov relocation toggle for MP4.
 18) Monitoring: add queued count indicator in header; show per-job encoder/hw decode info in Active.
-19) Logo packaging: once finalized, bake assets/logo.svg into the image (drop compose bind) instead of bind-mounting it.

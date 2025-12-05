@@ -103,6 +103,7 @@ RUN python3 -m venv /venv && \
 ENV PATH="/venv/bin:${PATH}"
 
 COPY src ./src
+COPY assets ./assets
 COPY config.json README.md scripts ./
 
 EXPOSE 5959

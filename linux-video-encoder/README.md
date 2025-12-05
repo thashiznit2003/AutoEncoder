@@ -1,8 +1,8 @@
-# Linux Video Encoder (v1.14.2)
+# Linux Video Encoder (v1.14.3)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
-Logo: `assets/logo.svg` (DVD + shrinking file motif) is used in the UI header; customize it as needed.
+Logo: `assets/linux-video-encoder-icon.svg` (DVD + shrinking file motif) is used in the UI header and baked into the image.
 
 Current release notes live in `CHANGELOG.md`. The UI header shows the running version pulled from `src/version.py`.
 
@@ -43,7 +43,7 @@ Compose highlights:
 - NVIDIA GPU: install NVIDIA drivers + NVIDIA Container Toolkit on the Ubuntu VM, pass the P600 through from Proxmox to the VM, then the container will see NVENC/NVDEC via `NVIDIA_VISIBLE_DEVICES=all`. You can also uncomment explicit `/dev/nvidia*` device mappings if desired.
 - Intel GPU: uncomment the `/dev/dri` device mapping if you need Intel QuickSync (or add other GPU devices as needed).
 - If you need the container to mount/unmount drives itself, add `privileged: true`; otherwise mount your media paths from the host.
-- Web UI: port `5959` is exposed; open `http://<host>:5959` for the dashboard or `/settings` for HandBrake/MakeMKV/auth settings (logo served from `/assets`).
+- Web UI: port `5959` is exposed; open `http://<host>:5959` for the dashboard or `/settings` for HandBrake/MakeMKV/auth settings (logo served from baked `/assets` path).
 
 ### Proxmox -> Ubuntu VM -> Docker optical drive passthrough
 1. In Proxmox, passthrough the SATA Blu-Ray/DVD drive to the Ubuntu VM (e.g., `qm set <VMID> -scsi1 /dev/disk/by-id/<your-drive-id>`).
