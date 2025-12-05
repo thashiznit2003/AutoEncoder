@@ -1274,8 +1274,10 @@ def create_app(tracker, config_manager=None):
             res = subprocess.run(["makemkvcon", "reg", key], capture_output=True, text=True, check=False)
             if res.returncode == 0:
                 tracker.add_event("MakeMKV registered successfully.")
-            return jsonify({"registered": True})
-            msg = res.stderr or res.stdout or str(res.returncode)
+                return jsonify({"registered": True})
+            stderr = res.stderr.strip() if res.stderr else ""
+            stdout = res.stdout.strip() if res.stdout else ""
+            msg = "; ".join([p for p in [stderr, stdout] if p]) or f"exit code {res.returncode}"
             # Always persist key even if makemkvcon rejects it, but report failure
             write_key_to_settings(key)
             tracker.add_event(f"MakeMKV registration failed: {msg}", level="error")
