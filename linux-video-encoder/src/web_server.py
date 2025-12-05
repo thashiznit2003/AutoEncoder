@@ -1312,11 +1312,18 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/makemkv/update_check")
     def makemkv_update_check():
         try:
-            res = subprocess.run(["makemkvcon", "--version"], capture_output=True, text=True, check=False, timeout=15)
+            res = subprocess.run(
+                ["makemkvcon", "-r", "--cache=1", "info", "disc:0"],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=15,
+            )
             stdout = res.stdout.strip() if res.stdout else ""
             stderr = res.stderr.strip() if res.stderr else ""
             msg = "; ".join([p for p in [stdout, stderr] if p]) or f"exit code {res.returncode}"
-            return jsonify({"ok": res.returncode == 0, "stdout": stdout, "stderr": stderr, "message": msg, "returncode": res.returncode})
+            ok = "MakeMKV v" in stdout
+            return jsonify({"ok": ok, "stdout": stdout, "stderr": stderr, "message": msg, "returncode": res.returncode})
         except FileNotFoundError:
             return jsonify({"ok": False, "error": "makemkvcon not found"}), 500
         except Exception as e:
