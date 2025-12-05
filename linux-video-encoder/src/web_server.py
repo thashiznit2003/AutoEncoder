@@ -900,11 +900,11 @@ HTML_PAGE_TEMPLATE = """
       try {
         const res = await fetch("/api/makemkv/update_check");
         const data = await res.json();
-        const msg = data.message || data.stdout || data.error || "Unknown";
-        statusEl.textContent = "MakeMKV: " + msg.slice(0, 200);
+        const msg = data.message || data.stdout || data.error || "";
         if (data.installed_version) {
           document.getElementById("mk-installed").textContent = data.installed_version;
         }
+        statusEl.textContent = "MakeMKV installed version checked.";
       } catch (e) {
         statusEl.textContent = "Update status: failed to check";
       }
