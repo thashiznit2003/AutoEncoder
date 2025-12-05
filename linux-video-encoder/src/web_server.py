@@ -325,6 +325,13 @@ HTML_PAGE_TEMPLATE = """
           <button type="button" id="mk-update-check">Check for MakeMKV update</button>
           <span class="muted" id="mk-update-status">Update status: unknown</span>
         </div>
+        <div class="muted">Installed MakeMKV: <span id="mk-installed">unknown</span></div>
+        <label>Latest MakeMKV version (from makemkv.com)
+          <input id="mk-latest" placeholder="e.g., 1.18.3" />
+        </label>
+        <label>Host update command (run on Ubuntu host)
+          <textarea id="mk-update-cmd" class="log" style="height:70px;" readonly></textarea>
+        </label>
       </div>
     </div>
     <div class="panel" style="grid-column: 1 / -1;">
@@ -875,6 +882,18 @@ HTML_PAGE_TEMPLATE = """
       }
     });
 
+    function refreshUpdateCommand() {
+      const latest = (document.getElementById("mk-latest").value || "").trim();
+      const cmdEl = document.getElementById("mk-update-cmd");
+      if (!latest) {
+        cmdEl.value = "";
+        return;
+      }
+      cmdEl.value = 'curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/update_makemkv.sh -o /tmp/update_makemkv.sh && chmod +x /tmp/update_makemkv.sh && MAKEMKV_VERSION=' + latest + ' /tmp/update_makemkv.sh';
+    }
+
+    document.getElementById("mk-latest").addEventListener("input", refreshUpdateCommand);
+
     document.getElementById("mk-update-check").addEventListener("click", async () => {
       const statusEl = document.getElementById("mk-update-status");
       statusEl.textContent = "Update status: checking...";
@@ -883,6 +902,9 @@ HTML_PAGE_TEMPLATE = """
         const data = await res.json();
         const msg = data.message || data.stdout || data.error || "Unknown";
         statusEl.textContent = "MakeMKV: " + msg.slice(0, 200);
+        if (data.installed_version) {
+          document.getElementById("mk-installed").textContent = data.installed_version;
+        }
       } catch (e) {
         statusEl.textContent = "Update status: failed to check";
       }
@@ -1328,7 +1350,13 @@ def create_app(tracker, config_manager=None):
                     break
             msg = version_line or (stderr or "") or (stdout or "") or f"exit code {res.returncode}"
             ok = res.returncode == 0 and bool(version_line)
-            return jsonify({"ok": ok, "stdout": stdout, "stderr": stderr, "message": msg, "returncode": res.returncode})
+            installed_version = None
+            if version_line:
+                try:
+                    installed_version = version_line.split("MakeMKV")[1].strip().split()[0]
+                except Exception:
+                    installed_version = None
+            return jsonify({"ok": ok, "stdout": stdout, "stderr": stderr, "message": msg, "returncode": res.returncode, "installed_version": installed_version})
         except FileNotFoundError:
             return jsonify({"ok": False, "error": "makemkvcon not found"}), 500
         except Exception as e:
