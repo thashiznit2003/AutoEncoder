@@ -1256,13 +1256,32 @@ def create_app(tracker, config_manager=None):
         key = (payload.get("key") or "").strip()
         if not key:
             return jsonify({"error": "key required"}), 400
+        settings_path = pathlib.Path("/root/.MakeMKV/settings.conf")
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        def write_key_to_settings(k: str):
+            try:
+                lines = []
+                if settings_path.exists():
+                    for ln in settings_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                        if not ln.strip().startswith("app_Key"):
+                            lines.append(ln)
+                lines.append(f'app_Key = "{k}"')
+                settings_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+                return True
+            except Exception:
+                return False
         try:
             res = subprocess.run(["makemkvcon", "reg", key], capture_output=True, text=True, check=False)
             if res.returncode == 0:
                 tracker.add_event("MakeMKV registered successfully.")
                 return jsonify({"registered": True})
-            tracker.add_event(f"MakeMKV registration failed: {res.stderr or res.stdout}", level="error")
-            return jsonify({"registered": False, "error": res.stderr or res.stdout or res.returncode}), 400
+            msg = res.stderr or res.stdout or str(res.returncode)
+            # Fallback: try to write settings.conf directly
+            if write_key_to_settings(key):
+                tracker.add_event(f"MakeMKV key stored, but makemkvcon reported: {msg}", level="error")
+                return jsonify({"registered": True, "warning": msg})
+            tracker.add_event(f"MakeMKV registration failed: {msg}", level="error")
+            return jsonify({"registered": False, "error": msg}), 400
         except FileNotFoundError:
             tracker.add_event("MakeMKV registration failed: makemkvcon not found", level="error")
             return jsonify({"registered": False, "error": "makemkvcon not found"}), 500

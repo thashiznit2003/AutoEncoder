@@ -21,6 +21,9 @@
 ## 1.10.0 - 2025-12-04
 - Added MakeMKV registration input/button; backend endpoint calls `makemkvcon reg` and logs success/failure.
 
+## 1.10.1 - 2025-12-04
+- MakeMKV registration now also writes the key to settings.conf as a fallback when makemkvcon reg returns an error, and reports the underlying error/warning.
+
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.
