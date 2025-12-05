@@ -1253,7 +1253,13 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/makemkv/register", methods=["POST"])
     def makemkv_register():
         payload = request.get_json(force=True) or {}
-        key = (payload.get("key") or "").strip()
+        raw_key = (payload.get("key") or "")
+        def sanitize_key(k: str) -> str:
+            s = (k or "").strip()
+            if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+                s = s[1:-1].strip()
+            return s
+        key = sanitize_key(raw_key)
         if not key:
             return jsonify({"error": "key required"}), 400
         settings_path = pathlib.Path("/root/.MakeMKV/settings.conf")

@@ -30,6 +30,9 @@
 ## 1.10.3 - 2025-12-04
 - MakeMKV registration failure messages now include stderr/stdout and exit code for clearer diagnostics in Status Messages.
 
+## 1.10.4 - 2025-12-04
+- MakeMKV registration now strips surrounding quotes from pasted keys to avoid invalid key errors.
+
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.
