@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.12.0)
+# Linux Video Encoder (v1.13.0)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -108,6 +108,7 @@ MakeMKV downloads note:
 * __video_extensions__ - A list of video extensions that will be encoded
 * __profile__ - The profile you want to use for encoding
 * __profiles__ - These are examples created that use the ffmpeg and HandBrakeCLI commands. See their docs for other parameters.
+* __auth_user__ / __auth_password__ - HTTP Basic credentials for the UI/API (set via Authentication panel).
 * HandBrake audio options now include encoder (AAC/HE-AAC/Opus/AC3/E-AC3/copy), mixdown, sample rate, DRC, gain, optional language filter, track list, and “Auto Dolby” mode (copy AC3/E-AC3 else encode to E-AC3; no upmix for sub-5.1).
 * MakeMKV: preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, auto-rip toggle, disc info display, manual “Start rip” button when auto-rip is off, in-app registration key entry, and a UI update check/installed-version display with a helper command generator for host updates.
 * SMB staging: `smb_staging_dir` (default /mnt/smb_staging) used for SMB browser copies; exported as Samba share `smbstaging` via installer; mounted from host `./SMBStaging` in compose. A helper script `scripts/setup_smbstaging_share.sh` can add the share and restart the stack.

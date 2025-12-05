@@ -47,6 +47,8 @@ DEFAULT_CONFIG = {
     "min_size_mb": 100,
     "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v"],
     "smb_staging_dir": "/mnt/smb_staging",
+    "auth_user": "admin",
+    "auth_password": "changeme",
     "handbrake": {
         "encoder": "x264",
         "quality": 20,
@@ -141,6 +143,8 @@ class ConfigManager:
                 "min_size_mb",
                 "makemkv_minlength",
                 "smb_staging_dir",
+                "auth_user",
+                "auth_password",
                 "makemkv_titles",
                 "makemkv_audio_langs",
                 "makemkv_subtitle_langs",
@@ -182,6 +186,8 @@ def load_config(path: Path):
     # ensure output_dir is a string path
     merged["output_dir"] = str(Path(merged["output_dir"]))
     merged["smb_staging_dir"] = str(Path(merged.get("smb_staging_dir", DEFAULT_CONFIG["smb_staging_dir"])))
+    merged["auth_user"] = merged.get("auth_user", DEFAULT_CONFIG["auth_user"])
+    merged["auth_password"] = merged.get("auth_password", DEFAULT_CONFIG["auth_password"])
     # ensure handbrake dict exists
     for hb_key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
         if hb_key not in merged or not isinstance(merged.get(hb_key), dict):

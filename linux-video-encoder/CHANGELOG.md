@@ -55,6 +55,8 @@
 ## 1.12.2 - 2025-12-04
 - Added copy button for the host MakeMKV update command in the MakeMKV panel.
 
+## 1.13.0 - 2025-12-04
+- Added HTTP Basic auth for UI/API (configurable user/pass) with an Authentication panel to update credentials.
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.

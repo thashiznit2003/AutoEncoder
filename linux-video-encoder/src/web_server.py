@@ -6,6 +6,7 @@ from version import VERSION
 import uuid
 import pathlib
 import shutil
+from functools import wraps
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 
@@ -65,6 +66,14 @@ HTML_PAGE_TEMPLATE = """
     <div style="display:flex; gap:10px; align-items:center;">
       <button onclick="window.location.reload(true)">Hard Reload</button>
       <div id="clock" class="muted"></div>
+    </div>
+    <div class="panel">
+      <h2>🔒 Authentication</h2>
+      <div class="muted" style="margin-bottom:6px;">HTTP Basic auth for this UI/API.</div>
+      <label>Username <input id="auth-user" placeholder="admin" /></label>
+      <label>Password <input id="auth-pass" type="password" placeholder="changeme" /></label>
+      <button type="button" id="auth-save">Save Auth</button>
+      <div class="muted" style="margin-top:6px;">After changing, reload the page and use the new credentials.</div>
     </div>
   </header>
   <div class="grid">
@@ -346,6 +355,7 @@ HTML_PAGE_TEMPLATE = """
   <script>
     let hbDirty = false;
     let mkDirty = false;
+    let authDirty = false;
     loadPresets();
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
@@ -534,6 +544,10 @@ HTML_PAGE_TEMPLATE = """
           + " | DVD RF: " + (hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20)
           + " | BR RF: " + (hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25)
           + " | Ext: " + (hb.extension || ".mkv");
+        if (!authDirty) {
+          document.getElementById("auth-user").value = cfg.auth_user || "";
+          document.getElementById("auth-pass").value = cfg.auth_password || "";
+        }
       } catch (e) {
         console.error("Failed to load config", e);
       }
@@ -697,6 +711,9 @@ HTML_PAGE_TEMPLATE = """
     document.getElementById("makemkv-form").addEventListener("input", () => { mkDirty = true; });
     document.getElementById("makemkv-form").addEventListener("change", () => { mkDirty = true; });
     document.getElementById("handbrake-form").addEventListener("change", () => { hbDirty = true; });
+    const authDirtyFlag = () => { authDirty = true; };
+    document.getElementById("auth-user").addEventListener("input", authDirtyFlag);
+    document.getElementById("auth-pass").addEventListener("input", authDirtyFlag);
 
     document.getElementById("copy-logs").addEventListener("click", async () => {
       try {
@@ -911,6 +928,16 @@ HTML_PAGE_TEMPLATE = """
       }
     });
 
+    document.getElementById("auth-save").addEventListener("click", async () => {
+      const body = {
+        auth_user: document.getElementById("auth-user").value,
+        auth_password: document.getElementById("auth-pass").value
+      };
+      await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      authDirty = false;
+      alert("Auth settings saved. Reload and use the new credentials.");
+    });
+
     document.getElementById("mk-copy-update").addEventListener("click", async () => {
       const cmd = (document.getElementById("mk-update-cmd").value || "").trim();
       if (!cmd) { alert("No update command to copy."); return; }
@@ -991,6 +1018,20 @@ HTML_PAGE = HTML_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
 def create_app(tracker, config_manager=None):
     app = Flask(__name__)
     SMB_MOUNT_ROOT.mkdir(parents=True, exist_ok=True)
+
+    def require_auth(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            cfg = config_manager.read() if config_manager else {}
+            expected_user = cfg.get("auth_user") or ""
+            expected_pass = cfg.get("auth_password") or ""
+            auth = request.authorization
+            if expected_user and expected_pass:
+                if not auth or auth.username != expected_user or auth.password != expected_pass:
+                    resp = Response("Unauthorized", 401, {"WWW-Authenticate": 'Basic realm="Login Required"'})
+                    return resp
+            return f(*args, **kwargs)
+        return wrapper
 
     def normalize_smb_url(url: str) -> str:
         url = url.strip()
@@ -1160,10 +1201,12 @@ def create_app(tracker, config_manager=None):
             return None
 
     @app.route("/")
+    @require_auth
     def index():
         return Response(HTML_PAGE, mimetype="text/html")
 
     @app.route("/api/status")
+    @require_auth
     def status():
         data = tracker.snapshot()
         data["version"] = VERSION
@@ -1178,14 +1221,17 @@ def create_app(tracker, config_manager=None):
         return jsonify(data)
 
     @app.route("/api/logs")
+    @require_auth
     def logs():
         return jsonify({"lines": tracker.tail_logs()})
 
     @app.route("/api/events")
+    @require_auth
     def events():
         return jsonify(tracker.events())
 
     @app.route("/api/events", methods=["POST"])
+    @require_auth
     def add_event():
         payload = request.get_json(force=True) or {}
         msg = payload.get("message", "")
@@ -1196,6 +1242,7 @@ def create_app(tracker, config_manager=None):
         return jsonify({"added": False}), 400
 
     @app.route("/api/metrics")
+    @require_auth
     def metrics():
         import os
         load1, load5, load15 = os.getloadavg()
@@ -1214,6 +1261,7 @@ def create_app(tracker, config_manager=None):
 
     if config_manager:
         @app.route("/api/config", methods=["GET", "POST"])
+        @require_auth
         def config():
             if request.method == "GET":
                 return jsonify(config_manager.read())
@@ -1222,6 +1270,7 @@ def create_app(tracker, config_manager=None):
             return jsonify(updated)
 
     @app.route("/api/smb/mount", methods=["POST"])
+    @require_auth
     def smb_mount():
         payload = request.get_json(force=True) or {}
         url = payload.get("url", "")
@@ -1236,10 +1285,12 @@ def create_app(tracker, config_manager=None):
             return jsonify({"error": str(e)}), 400
 
     @app.route("/api/smb/mounts")
+    @require_auth
     def smb_mounts():
         return jsonify({"mounts": tracker.list_smb_mounts()})
 
     @app.route("/api/smb/unmount", methods=["POST"])
+    @require_auth
     def smb_unmount():
         payload = request.get_json(force=True) or {}
         mid = payload.get("mount_id")
@@ -1249,6 +1300,7 @@ def create_app(tracker, config_manager=None):
         return jsonify({"unmounted": mid})
 
     @app.route("/api/smb/list")
+    @require_auth
     def smb_list():
         mid = request.args.get("mount_id")
         path = request.args.get("path", "/")
@@ -1261,6 +1313,7 @@ def create_app(tracker, config_manager=None):
             return jsonify({"error": str(e)}), 400
 
     @app.route("/api/smb/queue", methods=["POST"])
+    @require_auth
     def smb_queue():
         payload = request.get_json(force=True) or {}
         mid = payload.get("mount_id")
@@ -1301,16 +1354,19 @@ def create_app(tracker, config_manager=None):
         return jsonify({"queued": str(dest), "source": str(target)})
 
     @app.route("/api/makemkv/info")
+    @require_auth
     def makemkv_info():
         return jsonify(tracker.disc_info() or {})
 
     @app.route("/api/makemkv/rip", methods=["POST"])
+    @require_auth
     def makemkv_rip():
         tracker.request_disc_rip()
         tracker.add_event("Manual MakeMKV rip requested.")
         return jsonify({"requested": True})
 
     @app.route("/api/makemkv/register", methods=["POST"])
+    @require_auth
     def makemkv_register():
         payload = request.get_json(force=True) or {}
         raw_key = (payload.get("key") or "")
@@ -1353,6 +1409,7 @@ def create_app(tracker, config_manager=None):
             return jsonify({"registered": False, "error": "makemkvcon not found"}), 500
 
     @app.route("/api/makemkv/update_check")
+    @require_auth
     def makemkv_update_check():
         try:
             res = subprocess.run(
