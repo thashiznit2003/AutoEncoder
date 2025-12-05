@@ -316,6 +316,12 @@ HTML_PAGE_TEMPLATE = """
         </div>
         <textarea id="mk-info" class="log" style="height:160px; margin-top:4px;" readonly placeholder="Disc info will appear here after detection."></textarea>
       </div>
+      <div style="margin-top:8px; display:grid; gap:6px;">
+        <label>MakeMKV registration key (paste monthly key)
+          <input id="mk-key" placeholder="T-XXXX-..." />
+        </label>
+        <button type="button" id="mk-register">Register MakeMKV</button>
+      </div>
     </div>
     <div class="panel" style="grid-column: 1 / -1;">
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; justify-content: space-between;">
@@ -849,6 +855,22 @@ HTML_PAGE_TEMPLATE = """
       }
     });
 
+    document.getElementById("mk-register").addEventListener("click", async () => {
+      const key = (document.getElementById("mk-key").value || "").trim();
+      if (!key) { alert("Enter a MakeMKV key"); return; }
+      try {
+        const res = await fetch("/api/makemkv/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
+        const data = await res.json();
+        if (data.registered) {
+          alert("MakeMKV registered");
+        } else {
+          alert("Registration failed: " + (data.error || "unknown error"));
+        }
+      } catch (e) {
+        alert("Failed to register: " + e);
+      }
+    });
+
     document.getElementById("mk-start-rip").addEventListener("click", async () => {
       try {
         await fetch("/api/makemkv/rip", { method: "POST" });
@@ -1227,6 +1249,23 @@ def create_app(tracker, config_manager=None):
         tracker.request_disc_rip()
         tracker.add_event("Manual MakeMKV rip requested.")
         return jsonify({"requested": True})
+
+    @app.route("/api/makemkv/register", methods=["POST"])
+    def makemkv_register():
+        payload = request.get_json(force=True) or {}
+        key = (payload.get("key") or "").strip()
+        if not key:
+            return jsonify({"error": "key required"}), 400
+        try:
+            res = subprocess.run(["makemkvcon", "reg", key], capture_output=True, text=True, check=False)
+            if res.returncode == 0:
+                tracker.add_event("MakeMKV registered successfully.")
+                return jsonify({"registered": True})
+            tracker.add_event(f"MakeMKV registration failed: {res.stderr or res.stdout}", level="error")
+            return jsonify({"registered": False, "error": res.stderr or res.stdout or res.returncode}), 400
+        except FileNotFoundError:
+            tracker.add_event("MakeMKV registration failed: makemkvcon not found", level="error")
+            return jsonify({"registered": False, "error": "makemkvcon not found"}), 500
     
     @app.route("/api/presets", methods=["GET", "POST", "DELETE"])
     def hb_presets():
