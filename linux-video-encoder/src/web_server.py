@@ -7,6 +7,7 @@ import uuid
 import pathlib
 import shutil
 from functools import wraps
+from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 
@@ -1013,6 +1014,8 @@ HTML_PAGE_TEMPLATE = """
 </html>
 """
 HTML_PAGE = HTML_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
+MAIN_PAGE = MAIN_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
+SETTINGS_PAGE = SETTINGS_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
 
 
 def create_app(tracker, config_manager=None):
@@ -1203,7 +1206,12 @@ def create_app(tracker, config_manager=None):
     @app.route("/")
     @require_auth
     def index():
-        return Response(HTML_PAGE, mimetype="text/html")
+        return Response(MAIN_PAGE, mimetype="text/html")
+
+    @app.route("/settings")
+    @require_auth
+    def settings():
+        return Response(SETTINGS_PAGE, mimetype="text/html")
 
     @app.route("/api/status")
     @require_auth

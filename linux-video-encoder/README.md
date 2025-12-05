@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.13.0)
+# Linux Video Encoder (v1.14.0)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -41,7 +41,7 @@ Compose highlights:
 - NVIDIA GPU: install NVIDIA drivers + NVIDIA Container Toolkit on the Ubuntu VM, pass the P600 through from Proxmox to the VM, then the container will see NVENC/NVDEC via `NVIDIA_VISIBLE_DEVICES=all`. You can also uncomment explicit `/dev/nvidia*` device mappings if desired.
 - Intel GPU: uncomment the `/dev/dri` device mapping if you need Intel QuickSync (or add other GPU devices as needed).
 - If you need the container to mount/unmount drives itself, add `privileged: true`; otherwise mount your media paths from the host.
-- Web UI: port `5959` is exposed; open `http://<host>:5959` to see active encodes, recent jobs, and live logs.
+- Web UI: port `5959` is exposed; open `http://<host>:5959` for the dashboard or `/settings` for HandBrake/MakeMKV/auth settings.
 
 ### Proxmox -> Ubuntu VM -> Docker optical drive passthrough
 1. In Proxmox, passthrough the SATA Blu-Ray/DVD drive to the Ubuntu VM (e.g., `qm set <VMID> -scsi1 /dev/disk/by-id/<your-drive-id>`).
@@ -57,9 +57,10 @@ Compose highlights:
 5. Start: `docker compose up -d`. FFmpeg in the image will see NVENC/NVDEC (e.g., `hevc_nvenc`, `h264_nvenc`).
 
 ### Web UI (port 5959)
-- The app hosts a local status page at `http://<host>:5959` (inside the container it binds to `0.0.0.0:5959`).
-- Multi-pane layout: active encodes, recent jobs, and a live log tail pulled from the application log.
-- Refreshes automatically every few seconds; no auth is included, so keep the port bound to trusted networks.
+- The app hosts a dashboard at `http://<host>:5959` (inside the container it binds to `0.0.0.0:5959`) plus a dedicated Settings page at `/settings`.
+- Dashboard layout: active encodes, recent jobs, status messages, metrics, SMB browser, and a live log tail pulled from the application log.
+- Settings page: HandBrake defaults/presets, MakeMKV options/registration/update helper, and HTTP Basic Auth credentials.
+- Basic auth is enabled by default (`admin` / `changeme`); update on the Settings page and reload with the new credentials.
 
 ### Installer script defaults
 - `scripts/install_and_run.sh` defaults `REPO_URL` to your fork (`https://github.com/thashiznit2003/AutoEncoder.git`). Override with `REPO_URL=...` if needed.

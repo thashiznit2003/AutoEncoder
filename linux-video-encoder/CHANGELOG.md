@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.0 - 2025-12-04
+- Split UI into a main dashboard and a dedicated `/settings` page for HandBrake, MakeMKV, and Authentication panels (Settings link in header).
+- Web server now serves templates from `src/templates.py` so the settings layout stays separate from the main status view.
+
 ## 1.9.0 - 2025-12-04
 - Added SMB staging path (default /mnt/smb_staging) for SMB browser copies plus Samba share `smbstaging`; installer now provisions the share and compose mounts ./SMBStaging.
 - SMB queue now respects the configurable staging path instead of hardcoding /mnt/input.
