@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.4 - 2025-12-04
+- Enlarged the header icon to better fill the top bar.
+
 ## 1.14.3 - 2025-12-04
 - Swapped header logo to the updated `linux-video-encoder-icon.svg`, baked into the image (assets now copied in Dockerfile; compose bind removed).
 
