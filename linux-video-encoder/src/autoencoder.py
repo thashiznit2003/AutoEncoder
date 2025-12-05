@@ -46,6 +46,7 @@ DEFAULT_CONFIG = {
     "rescan_interval": 30,
     "min_size_mb": 100,
     "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v"],
+    "smb_staging_dir": "/mnt/smb_staging",
     "handbrake": {
         "encoder": "x264",
         "quality": 20,
@@ -139,6 +140,7 @@ class ConfigManager:
                 "rescan_interval",
                 "min_size_mb",
                 "makemkv_minlength",
+                "smb_staging_dir",
                 "makemkv_titles",
                 "makemkv_audio_langs",
                 "makemkv_subtitle_langs",
@@ -179,6 +181,7 @@ def load_config(path: Path):
     merged.update({k: v for k, v in cfg.items() if v is not None})
     # ensure output_dir is a string path
     merged["output_dir"] = str(Path(merged["output_dir"]))
+    merged["smb_staging_dir"] = str(Path(merged.get("smb_staging_dir", DEFAULT_CONFIG["smb_staging_dir"])))
     # ensure handbrake dict exists
     for hb_key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
         if hb_key not in merged or not isinstance(merged.get(hb_key), dict):

@@ -32,6 +32,7 @@ services:
       - ./File:/mnt/input:rw
       - ./Output:/mnt/output:rw
       - ./Ripped:/mnt/ripped:rw
+      - ./SMBStaging:/mnt/smb_staging:rw
     privileged: true
     devices:
       # Map your optical drive and (optionally) generic SCSI device into the container.

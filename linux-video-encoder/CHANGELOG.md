@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.0 - 2025-12-04
+- Added SMB staging path (default /mnt/smb_staging) for SMB browser copies plus Samba share `smbstaging`; installer now provisions the share and compose mounts ./SMBStaging.
+- SMB queue now respects the configurable staging path instead of hardcoding /mnt/input.
+
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.

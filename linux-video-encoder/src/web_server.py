@@ -1178,7 +1178,14 @@ def create_app(tracker, config_manager=None):
         target = ensure_under(base, base / rel_path.lstrip("/"))
         if not target.is_file():
             return jsonify({"error": "file not found"}), 400
-        dest_root = pathlib.Path("/mnt/input")
+        staging_dir = "/mnt/smb_staging"
+        if config_manager:
+            try:
+                cfg = config_manager.read()
+                staging_dir = cfg.get("smb_staging_dir", staging_dir) or staging_dir
+            except Exception:
+                pass
+        dest_root = pathlib.Path(staging_dir)
         dest_root.mkdir(parents=True, exist_ok=True)
         def unique_path(root: pathlib.Path, name: str) -> pathlib.Path:
             cand = root / name
