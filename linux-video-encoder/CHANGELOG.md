@@ -8,6 +8,10 @@
 ## 1.9.1 - 2025-12-04
 - SMB browser copies now log as staged and the scanner includes the staging path so staged files are picked up.
 
+## 1.9.2 - 2025-12-04
+- SMB connect now responds to Enter within the SMB form; mount list shows the share name (last path segment) instead of the UUID.
+- Status Messages wrap long lines to avoid horizontal scrolling.
+
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.

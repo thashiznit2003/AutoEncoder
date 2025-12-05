@@ -31,6 +31,7 @@ HTML_PAGE_TEMPLATE = """
     button { padding: 9px 12px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.2s; }
     button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,0.35); }
     .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
+    .log { word-break: break-word; overflow-wrap: anywhere; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: #0f172a; font-weight: 700; }
     .badge.running { background: #fde047; }
     .badge.starting { background: #fb923c; color:#0b1220; }
@@ -328,6 +329,10 @@ HTML_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     loadPresets();
+    const smbForm = document.getElementById("smb-form");
+    function connectSmb() {
+      document.getElementById("smb-connect").click();
+    }
 
     async function fetchJSON(url) {
       const res = await fetch(url);
@@ -802,7 +807,8 @@ HTML_PAGE_TEMPLATE = """
       const mounts = data.mounts || {};
       const mountItems = Object.keys(mounts).map(id => {
         const path = mounts[id];
-        return '<div class="smb-item"><div class="smb-path">' + id + ' → ' + path + '</div><button class="smb-btn smb-unmount" data-id="' + id + '">Unmount</button></div>';
+        const label = path ? path.split("/").filter(Boolean).pop() : id;
+        return '<div class="smb-item"><div class="smb-path">' + (label || id) + '</div><button class="smb-btn smb-unmount" data-id="' + id + '">Unmount</button></div>';
       }).join("");
       document.getElementById("smb-mounts").innerHTML = mountItems || "<div class='muted'>No mounts</div>";
     }
@@ -819,6 +825,12 @@ HTML_PAGE_TEMPLATE = """
       smbPath = "/";
       await smbRefreshMounts();
       await smbList("/");
+    });
+    smbForm.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        connectSmb();
+      }
     });
 
     document.getElementById("smb-refresh").addEventListener("click", async () => {
