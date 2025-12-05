@@ -110,7 +110,7 @@ MakeMKV downloads note:
 * __profiles__ - These are examples created that use the ffmpeg and HandBrakeCLI commands. See their docs for other parameters.
 * HandBrake audio options now include encoder (AAC/HE-AAC/Opus/AC3/E-AC3/copy), mixdown, sample rate, DRC, gain, optional language filter, track list, and “Auto Dolby” mode (copy AC3/E-AC3 else encode to E-AC3; no upmix for sub-5.1).
 * MakeMKV: preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, auto-rip toggle, disc info display, and manual “Start rip” button when auto-rip is off.
-* SMB staging: `smb_staging_dir` (default /mnt/smb_staging) used for SMB browser copies; exported as Samba share `smbstaging` via installer; mounted from host `./SMBStaging` in compose.
+* SMB staging: `smb_staging_dir` (default /mnt/smb_staging) used for SMB browser copies; exported as Samba share `smbstaging` via installer; mounted from host `./SMBStaging` in compose. A helper script `scripts/setup_smbstaging_share.sh` can add the share and restart the stack.
 
 ### Defaults and profiles
 - Default HandBrake profile: x264, RF 20, 1080p output, `.mkv`, AAC audio 128 kbps (DVD uses the same, Blu-ray uses RF 25 at 2160p).
