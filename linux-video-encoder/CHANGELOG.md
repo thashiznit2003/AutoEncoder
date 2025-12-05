@@ -5,6 +5,9 @@
 - SMB queue now respects the configurable staging path instead of hardcoding /mnt/input.
 - Added helper script `scripts/setup_smbstaging_share.sh` to create the smbstaging share and restart the stack.
 
+## 1.9.1 - 2025-12-04
+- SMB browser copies now log as staged and the scanner includes the staging path so staged files are picked up.
+
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.

@@ -1037,7 +1037,8 @@ def main():
             if search_path:
                 scan_roots = [search_path]
             else:
-                base_roots = ["/mnt/input", "/mnt/dvd", "/mnt/bluray", "/mnt/usb"]
+                staging_dir = str(config.get("smb_staging_dir", "/mnt/smb_staging"))
+                base_roots = ["/mnt/input", "/mnt/dvd", "/mnt/bluray", "/mnt/usb", staging_dir]
                 try:
                     mounted = scanner.ensure_mounted_candidates()
                 except Exception:
