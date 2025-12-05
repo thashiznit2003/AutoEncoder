@@ -1,0 +1,30 @@
+Linux Video Encoder – Transition Notes (Chat 5)
+
+Repository/branch
+- Repo: https://github.com/thashiznit2003/AutoEncoder (branch: main)
+- Current version: 1.13.0
+
+Latest changes (since chat4)
+- Added SMB staging dir (/mnt/smb_staging) and Samba share `smbstaging`; installer/script + compose bind `./SMBStaging`.
+- In-app HTTP Basic auth (configurable auth_user/auth_password), defaults admin/changeme.
+- MakeMKV UI: registration key input, installed version display, update check (shows installed version), helper to generate host update command, copy button.
+- SMB UI: staging copy, friendly mount labels, Enter-to-connect, wrapped status text, copy host update command.
+
+Deployment one-liner (Ubuntu host)
+- cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate
+- MakeMKV host update helper: scripts/update_makemkv.sh (use MAKEMKV_VERSION env).
+- SMB staging share helper: scripts/setup_smbstaging_share.sh.
+
+Security notes (open)
+- UI/API currently protected only by Basic auth; no TLS/CSRF/rate limiting.
+- Container still privileged with broad device/mounts; should be reduced once optical/USB paths are known.
+- SMB mount inputs are not heavily validated; credentials in cleartext.
+
+Proposed next work (new chat)
+- Split UI into main info page and Settings page (/settings) containing HandBrake, MakeMKV, Authentication panels and update helpers; main page remains informational with a Settings link.
+- Consider tightening compose (drop privileged, limit devices/caps) after optical/USB hardware is available.
+
+User preferences
+- Always push to GitHub; provide host update one-liner in a code block.
+- Versioning: bump patch for any change, minor for features, major on request; update changelog accordingly.
+- Avoid destructive commands; keep changes reversible.

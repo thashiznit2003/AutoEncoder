@@ -57,6 +57,9 @@
 
 ## 1.13.0 - 2025-12-04
 - Added HTTP Basic auth for UI/API (configurable user/pass) with an Authentication panel to update credentials.
+
+## 1.13.1 - 2025-12-04
+- Added chat5.txt transition notes for next chat (summaries, preferences, pending UI split).
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.
