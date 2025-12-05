@@ -33,6 +33,10 @@
 ## 1.10.4 - 2025-12-04
 - MakeMKV registration now strips surrounding quotes from pasted keys to avoid invalid key errors.
 
+## 1.11.0 - 2025-12-04
+- MakeMKV update check endpoint/button added (runs makemkvcon --update and surfaces the message in UI).
+- Added host-side helper script `scripts/update_makemkv.sh` to rebuild/restart with a chosen MakeMKV version.
+
 ## 1.8.0 - 2025-12-04
 - MakeMKV: added disc detection info fetch, configurable preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, and auto-rip toggle.
 - UI now shows disc status/info with a manual "Start rip" button when auto-rip is off; rip requests trigger on next scan.

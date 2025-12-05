@@ -321,6 +321,10 @@ HTML_PAGE_TEMPLATE = """
           <input id="mk-key" placeholder="T-XXXX-..." />
         </label>
         <button type="button" id="mk-register">Register MakeMKV</button>
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+          <button type="button" id="mk-update-check">Check MakeMKV updates</button>
+          <span class="muted" id="mk-update-status">Update status: unknown</span>
+        </div>
       </div>
     </div>
     <div class="panel" style="grid-column: 1 / -1;">
@@ -871,6 +875,19 @@ HTML_PAGE_TEMPLATE = """
       }
     });
 
+    document.getElementById("mk-update-check").addEventListener("click", async () => {
+      const statusEl = document.getElementById("mk-update-status");
+      statusEl.textContent = "Update status: checking...";
+      try {
+        const res = await fetch("/api/makemkv/update_check");
+        const data = await res.json();
+        const msg = data.message || data.stdout || data.error || "Unknown";
+        statusEl.textContent = "Update status: " + msg;
+      } catch (e) {
+        statusEl.textContent = "Update status: failed to check";
+      }
+    });
+
     document.getElementById("mk-start-rip").addEventListener("click", async () => {
       try {
         await fetch("/api/makemkv/rip", { method: "POST" });
@@ -1291,6 +1308,19 @@ def create_app(tracker, config_manager=None):
         except FileNotFoundError:
             tracker.add_event("MakeMKV registration failed: makemkvcon not found", level="error")
             return jsonify({"registered": False, "error": "makemkvcon not found"}), 500
+
+    @app.route("/api/makemkv/update_check")
+    def makemkv_update_check():
+        try:
+            res = subprocess.run(["makemkvcon", "--update"], capture_output=True, text=True, check=False, timeout=15)
+            stdout = res.stdout.strip() if res.stdout else ""
+            stderr = res.stderr.strip() if res.stderr else ""
+            msg = "; ".join([p for p in [stdout, stderr] if p]) or f"exit code {res.returncode}"
+            return jsonify({"ok": res.returncode == 0, "stdout": stdout, "stderr": stderr, "message": msg, "returncode": res.returncode})
+        except FileNotFoundError:
+            return jsonify({"ok": False, "error": "makemkvcon not found"}), 500
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
     
     @app.route("/api/presets", methods=["GET", "POST", "DELETE"])
     def hb_presets():
