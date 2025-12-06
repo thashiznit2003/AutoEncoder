@@ -9,7 +9,7 @@ import pathlib
 import shutil
 from functools import wraps
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
-from smb_allowlist import save_smb_allowlist, load_smb_allowlist
+from smb_allowlist import save_smb_allowlist, load_smb_allowlist, remove_from_allowlist
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
@@ -1575,6 +1575,7 @@ def create_app(tracker, config_manager=None):
             tracker.stop_proc(src)
             tracker.clear_confirm_required(src)
             tracker.clear_confirm_ok(src)
+            cleanup_staged_file(src)
             tracker.add_event(f"Canceled encode after warning: {src}")
             return jsonify({"canceled": src})
 
@@ -1602,3 +1603,17 @@ def start_web_server(tracker, config_manager=None, port: int = 5959):
     t = threading.Thread(target=_run, daemon=True)
     t.start()
     return t
+    def cleanup_staged_file(path: str):
+        if not path:
+            return
+        try:
+            p = pathlib.Path(path)
+            name = p.name
+            if p.exists():
+                try:
+                    p.unlink()
+                except IsADirectoryError:
+                    shutil.rmtree(p, ignore_errors=True)
+            remove_from_allowlist(name)
+        except Exception:
+            pass

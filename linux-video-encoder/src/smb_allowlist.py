@@ -51,3 +51,16 @@ def enforce_smb_allowlist(staging_dir: str, tracker=None) -> None:
     except FileNotFoundError:
         return
     # Keep allowlist entries even if the file is not present (e.g., mid-copy or awaiting encode).
+
+
+def remove_from_allowlist(names):
+    """
+    Remove one or more filenames from the allowlist.
+    """
+    allowlist = load_smb_allowlist()
+    if isinstance(names, str):
+        names = [names]
+    names = [str(n) for n in names if n]
+    updated = allowlist.difference(names)
+    if updated != allowlist:
+        save_smb_allowlist(updated)

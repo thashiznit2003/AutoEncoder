@@ -42,6 +42,9 @@
 ## 1.18.1 - 2025-12-06
 - SMB queue errors are now surfaced (events + JSON) to avoid silent failures when staging sidecars and videos.
 
+## 1.18.2 - 2025-12-06
+- Canceling a queued/confirm job now deletes the staged file and removes it from the SMB allowlist to avoid leftover files.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 
