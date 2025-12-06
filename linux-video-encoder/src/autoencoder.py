@@ -487,6 +487,22 @@ def cleanup_sidecars_and_allowlist(src: Path):
         remove_from_allowlist(names)
 
 
+def cleanup_usb_staging(src: Path, config: dict):
+    """Remove staged USB copy (and sidecars) if it lives in the usb_staging_dir."""
+    try:
+        staging_dir = Path(config.get("usb_staging_dir", "/mnt/usb_staging"))
+    except Exception:
+        staging_dir = Path("/mnt/usb_staging")
+    try:
+        if src.is_file() and staging_dir in src.parents:
+            # remove sidecars in staging too
+            cleanup_sidecars_and_allowlist(src)
+            src.unlink()
+            logging.info("Deleted staged USB file after encode: %s", src)
+    except Exception:
+        logging.debug("Failed to delete staged USB file %s", src, exc_info=True)
+
+
 def stage_usb_file(src: Path, staging_dir: Path, status_tracker: Optional[StatusTracker] = None) -> Path:
     """Copy a USB-sourced file (and matching sidecar .srt) into staging and return the staged path."""
     staging_dir.mkdir(parents=True, exist_ok=True)
@@ -1154,6 +1170,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             except Exception:
                 logging.debug("Failed to delete source file %s", src, exc_info=True)
             cleanup_sidecars_and_allowlist(src)
+            cleanup_usb_staging(src, config)
         if status_tracker:
             status_tracker.complete(str(src), True, dest_str, "Encode complete")
     return True
