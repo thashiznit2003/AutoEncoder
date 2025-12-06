@@ -54,6 +54,10 @@
 ## 1.18.5 - 2025-12-06
 - Cleanup staged source + sidecar .srt files after successful encode and drop allowlist entries to avoid blocking future SMB copies.
 
+## 1.19.0 - 2025-12-06
+- Active Encodes: queued items now show “Queued for” and can be removed (deletes staged files/allowlist) via a Remove button.
+- SMB Browser: file list now filters to video and subtitle extensions; mounts remain clickable.
+
 ## 1.18.6 - 2025-12-06
 - Active Encodes: queued items now show “Queued for:” with the elapsed queue time instead of “Encode elapsed.”
 

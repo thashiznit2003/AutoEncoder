@@ -219,6 +219,8 @@ MAIN_PAGE_TEMPLATE = """
         } else if (state === "confirm") {
           controls = '<button class="confirm-btn" data-action="proceed" data-src="' + encodeURIComponent(item.source || "") + '">Proceed</button> '
                    + '<button class="confirm-btn" data-action="cancel" data-src="' + encodeURIComponent(item.source || "") + '">Cancel</button>';
+        } else if (state === "queued") {
+          controls = '<button class="remove-queued-btn" data-src="' + encodeURIComponent(item.source || "") + '">Remove</button>';
         }
         const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
         return [
@@ -309,6 +311,13 @@ MAIN_PAGE_TEMPLATE = """
           deleteSrc = true;
         }
         await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, delete_source: deleteSrc }) });
+        refresh();
+      }
+      if (e.target.classList.contains("remove-queued-btn")) {
+        const src = decodeURIComponent(e.target.getAttribute("data-src"));
+        const ok = confirm("Remove this queued item and delete the staged file?");
+        if (!ok) return;
+        await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, delete_source: true }) });
         refresh();
       }
     });

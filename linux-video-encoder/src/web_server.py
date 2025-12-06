@@ -1098,6 +1098,42 @@ def create_app(tracker, config_manager=None):
             pass
         tracker.remove_smb_mount(mount_id)
 
+    def cleanup_staged_file(path: str):
+        """Remove a staged file and any matching sidecar .srt files; drop from allowlist."""
+        if not path:
+            return
+        try:
+            p = Path(path)
+            parent = p.parent
+            names = [p.name]
+            if p.exists():
+                try:
+                    if p.is_dir():
+                        shutil.rmtree(p, ignore_errors=True)
+                    else:
+                        p.unlink()
+                except Exception:
+                    pass
+            stem = p.stem
+            # exact .srt
+            exact = parent / f"{stem}.srt"
+            if exact.exists():
+                names.append(exact.name)
+                try:
+                    exact.unlink()
+                except Exception:
+                    pass
+            for cand in parent.glob(f"{stem}.*.srt"):
+                if cand.is_file():
+                    names.append(cand.name)
+                    try:
+                        cand.unlink()
+                    except Exception:
+                        pass
+            remove_from_allowlist(names)
+        except Exception:
+            pass
+
     def list_smb(mount_id: str, rel_path: str = "/"):
         mounts = tracker.list_smb_mounts()
         entry = mounts.get(mount_id)
@@ -1109,8 +1145,12 @@ def create_app(tracker, config_manager=None):
         if not target.exists():
             target = base
         entries = []
+        allowed_exts = {".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v", ".mpg", ".mpeg", ".ts", ".m2ts", ".srt", ".ass", ".ssa", ".sub", ".vtt"}
         try:
             for entry in sorted(target.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower())):
+                if entry.is_file():
+                    if entry.suffix.lower() not in allowed_exts:
+                        continue
                 entries.append({
                     "name": entry.name,
                     "is_dir": entry.is_dir(),
@@ -1551,11 +1591,8 @@ def create_app(tracker, config_manager=None):
             tracker.stop_proc(src)
             tracker.add_event(f"Stopped encode: {src}")
             if delete_src:
-                try:
-                    os.remove(src)
-                    tracker.add_event(f"Deleted source: {src}")
-                except Exception:
-                    tracker.add_event(f"Failed to delete source: {src}", level="error")
+                cleanup_staged_file(src)
+                tracker.add_event(f"Deleted staged source: {src}")
         return jsonify({"stopped": bool(src)})
 
     @app.route("/api/confirm", methods=["POST"])
