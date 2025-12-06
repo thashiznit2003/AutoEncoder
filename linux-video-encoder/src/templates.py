@@ -250,6 +250,7 @@ MAIN_PAGE_TEMPLATE = """
         const hbBr = hbCfg.handbrake_br || {};
         const hbExt = hb.extension || ".mkv";
         const lbNote = (hbCfg.low_bitrate_auto_skip ? "Low bitrate: auto-skip" : (hbCfg.low_bitrate_auto_proceed ? "Low bitrate: auto-proceed" : "Low bitrate: ask"));
+        const audioModeLabel = (hb.audio_mode === "auto_dolby") ? "Auto Dolby" : (hb.audio_mode === "copy" ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
         document.getElementById("hb-runtime").textContent =
           "Runtime HB settings: Encoder=" + (hb.encoder || "x264") +
           " | Default RF=" + (hb.quality ?? 20) +
@@ -257,7 +258,7 @@ MAIN_PAGE_TEMPLATE = """
           " | BR RF=" + (hbBr.quality ?? 25) +
           " | Ext=" + hbExt +
           " | " + lbNote +
-          " | Audio=" + ((hb.audio_mode === "copy") ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
+          " | Audio=" + audioModeLabel;
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
@@ -832,12 +833,14 @@ SETTINGS_PAGE_TEMPLATE = """
         const hbDvd = cfg.handbrake_dvd || {};
         const hbBr = cfg.handbrake_br || {};
         const lbNote = cfg.low_bitrate_auto_skip ? "Low bitrate: auto-skip" : (cfg.low_bitrate_auto_proceed ? "Low bitrate: auto-proceed" : "Low bitrate: ask");
+        const audioModeLabel = (hb.audio_mode === "auto_dolby") ? "Auto Dolby" : (hb.audio_mode === "copy" ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
         document.getElementById("hb-summary").textContent = "Encoder: " + (hb.encoder || "x264")
           + " | Default RF: " + (hb.quality !== undefined && hb.quality !== null ? hb.quality : 20)
           + " | DVD RF: " + (hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20)
           + " | BR RF: " + (hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25)
           + " | Ext: " + (hb.extension || ".mkv")
-          + " | " + lbNote;
+          + " | " + lbNote
+          + " | Audio: " + audioModeLabel;
         document.getElementById("lb-auto-proceed").checked = !!cfg.low_bitrate_auto_proceed;
         document.getElementById("lb-auto-skip").checked = !!cfg.low_bitrate_auto_skip;
         if (!authDirty) {
