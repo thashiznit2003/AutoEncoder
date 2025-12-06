@@ -117,12 +117,23 @@ fetch_repo() {
 ensure_media_dirs() {
   # Create standard media/output folders under the repo for compose binds.
   local base="$REPO_DIR/linux-video-encoder"
-  mkdir -p "$base/USB" "$base/DVD" "$base/Bluray" "$base/File" "$base/Output" "$base/Ripped" "$base/SMBStaging"
+  mkdir -p "$base/USB" "$base/DVD" "$base/Bluray" "$base/File" "$base/Output" "$base/Ripped" "$base/SMBStaging" "$base/USBStaging"
+}
+
+setup_usb_automount() {
+  local script="$REPO_DIR/linux-video-encoder/scripts/setup_usb_automount.sh"
+  if [ ! -x "$script" ]; then
+    log "USB automount script missing; skipping."
+    return
+  fi
+  log "Configuring USB automount..."
+  $SUDO "$script" || log "USB automount setup exited non-zero (continuing)."
 }
 
 build_and_run() {
   cd "$REPO_DIR/linux-video-encoder" || cd "$REPO_DIR"
   ensure_media_dirs
+  setup_usb_automount
   log "Stopping any existing stack (docker compose down)..."
   IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" down || true
   # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build

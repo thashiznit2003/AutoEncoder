@@ -8,6 +8,9 @@
 ## 1.21.1 - 2025-12-06
 - Config persistence: config now lives in the state volume (`/var/lib/autoencoder/state/config.json`), seeded from repo `config.json` on first run, so UI settings survive pulls/rebuilds.
 
+## 1.21.2 - 2025-12-06
+- USB automount: added `scripts/setup_usb_automount.sh` (udev + helper) to mount any USB partition to `./USB` automatically; installer now runs it. Media dirs ensure `USBStaging` exists.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
