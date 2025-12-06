@@ -45,6 +45,8 @@ DEFAULT_CONFIG = {
     "max_threads": 4,
     "rescan_interval": 30,
     "min_size_mb": 100,
+    "low_bitrate_auto_proceed": False,
+    "low_bitrate_auto_skip": False,
     "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v"],
     "smb_staging_dir": "/mnt/smb_staging",
     "auth_user": "admin",
@@ -232,6 +234,8 @@ def load_config(path: Path):
     merged["makemkv_exclude_commentary"] = bool(merged.get("makemkv_exclude_commentary"))
     merged["makemkv_prefer_surround"] = bool(merged.get("makemkv_prefer_surround"))
     merged["makemkv_auto_rip"] = bool(merged.get("makemkv_auto_rip"))
+    merged["low_bitrate_auto_proceed"] = bool(merged.get("low_bitrate_auto_proceed"))
+    merged["low_bitrate_auto_skip"] = bool(merged.get("low_bitrate_auto_skip"))
     return merged
 
 
@@ -1220,11 +1224,22 @@ def main():
                 source_br = probe_source_bitrate_kbps(Path(video_file))
                 target_br = estimate_target_bitrate_kbps(local_profile, hb_opts_local)
                 if source_br and target_br and source_br < target_br and status_tracker and not status_tracker.is_confirm_ok(str(video_file)):
-                    status_tracker.add_event(f"Low source bitrate vs target for {video_file} ({int(source_br)} kbps < {int(target_br)} kbps). Confirm to proceed.")
-                    status_tracker.set_state(str(video_file), "confirm")
-                    status_tracker.set_message(str(video_file), "Low bitrate; confirm to proceed.")
-                    status_tracker.add_confirm_required(str(video_file))
-                    continue
+                    auto_proceed = bool(config.get("low_bitrate_auto_proceed"))
+                    auto_skip = bool(config.get("low_bitrate_auto_skip"))
+                    if auto_skip:
+                        status_tracker.add_event(f"Skipped low bitrate vs target for {video_file} ({int(source_br)} kbps < {int(target_br)} kbps).")
+                        status_tracker.stop_proc(str(video_file))
+                        cleanup_sidecars_and_allowlist(Path(video_file))
+                        continue
+                    if auto_proceed:
+                        status_tracker.add_event(f"Auto-proceeding despite low bitrate for {video_file} ({int(source_br)} kbps < {int(target_br)} kbps).")
+                        status_tracker.add_confirm_ok(str(video_file))
+                    else:
+                        status_tracker.add_event(f"Low source bitrate vs target for {video_file} ({int(source_br)} kbps < {int(target_br)} kbps). Confirm to proceed.")
+                        status_tracker.set_state(str(video_file), "confirm")
+                        status_tracker.set_message(str(video_file), "Low bitrate; confirm to proceed.")
+                        status_tracker.add_confirm_required(str(video_file))
+                        continue
                 try:
                     if status_tracker:
                         status_tracker.set_state(str(video_file), "starting")

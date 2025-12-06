@@ -682,6 +682,15 @@ SETTINGS_PAGE_TEMPLATE = """
           <button type="button" id="hb-preset-save">Save Preset</button>
           <button type="button" id="hb-preset-delete">Delete Preset</button>
         </div>
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:6px 0;">
+          <label style="display:flex; align-items:center; gap:6px; margin:0;">
+            <input type="checkbox" id="lb-auto-proceed" /> Auto-proceed low bitrate
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; margin:0;">
+            <input type="checkbox" id="lb-auto-skip" /> Auto-skip low bitrate
+          </label>
+          <span id="lb-save-status" class="muted"></span>
+        </div>
         <div class="muted">Applies: Default for regular files, DVD for VIDEO_TS, BR for BDMV/STREAM.</div>
       </form>
     </div>
@@ -825,6 +834,8 @@ SETTINGS_PAGE_TEMPLATE = """
           + " | DVD RF: " + (hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20)
           + " | BR RF: " + (hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25)
           + " | Ext: " + (hb.extension || ".mkv");
+        document.getElementById("lb-auto-proceed").checked = !!cfg.low_bitrate_auto_proceed;
+        document.getElementById("lb-auto-skip").checked = !!cfg.low_bitrate_auto_skip;
         if (!authDirty) {
           document.getElementById("auth-user").value = cfg.auth_user || "";
           document.getElementById("auth-pass").value = cfg.auth_password || "";
@@ -866,6 +877,8 @@ SETTINGS_PAGE_TEMPLATE = """
       const twoPass = document.getElementById("hb-two-pass").checked;
       const body = {
         profile: "handbrake",
+        low_bitrate_auto_proceed: document.getElementById("lb-auto-proceed").checked,
+        low_bitrate_auto_skip: document.getElementById("lb-auto-skip").checked,
         handbrake: {
           encoder: document.getElementById("hb-encoder").value,
           quality: qDefault,
@@ -889,6 +902,11 @@ SETTINGS_PAGE_TEMPLATE = """
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       hbDirty = false;
+      const lbStatus = document.getElementById("lb-save-status");
+      if (lbStatus) {
+        lbStatus.textContent = "Saved";
+        setTimeout(() => { lbStatus.textContent = ""; }, 3000);
+      }
       refreshSettings();
     });
 

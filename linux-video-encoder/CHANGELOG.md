@@ -58,6 +58,10 @@
 - Active Encodes: queued items now show “Queued for” and can be removed (deletes staged files/allowlist) via a Remove button.
 - SMB Browser: file list now filters to video and subtitle extensions; mounts remain clickable.
 
+## 1.20.0 - 2025-12-06
+- Settings: added “auto-proceed” and “auto-skip” options for low-bitrate detections with saved state.
+- Encoding: low-bitrate auto-proceed skips confirmation; auto-skip removes staged files and records an event.
+
 ## 1.18.6 - 2025-12-06
 - Active Encodes: queued items now show “Queued for:” with the elapsed queue time instead of “Encode elapsed.”
 

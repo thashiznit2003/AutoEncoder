@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.19.0)
+# Linux Video Encoder (v1.20.0)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -67,6 +67,7 @@ Compose highlights:
 - SMB staging: files copied via the app are allowlisted; foreign files in `/mnt/smb_staging` are removed automatically. Allowlist state is stored in a named volume (`autoencoder_state`) so it survives rebuilds.
 - SMB mounts: the app uses a helper to validate SMB URLs and mount with a temporary credential file (kept in the state volume and deleted after use) to avoid leaking credentials. The helper defaults to SMB 3.0 and falls back to 2.1/2.0 if needed.
 - External subtitles: if a matching sidecar `.srt` exists (same stem or stem.lang) next to the video, it is auto-included in the encode and set as the default subtitle track. SMB queue also copies matching .srt files into staging.
+- Low-bitrate handling: optional auto-proceed or auto-skip for low bitrate vs target can be set in Settings.
 
 ### Installer script defaults
 - `scripts/install_and_run.sh` defaults `REPO_URL` to your fork (`https://github.com/thashiznit2003/AutoEncoder.git`). Override with `REPO_URL=...` if needed.
