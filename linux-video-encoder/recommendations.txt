@@ -11,9 +11,9 @@
 18) Monitoring: add queued count indicator in header; show per-job encoder/hw decode info in Active.
 
 Cybersecurity
-- Add TLS termination (reverse proxy) and enforce HTTPS; keep UI/API off untrusted networks.
-- CSRF protection and rate limiting (auth + API) with sensible auth/session timeouts.
-- Harden compose: remove privileged, trim devices/capabilities, run non-root where possible.
-- Input validation for SMB mount URLs/paths; avoid logging credentials; consider isolated mount helper.
-- Secrets handling: move auth creds to env/secret files with strict perms; avoid baking secrets into images.
-- HTTP headers: HSTS, X-Frame-Options/Frame-Deny, and a restrictive CSP by default.
+19) TLS termination via reverse proxy; enforce HTTPS and keep UI/API off untrusted networks.
+20) CSRF protection and rate limiting (auth + API) with sensible auth/session timeouts.
+21) Harden compose: remove privileged, trim devices/capabilities, run non-root where possible.
+22) Validate SMB mount URLs/paths; avoid logging credentials; consider isolated mount helper.
+23) Secrets handling: move auth creds to env/secret files with strict perms; avoid baking secrets into images.
+24) Security headers: HSTS, X-Frame-Options/Frame-Deny, and a restrictive CSP by default.
