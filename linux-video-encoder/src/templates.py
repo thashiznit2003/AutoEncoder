@@ -93,7 +93,7 @@ MAIN_PAGE_TEMPLATE = """
       </form>
       <div class="smb-grid" style="margin-top:8px;">
         <div>
-          <div class="muted">Mounts</div>
+          <div class="muted">Mounts (click to browse)</div>
           <div id="smb-mounts" class="smb-list"></div>
         </div>
         <div>
@@ -358,7 +358,8 @@ MAIN_PAGE_TEMPLATE = """
         const m = mounts[id];
         const path = (m && m.path) ? m.path : m;
         const label = (m && m.label) ? m.label : (path ? path.split("/").filter(Boolean).pop() : id);
-        return '<div class="smb-item"><div class="smb-path">' + (label || id) + '</div><button class="smb-btn smb-unmount" data-id="' + id + '">Unmount</button></div>';
+        const selected = (id === smbMountId) ? "background:#1f2937;" : "";
+        return '<div class="smb-item smb-select" data-id="' + id + '" style="' + selected + '"><div class="smb-path">' + (label || id) + '</div><button class="smb-btn smb-unmount" data-id="' + id + '">Unmount</button></div>';
       }).join("");
       document.getElementById("smb-mounts").innerHTML = mountItems || "<div class='muted'>No mounts</div>";
     }
@@ -409,10 +410,21 @@ MAIN_PAGE_TEMPLATE = """
     });
 
     document.getElementById("smb-mounts").addEventListener("click", async (e) => {
-      if (e.target.classList.contains("smb-unmount")) {
-        const id = e.target.getAttribute("data-id");
+      const unmountBtn = e.target.closest(".smb-unmount");
+      if (unmountBtn) {
+        const id = unmountBtn.getAttribute("data-id");
         await fetch("/api/smb/unmount", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mount_id: id }) });
         if (smbMountId === id) { smbMountId = null; smbSelected = null; smbPath = "/"; document.getElementById("smb-browse").innerHTML = ""; }
+        await smbRefreshMounts();
+        return;
+      }
+      const mountItem = e.target.closest(".smb-select");
+      if (mountItem) {
+        const id = mountItem.getAttribute("data-id");
+        smbMountId = id;
+        smbSelected = null;
+        smbPath = "/";
+        await smbList("/");
         await smbRefreshMounts();
       }
     });

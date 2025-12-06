@@ -30,6 +30,9 @@
 ## 1.16.0 - 2025-12-06
 - SMB queue now defers copying when an encode is running or staging is non-empty; pending SMB copies are staged once idle. Active panel shows queued entries. Unmount handling fixed.
 
+## 1.16.1 - 2025-12-06
+- SMB UI: mounts list is now clickable to re-select and browse an existing mount; selection is highlighted.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 
