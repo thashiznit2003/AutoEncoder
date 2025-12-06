@@ -34,11 +34,19 @@ MOUNT=/bin/mount
 UMOUNT=/bin/umount
 FINDMNT=/usr/bin/findmnt
 MOUNTPOINT=/bin/mountpoint
+BLKID=/usr/sbin/blkid
 
 logger -t "$LOG_TAG" "Attempting mount of $SRC -> $TARGET"
 
 if [ ! -b "$SRC" ]; then
   $LOGGER -t "$LOG_TAG" "Skipping mount; $SRC is not a block device"
+  exit 0
+fi
+
+# Detect filesystem type (required for consistent mount options)
+FSTYPE=$($BLKID -o value -s TYPE "$SRC" 2>/dev/null || true)
+if [ -z "$FSTYPE" ]; then
+  $LOGGER -t "$LOG_TAG" "Skipping mount; could not detect filesystem type for $SRC"
   exit 0
 fi
 
@@ -52,10 +60,15 @@ if mountpoint -q "$TARGET"; then
 fi
 
 opts="uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
-if $MOUNT -o "$opts" "$SRC" "$TARGET"; then
-  $LOGGER -t "$LOG_TAG" "Mounted $SRC -> $TARGET"
+if output=$($MOUNT -t "$FSTYPE" -o "$opts" "$SRC" "$TARGET" 2>&1); then
+  $LOGGER -t "$LOG_TAG" "Mounted $SRC -> $TARGET (type=$FSTYPE)"
 else
-  $LOGGER -t "$LOG_TAG" "Failed to mount $SRC -> $TARGET"
+  # Try a second time without explicit fs type before giving up
+  if output2=$($MOUNT -o "$opts" "$SRC" "$TARGET" 2>&1); then
+    $LOGGER -t "$LOG_TAG" "Mounted $SRC -> $TARGET (auto type fallback)"
+  else
+    $LOGGER -t "$LOG_TAG" "Failed to mount $SRC -> $TARGET (type=$FSTYPE): ${output:-${output2:-unknown error}}"
+  fi
 fi
 EOF
 chmod +x "$HELPER"
