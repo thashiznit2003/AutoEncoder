@@ -20,6 +20,9 @@
 ## 1.21.5 - 2025-12-06
 - Bugfix: staged USB files under `/mnt/usb_staging` are now explicitly deleted (plus sidecars) after successful encodes to avoid leftovers.
 
+## 1.21.6 - 2025-12-06
+- USB: added mount/readability health check that posts Status Messages on state change (ready/missing/I/O error) to make hot-plug issues visible.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

@@ -1201,6 +1201,7 @@ def main():
 
     last_search_path = search_path
     rescan_interval = float(config.get("rescan_interval", 30))
+    last_usb_state = None  # track mount/readability status to avoid noisy repeats
 
     logging.info("Starting continuous scanner. search_path=%s output=%s interval=%.1fs",
                  search_path if search_path else "<auto-detect>", output_dir, rescan_interval)
@@ -1247,6 +1248,30 @@ def main():
             logging.info("Scanning directories: %s", ", ".join(scan_roots) if scan_roots else "<none>")
             # debug: show mount status and a sample of contents for each scan root
             import os
+            # USB health check: log once per state change if mount is missing or unreadable
+            try:
+                usb_path = Path("/mnt/usb")
+                usb_state = "ready"
+                if not os.path.ismount(usb_path):
+                    usb_state = "not-mounted"
+                else:
+                    try:
+                        os.listdir(usb_path)
+                    except OSError as e:
+                        usb_state = f"error:{getattr(e, 'errno', 'unknown')}"
+                if usb_state != last_usb_state:
+                    last_usb_state = usb_state
+                    if usb_state == "ready":
+                        if status_tracker:
+                            status_tracker.add_event("USB mount ready.")
+                    elif usb_state == "not-mounted":
+                        if status_tracker:
+                            status_tracker.add_event("USB mount missing at /mnt/usb. Re-plug or remount.", level="error")
+                    else:
+                        if status_tracker:
+                            status_tracker.add_event(f"USB mount I/O error at /mnt/usb ({usb_state}). Re-plug or fsck the stick.", level="error")
+            except Exception:
+                logging.debug("USB readiness check failed", exc_info=True)
             for root in scan_roots:
                 try:
                     is_m = os.path.ismount(root)
