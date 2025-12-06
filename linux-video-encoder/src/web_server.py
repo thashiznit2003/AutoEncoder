@@ -2,6 +2,7 @@ from flask import Flask, jsonify, Response, request
 import time
 import subprocess
 import os
+import sys
 from version import VERSION
 import uuid
 import pathlib
@@ -1300,7 +1301,12 @@ def create_app(tracker, config_manager=None):
             mid = mount_smb(url, username, password, domain, vers)
             return jsonify({"mount_id": mid, "path": tracker.list_smb_mounts().get(mid)})
         except Exception as e:
-            return jsonify({"error": str(e)}), 400
+            err = str(e)
+            try:
+                tracker.add_event(f"SMB mount failed: {err}", level="error")
+            except Exception:
+                pass
+            return jsonify({"error": err}), 400
 
     @app.route("/api/smb/mounts")
     @require_auth
