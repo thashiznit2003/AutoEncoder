@@ -28,6 +28,8 @@ LOG_TAG="autoencoder-usb"
 
 mkdir -p "$TARGET"
 
+logger -t "$LOG_TAG" "Attempting mount of $SRC -> $TARGET"
+
 if mountpoint -q "$TARGET"; then
   current=$(findmnt -n -o SOURCE --target "$TARGET" || true)
   if [ "$current" = "$SRC" ]; then
@@ -38,7 +40,11 @@ if mountpoint -q "$TARGET"; then
 fi
 
 opts="uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
-mount -o "$opts" "$SRC" "$TARGET" && logger -t "$LOG_TAG" "Mounted $SRC -> $TARGET"
+if mount -o "$opts" "$SRC" "$TARGET"; then
+  logger -t "$LOG_TAG" "Mounted $SRC -> $TARGET"
+else
+  logger -t "$LOG_TAG" "Failed to mount $SRC -> $TARGET"
+fi
 EOF
 chmod +x "$HELPER"
 
@@ -46,7 +52,9 @@ echo "[usb-auto] Writing udev rules..."
 cat > "$RULE_FILE" <<'EOF'
 # AutoEncoder USB automount
 ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_BUS}=="usb", RUN+="/usr/local/bin/autoencoder_usb_mount.sh %k"
+ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ATTR{removable}=="1", RUN+="/usr/local/bin/autoencoder_usb_mount.sh %k"
 ACTION=="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_BUS}=="usb", RUN+="/bin/umount -l /linux-video-encoder/AutoEncoder/linux-video-encoder/USB"
+ACTION=="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ATTR{removable}=="1", RUN+="/bin/umount -l /linux-video-encoder/AutoEncoder/linux-video-encoder/USB"
 EOF
 
 echo "[usb-auto] Reloading udev rules..."

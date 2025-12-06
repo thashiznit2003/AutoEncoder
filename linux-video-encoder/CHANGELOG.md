@@ -23,6 +23,9 @@
 ## 1.21.6 - 2025-12-06
 - USB: added mount/readability health check that posts Status Messages on state change (ready/missing/I/O error) to make hot-plug issues visible.
 
+## 1.21.7 - 2025-12-06
+- USB automount: helper now logs attempts/failures, and udev rules also match removable partitions (not just ID_BUS=usb) to better catch devices; version bumped.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
