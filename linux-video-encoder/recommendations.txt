@@ -17,3 +17,6 @@ Cybersecurity
 22) DONE – SMB mount validation + helper: normalized URLs, sanitized options, cred file (state volume), no shell/cmdline creds in logs.
 23) Secrets handling: move auth creds to env/secret files with strict perms; avoid baking secrets into images.
 24) Security headers: HSTS, X-Frame-Options/Frame-Deny, and a restrictive CSP by default.
+25) Notifications/webhooks: optional Slack/Discord/webhook callbacks for encode complete/fail/low-bitrate-skip/rip events with per-job summary text.
+26) Backup/restore: UI download/upload for config, presets, auth, and SMB allowlist state to simplify migrations or disaster recovery.
+27) Health/metrics: add a /healthz and compose healthcheck plus Prometheus-friendly metrics (queue depth, durations, failure counts, bitrate stats).

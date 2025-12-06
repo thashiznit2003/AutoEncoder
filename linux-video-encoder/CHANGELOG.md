@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.20.4 - 2025-12-06
+- Documentation: README versioning section updated to match 1.20.x (current version, SMB staging/sidecar handling, version bump policy).
+
 ## 1.15.0 - 2025-12-04
 - Added SMB staging allowlist: only files copied via the app are permitted in `/mnt/smb_staging`; foreign files are removed, and the allowlist persists in a named volume (`autoencoder_state`).
 

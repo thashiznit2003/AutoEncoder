@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.20.3)
+# Linux Video Encoder (v1.20.4)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -138,11 +138,11 @@ MakeMKV downloads note:
   `curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/update_samba_shares.sh -o /tmp/update_samba_shares.sh && sudo bash /tmp/update_samba_shares.sh`
 
 ## SMB browser (in UI)
-- New SMB panel (above Logs): connect to `smb://server/share[/path]` with username/password, browse directories, and queue files for encoding. Mounts are temporary under `/mnt/smb`. Selected files are copied into `/mnt/input` before encoding to preserve the originals on the SMB share.
+- Connect to `smb://server/share[/path]` with username/password, browse directories, and queue files for encoding. Mounts are clickable to re-select. Selected files (and matching sidecar `.srt` files) are copied into the configured SMB staging directory (default `/mnt/smb_staging`) under an allowlist; copies defer when an encode is active or staging is busy, and originals stay on the share.
 
 ## Versioning
-- Current version: 1.0.0 (defined in `src/version.py` and shown in the UI header).
-- Release notes live in `CHANGELOG.md`; bump `VERSION` and append to the changelog for future updates.
+- Current version: 1.20.4 (defined in `src/version.py` and shown in the UI header).
+- Release notes live in `CHANGELOG.md`; when bumping, update `VERSION`, this README header, and append to the changelog (patch for any change, minor for features, major on request).
 
 
 ## License
