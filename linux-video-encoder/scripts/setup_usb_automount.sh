@@ -28,22 +28,34 @@ LOG_TAG="autoencoder-usb"
 
 mkdir -p "$TARGET"
 
+# absolute paths for udev environment
+LOGGER=/usr/bin/logger
+MOUNT=/bin/mount
+UMOUNT=/bin/umount
+FINDMNT=/usr/bin/findmnt
+MOUNTPOINT=/bin/mountpoint
+
 logger -t "$LOG_TAG" "Attempting mount of $SRC -> $TARGET"
 
+if [ ! -b "$SRC" ]; then
+  $LOGGER -t "$LOG_TAG" "Skipping mount; $SRC is not a block device"
+  exit 0
+fi
+
 if mountpoint -q "$TARGET"; then
-  current=$(findmnt -n -o SOURCE --target "$TARGET" || true)
+  current=$($FINDMNT -n -o SOURCE --target "$TARGET" || true)
   if [ "$current" = "$SRC" ]; then
     exit 0
   else
-    umount "$TARGET" || true
+    $UMOUNT "$TARGET" || true
   fi
 fi
 
 opts="uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
-if mount -o "$opts" "$SRC" "$TARGET"; then
-  logger -t "$LOG_TAG" "Mounted $SRC -> $TARGET"
+if $MOUNT -o "$opts" "$SRC" "$TARGET"; then
+  $LOGGER -t "$LOG_TAG" "Mounted $SRC -> $TARGET"
 else
-  logger -t "$LOG_TAG" "Failed to mount $SRC -> $TARGET"
+  $LOGGER -t "$LOG_TAG" "Failed to mount $SRC -> $TARGET"
 fi
 EOF
 chmod +x "$HELPER"
