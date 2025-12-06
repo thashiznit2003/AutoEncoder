@@ -12,6 +12,9 @@
 ## 1.15.3 - 2025-12-06
 - Fix: SMB mount now imports sys and logs sanitized mount failures instead of returning empty 400s.
 
+## 1.15.4 - 2025-12-06
+- SMB mount helper now strips trailing slashes from UNC roots and returns sanitized diagnostics (UNC/options, no creds) to help troubleshoot mount error(22) cases.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 

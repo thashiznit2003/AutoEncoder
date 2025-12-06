@@ -36,7 +36,8 @@ def normalize_smb_url(url: str) -> str:
         raise ValueError("path traversal not allowed")
     # Allow spaces; reject unsafe chars
     sanitize_component(path.replace("/", ""))
-    return "//" + parsed.netloc + str(norm_path)
+    norm_str = "" if str(norm_path) == "/" else str(norm_path)
+    return "//" + parsed.netloc + norm_str
 
 
 def build_credentials_file(username: str, password: str, domain: str | None) -> Path | None:
@@ -71,7 +72,9 @@ def run_mount(unc: str, mountpoint: Path, username: str, password: str, domain: 
         res = subprocess.run(cmd, capture_output=True, text=True)
         # Avoid echoing creds; return sanitized output
         output = (res.stderr or res.stdout or "").strip()
-        return res.returncode, output
+        public_opts = [o for o in opts if not o.startswith("credentials=")]
+        msg = f"UNC={unc} opts={';'.join(public_opts)} msg={output or res.returncode}"
+        return res.returncode, msg
     finally:
         if cred_file and cred_file.exists():
             try:
