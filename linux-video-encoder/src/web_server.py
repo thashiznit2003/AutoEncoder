@@ -8,7 +8,7 @@ import pathlib
 import shutil
 from functools import wraps
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
-from autoencoder import save_smb_allowlist, load_smb_allowlist
+from smb_allowlist import save_smb_allowlist, load_smb_allowlist
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")

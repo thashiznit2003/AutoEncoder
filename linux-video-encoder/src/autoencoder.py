@@ -10,7 +10,6 @@ Dependencies:
 """
 from pathlib import Path
 import json
-import json
 import os
 import time
 import logging
@@ -21,12 +20,12 @@ import re
 import shutil
 import threading
 import uuid
-import json
 from typing import Optional, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from scanner import Scanner, EXCLUDED_SCAN_PATHS
 from encoder import Encoder  # kept as a fallback if needed
 from status_tracker import StatusTracker
+from smb_allowlist import enforce_smb_allowlist
 from web_server import start_web_server
 
 # locate config next to the project root
@@ -123,57 +122,6 @@ DEFAULT_CONFIG = {
     "makemkv_auto_rip": False,
 }
 
-ALLOWLIST_PATH = Path("/var/lib/autoencoder/state/smb_allowlist.json")
-
-
-def load_smb_allowlist() -> set[str]:
-    ALLOWLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        data = json.loads(ALLOWLIST_PATH.read_text(encoding="utf-8"))
-        if isinstance(data, list):
-            return set(str(x) for x in data)
-    except FileNotFoundError:
-        return set()
-    except Exception:
-        return set()
-    return set()
-
-
-def save_smb_allowlist(entries: set[str]) -> None:
-    ALLOWLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        ALLOWLIST_PATH.write_text(json.dumps(sorted(entries)), encoding="utf-8")
-    except Exception:
-        pass
-
-
-def enforce_smb_allowlist(staging_dir: str, tracker: StatusTracker | None = None) -> None:
-    """
-    Remove any files in staging that were not copied by the app and prune stale allowlist entries.
-    Allowlist lives in a named volume to survive rebuilds.
-    """
-    allowlist = load_smb_allowlist()
-    staging = Path(staging_dir)
-    staging.mkdir(parents=True, exist_ok=True)
-    allowed_present = set()
-    try:
-        for entry in staging.iterdir():
-            if not entry.is_file():
-                continue
-            if entry.name in allowlist:
-                allowed_present.add(entry.name)
-                continue
-            try:
-                entry.unlink()
-                if tracker:
-                    tracker.add_event(f"Removed foreign file from SMB staging: {entry}", level="error")
-            except Exception:
-                if tracker:
-                    tracker.add_event(f"Failed to remove foreign file from SMB staging: {entry}", level="error")
-    except FileNotFoundError:
-        return
-    if allowed_present != allowlist:
-        save_smb_allowlist(allowed_present)
 class ConfigManager:
     def __init__(self, path: Path):
         self.path = path
