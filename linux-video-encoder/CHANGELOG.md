@@ -51,6 +51,9 @@
 ## 1.18.4 - 2025-12-06
 - Fix: SMB queue handler now imports Path so sidecar subtitle staging no longer errors.
 
+## 1.18.5 - 2025-12-06
+- Cleanup staged source + sidecar .srt files after successful encode and drop allowlist entries to avoid blocking future SMB copies.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 

@@ -25,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from scanner import Scanner, EXCLUDED_SCAN_PATHS
 from encoder import Encoder  # kept as a fallback if needed
 from status_tracker import StatusTracker
-from smb_allowlist import enforce_smb_allowlist, load_smb_allowlist, save_smb_allowlist
+from smb_allowlist import enforce_smb_allowlist, load_smb_allowlist, save_smb_allowlist, remove_from_allowlist
 from web_server import start_web_server
 
 # locate config next to the project root
@@ -433,6 +433,34 @@ def find_external_subtitle(input_path: Path) -> Optional[Path]:
         if cand.is_file():
             return cand
     return None
+
+
+def cleanup_sidecars_and_allowlist(src: Path):
+    """Remove sidecar .srt files and clear allowlist entries for the source and sidecars."""
+    if not src:
+        return
+    names = [src.name]
+    try:
+        stem = src.stem
+        parent = src.parent
+        # exact match
+        exact = parent / f"{stem}.srt"
+        if exact.exists():
+            names.append(exact.name)
+            try:
+                exact.unlink()
+            except Exception:
+                pass
+        # stem.lang.srt
+        for cand in parent.glob(f"{stem}.*.srt"):
+            if cand.is_file():
+                names.append(cand.name)
+                try:
+                    cand.unlink()
+                except Exception:
+                    pass
+    finally:
+        remove_from_allowlist(names)
 
 
 def staging_has_files(staging_dir: Path) -> bool:
@@ -1052,6 +1080,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                     logging.info("Deleted source file after successful encode: %s", src)
             except Exception:
                 logging.debug("Failed to delete source file %s", src, exc_info=True)
+            cleanup_sidecars_and_allowlist(src)
         if status_tracker:
             status_tracker.complete(str(src), True, dest_str, "Encode complete")
     return True
