@@ -48,6 +48,9 @@
 ## 1.18.3 - 2025-12-06
 - Status Messages panel: added buttons to copy the last event or last 10 events to the clipboard (helps when auto-refresh makes manual select/copy difficult).
 
+## 1.18.4 - 2025-12-06
+- Fix: SMB queue handler now imports Path so sidecar subtitle staging no longer errors.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 

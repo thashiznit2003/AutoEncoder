@@ -6,6 +6,7 @@ import sys
 from version import VERSION
 import uuid
 import pathlib
+from pathlib import Path
 import shutil
 from functools import wraps
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
