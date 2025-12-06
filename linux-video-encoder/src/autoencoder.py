@@ -416,6 +416,25 @@ def safe_move(src: Path, dst: Path) -> bool:
         return False
 
 
+def find_external_subtitle(input_path: Path) -> Optional[Path]:
+    """
+    Find a sidecar .srt matching the video file (exact stem or stem.language).
+    Returns the first matching file if present.
+    """
+    if not input_path:
+        return None
+    stem = input_path.stem
+    parent = input_path.parent
+    exact = parent / f"{stem}.srt"
+    if exact.exists():
+        return exact
+    # allow stem.lang.srt (e.g., movie.eng.srt)
+    for cand in sorted(parent.glob(f"{stem}.*.srt")):
+        if cand.is_file():
+            return cand
+    return None
+
+
 def staging_has_files(staging_dir: Path) -> bool:
     try:
         return any(staging_dir.iterdir())
@@ -760,6 +779,11 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
                     cmd.extend(["-B", str(audio_bitrate_kbps)])
             if audio_all:
                 cmd.append("--all-audio")
+        external_sub = find_external_subtitle(Path(input_path))
+        if external_sub:
+            cmd.extend(["--srt-file", str(external_sub), "--srt-default", "1"])
+            if status_tracker:
+                status_tracker.add_event(f"Included external subtitle: {external_sub}")
         if subtitle_mode == "copy_all":
             cmd.append("--all-subtitles")
         elif subtitle_mode == "burn_forced":

@@ -33,6 +33,9 @@
 ## 1.16.1 - 2025-12-06
 - SMB UI: mounts list is now clickable to re-select and browse an existing mount; selection is highlighted.
 
+## 1.17.0 - 2025-12-06
+- External .srt subtitles: when a matching sidecar .srt exists (same stem or stem.lang), it is auto-included in HandBrake encodes and marked default; event logged.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 
