@@ -39,6 +39,9 @@
 ## 1.18.0 - 2025-12-06
 - SMB queue now also copies matching sidecar .srt files (immediate or deferred) and allowlists them so external subtitles survive staging cleanup.
 
+## 1.18.1 - 2025-12-06
+- SMB queue errors are now surfaced (events + JSON) to avoid silent failures when staging sidecars and videos.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 
