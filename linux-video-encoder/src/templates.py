@@ -76,7 +76,13 @@ MAIN_PAGE_TEMPLATE = """
       </div>
     </div>
     <div class="panel">
-      <h2>📣 Status Messages</h2>
+      <div style="display:flex; align-items:center; gap:8px; justify-content: space-between; margin-bottom:6px;">
+        <h2 style="margin:0;">📣 Status Messages</h2>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button id="copy-event-last" class="smb-btn" style="padding:6px 8px;">Copy Last</button>
+          <button id="copy-event-last10" class="smb-btn" style="padding:6px 8px;">Copy Last 10</button>
+        </div>
+      </div>
       <div id="events" class="log"></div>
     </div>
     <div class="panel">
@@ -122,6 +128,7 @@ MAIN_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     let authDirty = false;
+    let eventsCache = [];
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
       document.getElementById("smb-connect").click();
@@ -260,7 +267,8 @@ MAIN_PAGE_TEMPLATE = """
       }
       try {
         const events = await fetchJSON("/api/events");
-        const lines = (events || []).map(function(ev) {
+        eventsCache = events || [];
+        const lines = (eventsCache || []).map(function(ev) {
           return "[" + new Date(ev.ts * 1000).toLocaleTimeString() + "] " + ev.message;
         });
         document.getElementById("events").textContent = lines.join("\\n") || "No recent events.";
@@ -388,6 +396,28 @@ MAIN_PAGE_TEMPLATE = """
       await smbRefreshMounts();
       await smbList();
     });
+
+    async function copyEvents(count) {
+      const lines = (eventsCache || []).slice(-count).map(ev => "[" + new Date(ev.ts * 1000).toLocaleTimeString() + "] " + ev.message);
+      const text = lines.join("\\n");
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+      } catch (err) {
+        alert("Failed to copy: " + err);
+      }
+    }
+
+    document.getElementById("copy-event-last").addEventListener("click", () => copyEvents(1));
+    document.getElementById("copy-event-last10").addEventListener("click", () => copyEvents(10));
 
     document.getElementById("smb-up").addEventListener("click", async () => {
       if (!smbMountId || !smbPath || smbPath === "/") return;

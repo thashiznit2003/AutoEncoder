@@ -45,6 +45,9 @@
 ## 1.18.2 - 2025-12-06
 - Canceling a queued/confirm job now deletes the staged file and removes it from the SMB allowlist to avoid leftover files.
 
+## 1.18.3 - 2025-12-06
+- Status Messages panel: added buttons to copy the last event or last 10 events to the clipboard (helps when auto-refresh makes manual select/copy difficult).
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 
