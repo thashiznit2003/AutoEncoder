@@ -230,7 +230,7 @@ MAIN_PAGE_TEMPLATE = """
           '  <div class="muted">-> ' + (item.destination || "") + '</div>',
           '  <div class="muted">' + (item.message || "") + '</div>',
           infoLine,
-          '  <div class="muted">' + (etaText || (duration ? "Encode elapsed: " + duration : "")) + '</div>',
+          '  <div class="muted">' + (etaText || (duration ? ((state === "queued") ? "Queued for: " + duration : "Encode elapsed: " + duration) : "")) + '</div>',
           '  ' + progBar,
           '</div>'
         ].join("");

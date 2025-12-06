@@ -54,6 +54,9 @@
 ## 1.18.5 - 2025-12-06
 - Cleanup staged source + sidecar .srt files after successful encode and drop allowlist entries to avoid blocking future SMB copies.
 
+## 1.18.6 - 2025-12-06
+- Active Encodes: queued items now show “Queued for:” with the elapsed queue time instead of “Encode elapsed.”
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 
