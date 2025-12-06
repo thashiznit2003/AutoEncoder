@@ -8,6 +8,7 @@ import pathlib
 import shutil
 from functools import wraps
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
+from autoencoder import save_smb_allowlist, load_smb_allowlist
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
@@ -1363,6 +1364,9 @@ def create_app(tracker, config_manager=None):
             return cand
         dest = unique_path(dest_root, target.name)
         shutil.copy2(target, dest)
+        allowlist = load_smb_allowlist()
+        allowlist.add(dest.name)
+        save_smb_allowlist(allowlist)
         tracker.add_manual_file(str(dest))
         tracker.add_event(f"Copied from SMB and staged: {target} -> {dest}")
         return jsonify({"queued": str(dest), "source": str(target)})

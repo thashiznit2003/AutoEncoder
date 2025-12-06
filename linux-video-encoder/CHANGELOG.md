@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.15.0 - 2025-12-04
+- Added SMB staging allowlist: only files copied via the app are permitted in `/mnt/smb_staging`; foreign files are removed, and the allowlist persists in a named volume (`autoencoder_state`).
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 

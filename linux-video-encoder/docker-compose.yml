@@ -33,6 +33,7 @@ services:
       - ./Output:/mnt/output:rw
       - ./Ripped:/mnt/ripped:rw
       - ./SMBStaging:/mnt/smb_staging:rw
+      - autoencoder_state:/var/lib/autoencoder/state:rw
     privileged: true
     devices:
       # Map your optical drive and (optionally) generic SCSI device into the container.
@@ -48,3 +49,6 @@ services:
       # - /dev/nvidia-uvm:/dev/nvidia-uvm
     # Uncomment if you need the container to mount/unmount devices itself (generally not needed if you bind mount).
     # privileged: true
+
+volumes:
+  autoencoder_state:
