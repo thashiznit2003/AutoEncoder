@@ -65,6 +65,9 @@
 ## 1.20.1 - 2025-12-06
 - Fix: low-bitrate auto-proceed/skip settings now persist (config update handles the new flags), and checkboxes reflect saved values.
 
+## 1.20.2 - 2025-12-06
+- Added low-bitrate auto-proceed/auto-skip status to HandBrake summaries (main and settings), and persisted checkboxes across navigation.
+
 ## 1.18.6 - 2025-12-06
 - Active Encodes: queued items now show “Queued for:” with the elapsed queue time instead of “Encode elapsed.”
 

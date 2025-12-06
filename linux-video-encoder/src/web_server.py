@@ -1276,6 +1276,8 @@ def create_app(tracker, config_manager=None):
                 "handbrake": cfg.get("handbrake", {}),
                 "handbrake_dvd": cfg.get("handbrake_dvd", {}),
                 "handbrake_br": cfg.get("handbrake_br", {}),
+                "low_bitrate_auto_proceed": cfg.get("low_bitrate_auto_proceed", False),
+                "low_bitrate_auto_skip": cfg.get("low_bitrate_auto_skip", False),
             }
         return jsonify(data)
 
