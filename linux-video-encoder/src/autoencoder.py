@@ -25,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from scanner import Scanner, EXCLUDED_SCAN_PATHS
 from encoder import Encoder  # kept as a fallback if needed
 from status_tracker import StatusTracker
-from smb_allowlist import enforce_smb_allowlist
+from smb_allowlist import enforce_smb_allowlist, load_smb_allowlist, save_smb_allowlist
 from web_server import start_web_server
 
 # locate config next to the project root
@@ -414,6 +414,41 @@ def safe_move(src: Path, dst: Path) -> bool:
     except Exception as e:
         logging.error("Failed to move %s to %s: %s", src, dst, e)
         return False
+
+
+def staging_has_files(staging_dir: Path) -> bool:
+    try:
+        return any(staging_dir.iterdir())
+    except FileNotFoundError:
+        return False
+
+
+def process_pending_smb(status_tracker: StatusTracker, staging_dir: Path, config: dict):
+    if not status_tracker.has_smb_pending():
+        return
+    if status_tracker.has_active_nonqueued():
+        return
+    if staging_has_files(staging_dir):
+        return
+    entry = status_tracker.pop_next_smb_pending()
+    if not entry:
+        return
+    src = Path(entry.get("source", ""))
+    dest = Path(entry.get("dest", staging_dir / src.name))
+    dest_root = staging_dir
+    dest_root.mkdir(parents=True, exist_ok=True)
+    try:
+        allowlist = load_smb_allowlist()
+        allowlist.add(dest.name)
+        save_smb_allowlist(allowlist)
+        shutil.copy2(src, dest)
+        status_tracker.add_manual_file(str(dest))
+        status_tracker.add_event(f"Copied queued SMB file after encode idle: {src} -> {dest}")
+        if not status_tracker.has_active(str(dest)):
+            dest_hint = compute_output_path(str(dest), config, Path(config.get("output_dir")))
+            status_tracker.start(str(dest), str(dest_hint), info=None, state="queued")
+    except Exception:
+        status_tracker.add_event(f"Failed to copy queued SMB file: {src} -> {dest}", level="error")
 
 
 def compute_output_path(video_file: str, config: Dict[str, Any], output_dir: Path) -> Path:
@@ -1045,6 +1080,7 @@ def main():
             else:
                 staging_dir = str(config.get("smb_staging_dir", "/mnt/smb_staging"))
                 enforce_smb_allowlist(staging_dir, status_tracker)
+                process_pending_smb(status_tracker, Path(staging_dir), config)
                 base_roots = ["/mnt/input", "/mnt/dvd", "/mnt/bluray", "/mnt/usb", staging_dir]
                 try:
                     mounted = scanner.ensure_mounted_candidates()

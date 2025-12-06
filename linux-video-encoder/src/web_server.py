@@ -1373,13 +1373,24 @@ def create_app(tracker, config_manager=None):
                 idx += 1
             return cand
         dest = unique_path(dest_root, target.name)
+        dest_path = dest
+        staging_busy = tracker.has_active_nonqueued() or dest_root.exists() and any(dest_root.iterdir())
+        if staging_busy:
+            tracker.add_smb_pending({"mount_id": mid, "source": str(target), "dest": str(dest_path)})
+            if not tracker.has_active(str(dest_path)):
+                tracker.start(str(dest_path), str(dest_path), info=None, state="queued")
+                tracker.set_message(str(dest_path), "SMB copy queued (encoder busy)")
+            tracker.add_event(f"Queued SMB copy until encoder idle: {target} -> {dest_path}")
+            return jsonify({"queued": str(dest_path), "source": str(target), "pending": True})
         allowlist = load_smb_allowlist()
-        allowlist.add(dest.name)
+        allowlist.add(dest_path.name)
         save_smb_allowlist(allowlist)
-        shutil.copy2(target, dest)
-        tracker.add_manual_file(str(dest))
-        tracker.add_event(f"Copied from SMB and staged: {target} -> {dest}")
-        return jsonify({"queued": str(dest), "source": str(target)})
+        shutil.copy2(target, dest_path)
+        tracker.add_manual_file(str(dest_path))
+        tracker.add_event(f"Copied from SMB and staged: {target} -> {dest_path}")
+        if not tracker.has_active(str(dest_path)):
+            tracker.start(str(dest_path), str(dest_path), info=None, state="queued")
+        return jsonify({"queued": str(dest_path), "source": str(target), "pending": False})
 
     @app.route("/api/makemkv/info")
     @require_auth

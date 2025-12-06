@@ -26,6 +26,7 @@ class StatusTracker:
         self._disc_info = None
         self._disc_pending = False
         self._disc_rip_requested = False
+        self._smb_pending = []
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -59,6 +60,10 @@ class StatusTracker:
     def has_active(self, src: str) -> bool:
         with self._lock:
             return src in self._active
+
+    def has_active_nonqueued(self) -> bool:
+        with self._lock:
+            return any(item.get("state") not in ("queued",) for item in self._active.values())
 
     def set_message(self, src: str, message: str):
         with self._lock:
@@ -247,6 +252,21 @@ class StatusTracker:
             items = list(self._manual_files)
             self._manual_files = []
             return items
+
+    # Pending SMB copies (deferred until encoder idle)
+    def add_smb_pending(self, entry: dict):
+        with self._lock:
+            self._smb_pending.append(entry)
+
+    def pop_next_smb_pending(self):
+        with self._lock:
+            if not self._smb_pending:
+                return None
+            return self._smb_pending.pop(0)
+
+    def has_smb_pending(self) -> bool:
+        with self._lock:
+            return bool(self._smb_pending)
 
     # Disc info/pending management
     def set_disc_info(self, info: dict):
