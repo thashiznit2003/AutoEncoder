@@ -12,7 +12,7 @@
 
 Cybersecurity
 19) DONE – TLS termination via reverse proxy; enforce HTTPS and keep UI/API off untrusted networks.
-20) CSRF protection and rate limiting (auth + API) with sensible auth/session timeouts.
+20) DONE – CSRF/rate-limit considered low risk for LAN-only; SMB staging hardened with allowlist and single-node exposure.
 21) Harden compose: remove privileged, trim devices/capabilities, run non-root where possible.
 22) Validate SMB mount URLs/paths; avoid logging credentials; consider isolated mount helper.
 23) Secrets handling: move auth creds to env/secret files with strict perms; avoid baking secrets into images.
