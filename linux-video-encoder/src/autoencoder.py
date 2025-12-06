@@ -28,8 +28,10 @@ from status_tracker import StatusTracker
 from smb_allowlist import enforce_smb_allowlist, load_smb_allowlist, save_smb_allowlist, remove_from_allowlist
 from web_server import start_web_server
 
-# locate config next to the project root
-CONFIG_PATH = Path(__file__).resolve().parents[1] / "config.json"
+# locate config in the state volume (seeded from repo config.json on first run)
+STATE_DIR = Path("/var/lib/autoencoder/state")
+CONFIG_PATH = STATE_DIR / "config.json"
+FALLBACK_CONFIG_PATH = Path(__file__).resolve().parents[1] / "config.json"
 LOG_DIR = Path(__file__).resolve().parents[1] / "logs"
 LOG_FILE = LOG_DIR / "app.log"
 WEB_PORT = 5959
@@ -127,8 +129,21 @@ DEFAULT_CONFIG = {
 
 class ConfigManager:
     def __init__(self, path: Path):
+        self._ensure_seed()
         self.path = path
         self.lock = threading.Lock()
+
+    def _ensure_seed(self):
+        """Ensure the persisted config file exists; seed from fallback config.json if missing."""
+        try:
+            CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+            if not CONFIG_PATH.exists():
+                if FALLBACK_CONFIG_PATH.exists():
+                    shutil.copy2(FALLBACK_CONFIG_PATH, CONFIG_PATH)
+                else:
+                    CONFIG_PATH.touch()
+        except Exception:
+            logging.exception("Failed to seed config file at %s", CONFIG_PATH)
 
     def read(self) -> Dict[str, Any]:
         with self.lock:

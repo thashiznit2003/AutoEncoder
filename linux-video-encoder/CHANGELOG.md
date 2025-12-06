@@ -5,6 +5,9 @@
 - Compose: added `./USBStaging -> /mnt/usb_staging` bind; USB bind remains `rw,rslave`.
 - Config/docs: new `usb_staging_dir` option, README/Version updated to 1.21.0.
 
+## 1.21.1 - 2025-12-06
+- Config persistence: config now lives in the state volume (`/var/lib/autoencoder/state/config.json`), seeded from repo `config.json` on first run, so UI settings survive pulls/rebuilds.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
