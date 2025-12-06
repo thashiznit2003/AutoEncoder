@@ -1,0 +1,33 @@
+Linux Video Encoder – Transition Notes (Chat 6)
+
+Repo/branch
+- Repo: https://github.com/thashiznit2003/AutoEncoder (branch: main)
+- Current version: 1.20.2
+
+User prefs / workflow
+- Always push to GitHub after changes.
+- Provide update command per change:
+  - Fast (no rebuild, most UI/code/script changes are bind-mounted): `cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate`
+  - Rebuild only when image contents change (Dockerfile/system deps/baked assets): append `docker compose build --no-cache && docker compose up -d --force-recreate`
+- Versioning: bump patch for any change, minor for features, major on request. Update CHANGELOG and README version string accordingly.
+- Avoid destructive commands; keep changes reversible.
+
+App summary
+- Python/Flask app with HandBrakeCLI/FFmpeg/MakeMKV pipeline. Scans input roots (USB/DVD/Bluray/File, SMB staging), queues single encode at a time.
+- UI (port 5959): Dashboard (Active, Recent, Status Messages with copy buttons, Metrics, SMB browser, Logs), Settings page (HandBrake/MakeMKV/Auth, low-bitrate auto options). Basic Auth configurable.
+- SMB: mounts via helper (validation, temp cred file), staging allowlist enforced; SMB queue defers copy if encoder/staging busy. Sidecar .srt is copied/allowlisted with video. Mounts clickable to browse; file list filtered to video/subtitle extensions.
+- Low-bitrate handling: optional auto-proceed or auto-skip; status shown in summaries.
+- External subs: matching sidecar .srt auto-included as default in encode.
+- Cancel/remove queued items deletes staged file/sidecars and allowlist entry.
+
+Open recommendations (see recommendations.txt)
+- Remaining items (as of chat end): 21 (compose hardening), 23 (secrets handling), 24 (security headers), plus feature items 4/5/7/8/9/10/11/12/13/14/18.
+
+Recent changes (since chat5 summary)
+- Added SMB helper with validation/cred file; allowlist persistence via volume; sidecar subtitle copy from SMB; queued remove button; filtered SMB browser.
+- Added auto-proceed/auto-skip low-bitrate options with UI/persistence and status display.
+- Status Messages copy buttons; Active Encodes queued timer label; cleanup of staged sidecars on cancel/complete.
+
+Notes for next chat
+- If reworking SMB or subtitles, remember allowlist lives in state volume (`autoencoder_state`); clean up entries on cancel/complete.
+- When changing Dockerfile/system deps, use rebuild command. Otherwise use fast restart.

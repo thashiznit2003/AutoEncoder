@@ -68,6 +68,9 @@
 ## 1.20.2 - 2025-12-06
 - Added low-bitrate auto-proceed/auto-skip status to HandBrake summaries (main and settings), and persisted checkboxes across navigation.
 
+## 1.20.3 - 2025-12-06
+- Added chat6.txt transition notes (workflow, update commands, feature/security status).
+
 ## 1.18.6 - 2025-12-06
 - Active Encodes: queued items now show “Queued for:” with the elapsed queue time instead of “Encode elapsed.”
 
