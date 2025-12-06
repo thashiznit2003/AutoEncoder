@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.5 - 2025-12-04
+- Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
+
 ## 1.14.4 - 2025-12-04
 - Enlarged the header icon to better fill the top bar.
 

@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.14.4)
+# Linux Video Encoder (v1.14.5)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -63,6 +63,7 @@ Compose highlights:
 - Dashboard layout: active encodes, recent jobs, status messages, metrics, SMB browser, and a live log tail pulled from the application log.
 - Settings page: HandBrake defaults/presets, MakeMKV options/registration/update helper, and HTTP Basic Auth credentials.
 - Basic auth is enabled by default (`admin` / `changeme`); update on the Settings page and reload with the new credentials.
+- Security posture: this app is intended for LAN/VPN access. Do not expose it directly to the public internet. If you want a friendly name/HTTPS, front it with a reverse proxy like Nginx Proxy Manager on your LAN and restrict direct port access.
 
 ### Installer script defaults
 - `scripts/install_and_run.sh` defaults `REPO_URL` to your fork (`https://github.com/thashiznit2003/AutoEncoder.git`). Override with `REPO_URL=...` if needed.
