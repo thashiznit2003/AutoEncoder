@@ -11,7 +11,7 @@
 18) Monitoring: add queued count indicator in header; show per-job encoder/hw decode info in Active.
 
 Cybersecurity
-19) TLS termination via reverse proxy; enforce HTTPS and keep UI/API off untrusted networks.
+19) DONE – TLS termination via reverse proxy; enforce HTTPS and keep UI/API off untrusted networks.
 20) CSRF protection and rate limiting (auth + API) with sensible auth/session timeouts.
 21) Harden compose: remove privileged, trim devices/capabilities, run non-root where possible.
 22) Validate SMB mount URLs/paths; avoid logging credentials; consider isolated mount helper.
