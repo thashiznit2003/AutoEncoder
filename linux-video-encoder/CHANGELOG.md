@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.20.5 - 2025-12-06
+- Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
+
 ## 1.20.4 - 2025-12-06
 - Documentation: README versioning section updated to match 1.20.x (current version, SMB staging/sidecar handling, version bump policy).
 
