@@ -1059,20 +1059,21 @@ def create_app(tracker, config_manager=None):
             pass
         return base
 
-    def mount_smb(url: str, username: str = "", password: str = "") -> str:
+    def mount_smb(url: str, username: str = "", password: str = "", domain: str = "", vers: str = "") -> str:
         mid = uuid.uuid4().hex
         mnt = SMB_MOUNT_ROOT / mid
         mnt.mkdir(parents=True, exist_ok=True)
         label = url.rstrip("/").split("/")[-1] if url else mid
-        opts = []
+        helper = [sys.executable, "/linux-video-encoder/scripts/mount_smb_helper.py", "--url", url, "--mountpoint", str(mnt)]
         if username:
-            opts.append(f"username={username}")
-        else:
-            opts.append("guest")
+            helper += ["--username", username]
         if password:
-            opts.append(f"password={password}")
-        cmd = ["mount", "-t", "cifs", normalize_smb_url(url), str(mnt), "-o", ",".join(opts)]
-        res = subprocess.run(cmd, capture_output=True, text=True)
+            helper += ["--password", password]
+        if domain:
+            helper += ["--domain", domain]
+        if vers:
+            helper += ["--vers", vers]
+        res = subprocess.run(helper, capture_output=True, text=True)
         if res.returncode != 0:
             try:
                 mnt.rmdir()
@@ -1291,10 +1292,12 @@ def create_app(tracker, config_manager=None):
         url = payload.get("url", "")
         username = payload.get("username", "")
         password = payload.get("password", "")
+        domain = payload.get("domain", "")
+        vers = payload.get("vers", "")
         if not url:
             return jsonify({"error": "url required"}), 400
         try:
-            mid = mount_smb(url, username, password)
+            mid = mount_smb(url, username, password, domain, vers)
             return jsonify({"mount_id": mid, "path": tracker.list_smb_mounts().get(mid)})
         except Exception as e:
             return jsonify({"error": str(e)}), 400

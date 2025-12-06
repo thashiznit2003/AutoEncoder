@@ -6,6 +6,9 @@
 ## 1.15.1 - 2025-12-04
 - Fixed circular import crash by moving SMB allowlist helpers into a dedicated module.
 
+## 1.15.2 - 2025-12-04
+- Added SMB mount helper with validation and credential-file handling; web app now calls the helper (no shell), and creds are kept out of logs. Staging allowlist unchanged.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 
