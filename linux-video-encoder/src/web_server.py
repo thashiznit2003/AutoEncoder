@@ -1375,8 +1375,22 @@ def create_app(tracker, config_manager=None):
         dest = unique_path(dest_root, target.name)
         dest_path = dest
         staging_busy = tracker.has_active_nonqueued() or dest_root.exists() and any(dest_root.iterdir())
+        # detect matching sidecar .srt to copy alongside
+        sidecar = None
+        try:
+            stem = target.stem
+            exact = target.parent / f"{stem}.srt"
+            if exact.is_file():
+                sidecar = exact
+            else:
+                for cand in sorted(target.parent.glob(f"{stem}.*.srt")):
+                    if cand.is_file():
+                        sidecar = cand
+                        break
+        except Exception:
+            sidecar = None
         if staging_busy:
-            tracker.add_smb_pending({"mount_id": mid, "source": str(target), "dest": str(dest_path)})
+            tracker.add_smb_pending({"mount_id": mid, "source": str(target), "dest": str(dest_path), "sidecar": str(sidecar) if sidecar else None})
             if not tracker.has_active(str(dest_path)):
                 tracker.start(str(dest_path), str(dest_path), info=None, state="queued")
                 tracker.set_message(str(dest_path), "SMB copy queued (encoder busy)")
@@ -1384,8 +1398,16 @@ def create_app(tracker, config_manager=None):
             return jsonify({"queued": str(dest_path), "source": str(target), "pending": True})
         allowlist = load_smb_allowlist()
         allowlist.add(dest_path.name)
+        if sidecar:
+            allowlist.add(Path(dest_path.parent, Path(sidecar).name).name)
         save_smb_allowlist(allowlist)
         shutil.copy2(target, dest_path)
+        if sidecar:
+            try:
+                shutil.copy2(sidecar, dest_path.parent / Path(sidecar).name)
+                tracker.add_event(f"Copied external subtitle: {sidecar}")
+            except Exception:
+                tracker.add_event(f"Failed to copy external subtitle: {sidecar}", level="error")
         tracker.add_manual_file(str(dest_path))
         tracker.add_event(f"Copied from SMB and staged: {target} -> {dest_path}")
         if not tracker.has_active(str(dest_path)):

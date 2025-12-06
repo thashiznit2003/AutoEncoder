@@ -454,13 +454,22 @@ def process_pending_smb(status_tracker: StatusTracker, staging_dir: Path, config
         return
     src = Path(entry.get("source", ""))
     dest = Path(entry.get("dest", staging_dir / src.name))
+    sidecar = entry.get("sidecar")
     dest_root = staging_dir
     dest_root.mkdir(parents=True, exist_ok=True)
     try:
         allowlist = load_smb_allowlist()
         allowlist.add(dest.name)
+        if sidecar:
+            allowlist.add(Path(sidecar).name)
         save_smb_allowlist(allowlist)
         shutil.copy2(src, dest)
+        if sidecar:
+            try:
+                shutil.copy2(Path(sidecar), dest_root / Path(sidecar).name)
+                status_tracker.add_event(f"Copied queued external subtitle: {sidecar}")
+            except Exception:
+                status_tracker.add_event(f"Failed to copy queued external subtitle: {sidecar}", level="error")
         status_tracker.add_manual_file(str(dest))
         status_tracker.add_event(f"Copied queued SMB file after encode idle: {src} -> {dest}")
         if not status_tracker.has_active(str(dest)):

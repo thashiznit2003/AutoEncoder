@@ -36,6 +36,9 @@
 ## 1.17.0 - 2025-12-06
 - External .srt subtitles: when a matching sidecar .srt exists (same stem or stem.lang), it is auto-included in HandBrake encodes and marked default; event logged.
 
+## 1.18.0 - 2025-12-06
+- SMB queue now also copies matching sidecar .srt files (immediate or deferred) and allowlists them so external subtitles survive staging cleanup.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 
