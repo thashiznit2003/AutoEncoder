@@ -156,6 +156,8 @@ class ConfigManager:
                 "makemkv_exclude_commentary",
                 "makemkv_prefer_surround",
                 "makemkv_auto_rip",
+                "low_bitrate_auto_proceed",
+                "low_bitrate_auto_skip",
                 "search_path",
                 "profile",
             ]:

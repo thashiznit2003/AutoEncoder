@@ -62,6 +62,9 @@
 - Settings: added “auto-proceed” and “auto-skip” options for low-bitrate detections with saved state.
 - Encoding: low-bitrate auto-proceed skips confirmation; auto-skip removes staged files and records an event.
 
+## 1.20.1 - 2025-12-06
+- Fix: low-bitrate auto-proceed/skip settings now persist (config update handles the new flags), and checkboxes reflect saved values.
+
 ## 1.18.6 - 2025-12-06
 - Active Encodes: queued items now show “Queued for:” with the elapsed queue time instead of “Encode elapsed.”
 
