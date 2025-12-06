@@ -29,7 +29,7 @@ def normalize_smb_url(url: str) -> str:
     if not parsed.netloc:
         raise ValueError("missing server/share")
     sanitize_component(parsed.netloc)
-    path = parsed.path or ""
+    path = (parsed.path or "").lstrip("/")
     # Normalize path, rejecting traversal
     norm_path = PurePosixPath("/" + path)
     if ".." in norm_path.parts:
@@ -58,23 +58,31 @@ def build_credentials_file(username: str, password: str, domain: str | None) -> 
 def run_mount(unc: str, mountpoint: Path, username: str, password: str, domain: str | None, vers: str | None) -> tuple[int, str]:
     mountpoint.mkdir(parents=True, exist_ok=True)
     cred_file = None
-    opts = ["rw", "iocharset=utf8"]
     try:
         cred_file = build_credentials_file(username, password, domain)
+        base_opts = ["rw", "iocharset=utf8"]
         if cred_file:
-            opts.append(f"credentials={cred_file}")
+            base_opts.append(f"credentials={cred_file}")
         else:
-            opts.append("guest")
-        if vers:
-            sanitize_component(vers)
-            opts.append(f"vers={vers}")
-        cmd = ["mount", "-t", "cifs", unc, str(mountpoint), "-o", ",".join(opts)]
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        # Avoid echoing creds; return sanitized output
-        output = (res.stderr or res.stdout or "").strip()
-        public_opts = [o for o in opts if not o.startswith("credentials=")]
-        msg = f"UNC={unc} opts={';'.join(public_opts)} msg={output or res.returncode}"
-        return res.returncode, msg
+            base_opts.append("guest")
+        vers_attempts = [vers] if vers else ["3.0", "2.1", "2.0"]
+        last_output = ""
+        last_opts = []
+        for v in vers_attempts:
+            opts = base_opts.copy()
+            if v:
+                sanitize_component(v)
+                opts.append(f"vers={v}")
+            cmd = ["mount", "-t", "cifs", unc, str(mountpoint), "-o", ",".join(opts)]
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            output = (res.stderr or res.stdout or "").strip()
+            public_opts = [o for o in opts if not o.startswith("credentials=")]
+            msg = f"UNC={unc} opts={';'.join(public_opts)} msg={output or res.returncode}"
+            if res.returncode == 0:
+                return 0, msg
+            last_output = msg
+            last_opts = public_opts
+        return 1, last_output or f"UNC={unc} opts={';'.join(last_opts) or 'none'} msg=mount failed"
     finally:
         if cred_file and cred_file.exists():
             try:
