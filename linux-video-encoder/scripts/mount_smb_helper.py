@@ -36,8 +36,11 @@ def normalize_smb_url(url: str) -> str:
         raise ValueError("path traversal not allowed")
     # Allow spaces; reject unsafe chars
     sanitize_component(path.replace("/", ""))
-    norm_str = "" if str(norm_path) == "/" else str(norm_path)
-    return "//" + parsed.netloc + norm_str
+    parts = [p for p in norm_path.parts if p not in ("", "/")]
+    unc = "//" + parsed.netloc
+    if parts:
+        unc += "/" + "/".join(parts)
+    return unc
 
 
 def build_credentials_file(username: str, password: str, domain: str | None) -> Path | None:

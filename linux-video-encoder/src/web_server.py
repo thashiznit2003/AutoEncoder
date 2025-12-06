@@ -1086,7 +1086,8 @@ def create_app(tracker, config_manager=None):
 
     def unmount_smb(mount_id: str):
         mounts = tracker.list_smb_mounts()
-        mnt = mounts.get(mount_id)
+        entry = mounts.get(mount_id)
+        mnt = entry.get("path") if isinstance(entry, dict) else entry
         if not mnt:
             return
         subprocess.run(["umount", mnt], capture_output=True, text=True)
