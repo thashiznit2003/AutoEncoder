@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.21.2)
+# Linux Video Encoder (v1.21.3)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -71,6 +71,7 @@ Compose highlights:
 - Low-bitrate handling: optional auto-proceed or auto-skip for low bitrate vs target can be set in Settings.
 - Config persistence: config is stored in the state volume at `/var/lib/autoencoder/state/config.json` (seeded from repo `config.json` on first run), so UI settings survive pulls/rebuilds. If you want to reset, stop the stack and remove that file from the state volume.
 - USB automount: a udev helper mounts any USB partition to `./USB` (binds to `/mnt/usb`) automatically; USB files are staged to `/mnt/usb_staging` before encode so originals remain on the stick.
+- Samba shares: installer can create shares for input/output/smbstaging/usbstaging; standalone helper scripts live under `scripts/setup_smbstaging_share.sh` and `scripts/setup_usbstaging_share.sh`.
 
 ### Installer script defaults
 - `scripts/install_and_run.sh` defaults `REPO_URL` to your fork (`https://github.com/thashiznit2003/AutoEncoder.git`). Override with `REPO_URL=...` if needed.
@@ -144,7 +145,7 @@ MakeMKV downloads note:
 - Connect to `smb://server/share[/path]` with username/password, browse directories, and queue files for encoding. Mounts are clickable to re-select. Selected files (and matching sidecar `.srt` files) are copied into the configured SMB staging directory (default `/mnt/smb_staging`) under an allowlist; copies defer when an encode is active or staging is busy, and originals stay on the share.
 
 ## Versioning
-- Current version: 1.21.2 (defined in `src/version.py` and shown in the UI header).
+- Current version: 1.21.3 (defined in `src/version.py` and shown in the UI header).
 - Release notes live in `CHANGELOG.md`; when bumping, update `VERSION`, this README header, and append to the changelog (patch for any change, minor for features, major on request).
 
 

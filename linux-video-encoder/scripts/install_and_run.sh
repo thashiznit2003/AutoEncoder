@@ -251,6 +251,7 @@ maybe_setup_samba_shares() {
   local file_share_path="$base/File"
   local output_share_path="$base/Output"
   local smb_staging_path="$base/SMBStaging"
+  local usb_staging_path="$base/USBStaging"
   printf "Create Samba shares for input and output? [y/N]: "
   local ans
   if ! read -r ans; then
@@ -291,9 +292,9 @@ maybe_setup_samba_shares() {
   printf "%s\n%s\n" "$smb_pass" "$smb_pass" | $SUDO smbpasswd -a "$smb_user" -s
 
   log "Preparing share directories..."
-  $SUDO mkdir -p "$file_share_path" "$output_share_path" "$smb_staging_path"
-  $SUDO chown -R "$smb_user":"$smb_user" "$file_share_path" "$output_share_path" "$smb_staging_path"
-  $SUDO chmod -R 775 "$file_share_path" "$output_share_path" "$smb_staging_path"
+  $SUDO mkdir -p "$file_share_path" "$output_share_path" "$smb_staging_path" "$usb_staging_path"
+  $SUDO chown -R "$smb_user":"$smb_user" "$file_share_path" "$output_share_path" "$smb_staging_path" "$usb_staging_path"
+  $SUDO chmod -R 775 "$file_share_path" "$output_share_path" "$smb_staging_path" "$usb_staging_path"
 
   log "Backing up /etc/samba/smb.conf to /etc/samba/smb.conf.bak (once)..."
   if [ ! -f /etc/samba/smb.conf.bak ]; then
@@ -301,7 +302,7 @@ maybe_setup_samba_shares() {
   fi
 
   # Remove existing share blocks if present, then append fresh ones.
-  for share in lv_file input output smbstaging; do
+  for share in lv_file input output smbstaging usbstaging; do
     $SUDO sed -i "/^\[$share\]/,/^\[/d" /etc/samba/smb.conf
   done
 
@@ -329,6 +330,16 @@ maybe_setup_samba_shares() {
 
 [smbstaging]
    path = $smb_staging_path
+   browseable = yes
+   read only = no
+   guest ok = no
+   valid users = $smb_user
+   force user = $smb_user
+   create mask = 0664
+   directory mask = 0775
+
+[usbstaging]
+   path = $usb_staging_path
    browseable = yes
    read only = no
    guest ok = no
