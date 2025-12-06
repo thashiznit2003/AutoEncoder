@@ -49,6 +49,7 @@ DEFAULT_CONFIG = {
     "low_bitrate_auto_skip": False,
     "video_extensions": [".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v"],
     "smb_staging_dir": "/mnt/smb_staging",
+    "usb_staging_dir": "/mnt/usb_staging",
     "auth_user": "admin",
     "auth_password": "changeme",
     "handbrake": {
@@ -145,6 +146,7 @@ class ConfigManager:
                 "min_size_mb",
                 "makemkv_minlength",
                 "smb_staging_dir",
+                "usb_staging_dir",
                 "auth_user",
                 "auth_password",
                 "makemkv_titles",
@@ -190,6 +192,7 @@ def load_config(path: Path):
     # ensure output_dir is a string path
     merged["output_dir"] = str(Path(merged["output_dir"]))
     merged["smb_staging_dir"] = str(Path(merged.get("smb_staging_dir", DEFAULT_CONFIG["smb_staging_dir"])))
+    merged["usb_staging_dir"] = str(Path(merged.get("usb_staging_dir", DEFAULT_CONFIG["usb_staging_dir"])))
     merged["auth_user"] = merged.get("auth_user", DEFAULT_CONFIG["auth_user"])
     merged["auth_password"] = merged.get("auth_password", DEFAULT_CONFIG["auth_password"])
     # ensure handbrake dict exists
@@ -467,6 +470,55 @@ def cleanup_sidecars_and_allowlist(src: Path):
                     pass
     finally:
         remove_from_allowlist(names)
+
+
+def stage_usb_file(src: Path, staging_dir: Path, status_tracker: Optional[StatusTracker] = None) -> Path:
+    """Copy a USB-sourced file (and matching sidecar .srt) into staging and return the staged path."""
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    base = src.stem
+    ext = src.suffix
+    dest = staging_dir / f"{base}{ext}"
+    try:
+        src_stat = src.stat()
+    except Exception:
+        src_stat = None
+
+    def pick_dest(existing_dest: Path) -> Path:
+        if not existing_dest.exists():
+            return existing_dest
+        # reuse if it matches size/mtime to avoid duplicate copies
+        try:
+            if src_stat and existing_dest.stat().st_size == src_stat.st_size:
+                return existing_dest
+        except Exception:
+            pass
+        idx = 1
+        candidate = existing_dest
+        while candidate.exists():
+            candidate = staging_dir / f"{base}({idx}){ext}"
+            idx += 1
+        return candidate
+
+    dest = pick_dest(dest)
+    copied = False
+    if not dest.exists():
+        shutil.copy2(src, dest)
+        copied = True
+
+    # copy matching sidecar subtitle if present
+    sidecar = find_external_subtitle(src)
+    if sidecar:
+        sidecar_dest = staging_dir / sidecar.name
+        try:
+            if not sidecar_dest.exists():
+                shutil.copy2(sidecar, sidecar_dest)
+        except Exception:
+            if status_tracker:
+                status_tracker.add_event(f"Failed to copy USB sidecar: {sidecar}", level="error")
+
+    if copied and status_tracker:
+        status_tracker.add_event(f"Staged USB file: {src} -> {dest}")
+    return dest
 
 
 def staging_has_files(staging_dir: Path) -> bool:
@@ -1177,6 +1229,26 @@ def main():
                     logging.debug("Scan root: %s inspect failed", root)
 
             video_files = scanner.find_video_files(scan_roots)
+            # stage USB files into a dedicated staging dir so originals remain untouched
+            usb_staging_dir = Path(config.get("usb_staging_dir", "/mnt/usb_staging"))
+            staged_video_files = []
+            for f in video_files:
+                p = Path(f)
+                if str(p).startswith("/mnt/usb/"):
+                    try:
+                        staged = stage_usb_file(p, usb_staging_dir, status_tracker)
+                        # register the staged file as queued if not already tracked
+                        if status_tracker and not status_tracker.has_active(str(staged)):
+                            dest_hint = compute_output_path(str(staged), config, Path(config.get("output_dir")))
+                            status_tracker.start(str(staged), str(dest_hint), info=None, state="queued")
+                        staged_video_files.append(str(staged))
+                    except Exception:
+                        logging.exception("Failed to stage USB file: %s", p)
+                        if status_tracker:
+                            status_tracker.add_event(f"Failed to stage USB file: {p}", level="error")
+                else:
+                    staged_video_files.append(f)
+            video_files = staged_video_files
             video_files.extend(manual_files)
             for f in video_files:
                 if status_tracker:

@@ -27,6 +27,7 @@ services:
       - ./src:/linux-video-encoder/src
       - ./scripts:/linux-video-encoder/scripts
       - ./USB:/mnt/usb:rw,rslave
+      - ./USBStaging:/mnt/usb_staging:rw
       - ./DVD:/mnt/dvd:rw
       - ./Bluray:/mnt/bluray:rw
       - ./File:/mnt/input:rw

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.21.0 - 2025-12-06
+- USB staging: USB-sourced files are copied to `/mnt/usb_staging` (bind-mounted) before encoding so originals stay on the stick; staging copies are removed after success.
+- Compose: added `./USBStaging -> /mnt/usb_staging` bind; USB bind remains `rw,rslave`.
+- Config/docs: new `usb_staging_dir` option, README/Version updated to 1.21.0.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

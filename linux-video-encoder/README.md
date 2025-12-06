@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.20.5)
+# Linux Video Encoder (v1.21.0)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -44,6 +44,7 @@ Compose highlights:
 - Intel GPU: uncomment the `/dev/dri` device mapping if you need Intel QuickSync (or add other GPU devices as needed).
 - If you need the container to mount/unmount drives itself, add `privileged: true`; otherwise mount your media paths from the host.
 - Web UI: port `5959` is exposed; open `http://<host>:5959` for the dashboard or `/settings` for HandBrake/MakeMKV/auth settings (logo served from baked `/assets` path).
+- USB: mount your USB stick on the host at `./USB` (binds to `/mnt/usb`), and the app copies files into `/mnt/usb_staging` before encoding so originals on the stick are never deleted; staged copies are cleaned up after successful encodes.
 
 ### Proxmox -> Ubuntu VM -> Docker optical drive passthrough
 1. In Proxmox, passthrough the SATA Blu-Ray/DVD drive to the Ubuntu VM (e.g., `qm set <VMID> -scsi1 /dev/disk/by-id/<your-drive-id>`).
@@ -141,7 +142,7 @@ MakeMKV downloads note:
 - Connect to `smb://server/share[/path]` with username/password, browse directories, and queue files for encoding. Mounts are clickable to re-select. Selected files (and matching sidecar `.srt` files) are copied into the configured SMB staging directory (default `/mnt/smb_staging`) under an allowlist; copies defer when an encode is active or staging is busy, and originals stay on the share.
 
 ## Versioning
-- Current version: 1.20.5 (defined in `src/version.py` and shown in the UI header).
+- Current version: 1.21.0 (defined in `src/version.py` and shown in the UI header).
 - Release notes live in `CHANGELOG.md`; when bumping, update `VERSION`, this README header, and append to the changelog (patch for any change, minor for features, major on request).
 
 
