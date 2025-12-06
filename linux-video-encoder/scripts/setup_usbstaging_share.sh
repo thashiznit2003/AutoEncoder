@@ -20,25 +20,21 @@ fi
 BASE_DIR="${BASE_DIR:-/linux-video-encoder}"
 REPO_DIR="${REPO_DIR:-$BASE_DIR/AutoEncoder/linux-video-encoder}"
 USB_STAGING_DIR="${USB_STAGING_DIR:-$REPO_DIR/USBStaging}"
-SMB_USER="${SMB_USER:-}"
-SMB_PASS="${SMB_PASS:-}"
+SMB_USER=""
+SMB_PASS=""
 
 log() { printf '[usbstaging] %s\n' "$*"; }
 
 prompt_creds() {
-  if [ -z "$SMB_USER" ]; then
-    printf "Enter Samba username (will be created if missing): "
-    read -r SMB_USER
-  fi
+  printf "Enter Samba username (will be created if missing): "
+  read -r SMB_USER
   if [ -z "$SMB_USER" ]; then
     log "No Samba user provided; aborting."
     exit 1
   fi
-  if [ -z "$SMB_PASS" ]; then
-    printf "Enter Samba password for %s: " "$SMB_USER"
-    read -rs SMB_PASS
-    printf "\n"
-  fi
+  printf "Enter Samba password for %s: " "$SMB_USER"
+  read -rs SMB_PASS
+  printf "\n"
   if [ -z "$SMB_PASS" ]; then
     log "No Samba password provided; aborting."
     exit 1

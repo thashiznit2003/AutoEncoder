@@ -14,6 +14,9 @@
 ## 1.21.3 - 2025-12-06
 - Samba: installer now also shares `USBStaging` (usbstaging) alongside input/output/smbstaging. Added `scripts/setup_usbstaging_share.sh` for on-demand share setup.
 
+## 1.21.4 - 2025-12-06
+- `setup_usbstaging_share.sh` now always prompts for Samba credentials (ignores env) to avoid accidental reuse of incorrect env vars.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
