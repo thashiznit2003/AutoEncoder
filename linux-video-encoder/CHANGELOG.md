@@ -21,6 +21,9 @@
 ## 1.15.6 - 2025-12-06
 - Fixed SMB UNC normalization to avoid double slashes in paths and fixed SMB unmount when mount entries include labels.
 
+## 1.15.7 - 2025-12-06
+- SMB mount helper now allows parentheses in paths (removed them from the disallowed character set).
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 

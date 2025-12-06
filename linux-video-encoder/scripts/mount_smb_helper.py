@@ -11,7 +11,8 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
 STATE_DIR = Path("/var/lib/autoencoder/state")
-UNSAFE_CHARS = set(";|&<>`$()")
+# Disallow shell/meta/control chars but allow spaces/dashes/underscores/parentheses.
+UNSAFE_CHARS = set(";|&<>`$")
 
 
 def sanitize_component(val: str) -> str:
