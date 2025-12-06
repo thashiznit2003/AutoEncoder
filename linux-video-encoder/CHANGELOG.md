@@ -24,6 +24,9 @@
 ## 1.15.7 - 2025-12-06
 - SMB mount helper now allows parentheses in paths (removed them from the disallowed character set).
 
+## 1.15.8 - 2025-12-06
+- SMB staging: queueing now allowlists the destination before copying, and enforcement no longer prunes missing entries to avoid deleting in-progress copies.
+
 ## 1.14.5 - 2025-12-04
 - Added documentation that the UI is intended for LAN/VPN use and should not be exposed directly to the public internet; recommend accessing via a LAN reverse proxy (e.g., Nginx Proxy Manager).
 

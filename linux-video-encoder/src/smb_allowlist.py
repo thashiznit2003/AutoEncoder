@@ -50,5 +50,4 @@ def enforce_smb_allowlist(staging_dir: str, tracker=None) -> None:
                     tracker.add_event(f"Failed to remove foreign file from SMB staging: {entry}", level="error")
     except FileNotFoundError:
         return
-    if allowed_present != allowlist:
-        save_smb_allowlist(allowed_present)
+    # Keep allowlist entries even if the file is not present (e.g., mid-copy or awaiting encode).
