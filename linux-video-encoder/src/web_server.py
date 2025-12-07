@@ -1370,25 +1370,36 @@ def create_app(tracker, config_manager=None):
             dev = None
             fstype = None
             res = subprocess.run(
-                ["lsblk", "-nr", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE,TRAN"],
+                ["lsblk", "-nrP", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE,TRAN"],
                 capture_output=True,
                 text=True,
                 check=False,
             )
             logger.info("USB refresh: lsblk output:\n%s", res.stdout)
             disk_transport = {}
+
+            def parse_lsblk_line(line: str) -> dict:
+                parsed = {}
+                for token in line.split():
+                    if "=" not in token:
+                        continue
+                    k, v = token.split("=", 1)
+                    parsed[k] = v.strip('"')
+                return parsed
+
             for line in res.stdout.splitlines():
-                parts = line.split()
-                if len(parts) < 3:
+                entry = parse_lsblk_line(line)
+                name = entry.get("NAME", "")
+                typ = entry.get("TYPE", "")
+                rm = entry.get("RM", "")
+                mp = entry.get("MOUNTPOINT", "") or ""
+                fs = entry.get("FSTYPE", "") or ""
+                tran = entry.get("TRAN", "") or ""
+                if not name or not typ:
                     continue
-                name, typ, rm = parts[0], parts[1], parts[2]
-                mp = parts[3] if len(parts) >= 4 else ""
-                fs = parts[4] if len(parts) >= 5 else ""
-                tran = parts[5] if len(parts) >= 6 else ""
                 if typ == "disk":
                     disk_transport[name] = tran
                     continue
-                # accept removable partitions OR USB transport even if rm=0 (some HDDs report non-removable)
                 if typ != "part":
                     continue
                 if not tran:
@@ -1400,7 +1411,6 @@ def create_app(tracker, config_manager=None):
                     continue
                 dev = f"/dev/{name}"
                 fstype = fs or None
-                # if already mounted where we want, reuse
                 if mp == target:
                     logger.info("USB refresh: already mounted %s at %s", dev, target)
                     tracker.add_event(f"USB already mounted at {target}: {dev}")

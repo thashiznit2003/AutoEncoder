@@ -77,6 +77,10 @@
 - UI: USB Status panel now has a working Refresh USB button that issues the `/api/usb/refresh` POST, shows progress, and triggers a status reload.
 - Frontend: fetch helper accepts request options (POST) so refresh and future actions can call APIs without custom wrappers.
 - Version bump to 1.21.23.
+
+## 1.21.24 - 2025-12-07
+- USB refresh parsing made resilient: uses key/value lsblk output and inherits parent-disk transport so USB HDDs/flash drives that report `rm=0` are still mounted; keeps logging lsblk output and mount attempts.
+- Version bump to 1.21.24.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
