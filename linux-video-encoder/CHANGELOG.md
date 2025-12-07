@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.24.3 - 2025-12-07
+- USB helper now unmounts both the host USB target and `/mnt/usb` before mounting to avoid stacked/broken mounts, and iterates helper mountpoint explicitly.
+- Web UI refresh/force-remount now targets the host mount path (not the container bind) and shares the helper mountpoint, reducing stale mount mismatches.
+- Version bumped to 1.24.3.
+
 ## 1.21.0 - 2025-12-06
 - USB staging: USB-sourced files are copied to `/mnt/usb_staging` (bind-mounted) before encoding so originals stay on the stick; staging copies are removed after success.
 - Compose: added `./USBStaging -> /mnt/usb_staging` bind; USB bind remains `rw,rslave`.
