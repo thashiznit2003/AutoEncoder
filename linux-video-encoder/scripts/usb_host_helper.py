@@ -249,27 +249,36 @@ class Handler(BaseHTTPRequestHandler):
                     subprocess.run(["umount", target], check=False)
                     rescan_block_devices()
                     lsblk_text = run_lsblk(pretty=True)
-                    dev, fstype = find_first_usb_partition(lsblk_text, target)
-                    step = {"attempt": i + 1, "lsblk": lsblk_text.strip(), "device": dev, "fstype": fstype}
-                    if not dev:
+                    parts = list_usb_partitions(lsblk_text, target)
+                    step = {"attempt": i + 1, "lsblk": lsblk_text.strip(), "candidates": parts}
+                    if not parts:
                         step["ok"] = False
                         step["error"] = "no removable/usb partition"
                         results.append(step)
+                        last_err = step.get("error")
                         time.sleep(delay)
                         continue
-                    mount_res = attempt_mount(dev, fstype, target)
-                    step.update(mount_res)
-                    try:
-                        entries = [e.name for e in os.scandir(target)]
-                        step["entries"] = entries[:20]
-                        if any(name not in (".", "..") for name in entries):
-                            results.append(step)
-                            return self._json(200 if mount_res.get("ok") else 500, {"ok": mount_res.get("ok", False), "device": dev, "fstype": fstype or "auto", "attempts": results})
-                    except Exception as e:
-                        step["entries_error"] = str(e)
-                    results.append(step)
-                    last_err = step.get("error")
-                    time.sleep(delay)
+                    mounted_this_attempt = False
+                    for cand in parts:
+                        dev = cand.get("device")
+                        fstype = cand.get("fstype")
+                        if not dev:
+                            continue
+                        mount_res = attempt_mount(dev, fstype, target)
+                        sub = {"device": dev, "fstype": fstype, "mount_result": mount_res}
+                        try:
+                            entries = [e.name for e in os.scandir(target)]
+                            sub["entries"] = entries[:20]
+                            if any(name not in (".", "..") for name in entries):
+                                results.append({**step, **sub, "ok": True})
+                                return self._json(200, {"ok": True, "device": dev, "fstype": fstype or "auto", "attempts": results})
+                        except Exception as e:
+                            sub["entries_error"] = str(e)
+                        results.append({**step, **sub, "ok": mount_res.get("ok", False), "error": mount_res.get("error")})
+                        last_err = mount_res.get("error")
+                        mounted_this_attempt = mounted_this_attempt or mount_res.get("ok", False)
+                    if not mounted_this_attempt:
+                        time.sleep(delay)
                 return self._json(500, {"ok": False, "error": last_err or "force remount failed", "attempts": results})
             except Exception as e:
                 logging.exception("force remount failed")
