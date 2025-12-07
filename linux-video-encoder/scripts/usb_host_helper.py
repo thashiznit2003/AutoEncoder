@@ -19,6 +19,7 @@ import sys
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Dict, List
+import shutil
 
 
 def run_lsblk(pretty: bool = True) -> str:
@@ -131,20 +132,66 @@ def attempt_mount(dev: str, fstype: str, mountpoint: str) -> Dict[str, str]:
         cmd += [dev, mountpoint]
         return subprocess.run(cmd, capture_output=True, text=True, check=False)
 
+    def run_fsck_once():
+        if fstype and fstype.lower() != "exfat":
+            return False, "fsck skipped (fstype != exfat)"
+        if not shutil.which("fsck.exfat"):
+            return False, "fsck.exfat not installed"
+        res_fsck = subprocess.run(["fsck.exfat", "-a", dev], capture_output=True, text=True, check=False)
+        ok = res_fsck.returncode == 0
+        msg = res_fsck.stderr.strip() or res_fsck.stdout.strip() or str(res_fsck.returncode)
+        return ok, msg
+
     res = do_mount(True)
+    fsck_msg = None
+    fsck_ran = False
     if res.returncode != 0:
         # retry without explicit fs type
         res = do_mount(False)
     if res.returncode != 0:
+        fsck_ok, fsck_msg = run_fsck_once()
+        fsck_ran = fsck_ok or fsck_msg is not None
         # final retry after rescan/unmount in case of stale state
         subprocess.run(["umount", mountpoint], check=False)
         rescan_block_devices()
         res = do_mount(False)
 
+    result: Dict[str, str] = {"device": dev, "fstype": fstype or "auto", "mountpoint": mountpoint}
     if res.returncode == 0:
-        return {"ok": True, "device": dev, "fstype": fstype or "auto", "mountpoint": mountpoint}
+        # validate readability; if EIO, try fsck+retry once
+        try:
+            os.listdir(mountpoint)
+        except OSError as e:
+            result["warn"] = f"read error after mount: {e}"
+            fsck_ok, fsck_msg = run_fsck_once()
+            fsck_ran = fsck_ran or fsck_ok or (fsck_msg is not None)
+            subprocess.run(["umount", mountpoint], check=False)
+            res = do_mount(False)
+            if res.returncode == 0:
+                try:
+                    os.listdir(mountpoint)
+                except Exception as e2:
+                    result["error"] = f"read error after fsck/mount: {e2}"
+                    result["ok"] = False
+                    if fsck_msg:
+                        result["fsck_msg"] = fsck_msg
+                    return result
+            else:
+                result["error"] = res.stderr.strip() or res.stdout.strip() or "mount failed after fsck"
+                result["ok"] = False
+                if fsck_msg:
+                    result["fsck_msg"] = fsck_msg
+                return result
+        result["ok"] = True
+        if fsck_ran:
+            result["fsck_msg"] = fsck_msg
+        return result
     msg = res.stderr.strip() or res.stdout.strip() or "mount failed"
-    return {"ok": False, "device": dev, "error": msg}
+    result["ok"] = False
+    result["error"] = msg
+    if fsck_ran and fsck_msg:
+        result["fsck_msg"] = fsck_msg
+    return result
 
 
 def rescan_block_devices():

@@ -140,6 +140,10 @@
 ## 1.23.5 - 2025-12-07
 - USB helper now ignores partitions already mounted to system paths (/, /boot, /boot/efi) and prefers removable/USB partitions that are unmounted or at the target mountpoint, reducing mis-detection of the wrong device.
 - Version bump to 1.23.5.
+
+## 1.23.6 - 2025-12-07
+- USB helper mount flow now unmounts first, retries mounts, runs fsck.exfat when needed, and revalidates readability to recover from transient I/O errors automatically.
+- Version bump to 1.23.6.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
