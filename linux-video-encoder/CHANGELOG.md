@@ -57,6 +57,9 @@
 
 ## 1.21.17 - 2025-12-06
 - USB refresh endpoint now scans removable partitions, sets mountpoint shared, unmounts/retries mount (with fs-type detection) up to 2 attempts and reports errors; improved consistency for hotplug/refresh.
+
+## 1.21.18 - 2025-12-06
+- USB refresh now logs attempts/errors, makes the mountpoint shared even when no device is present, scans removable partitions, and retries mounts (with/without fstype) before reporting failure. Logged output is visible in app logs/Status Messages.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

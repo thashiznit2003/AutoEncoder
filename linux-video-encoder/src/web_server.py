@@ -9,6 +9,7 @@ import pathlib
 from pathlib import Path
 import shutil
 from functools import wraps
+import logging
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
 from smb_allowlist import save_smb_allowlist, load_smb_allowlist, remove_from_allowlist
 
@@ -1342,6 +1343,7 @@ def create_app(tracker, config_manager=None):
         # Best-effort mount of first removable partition to /mnt/usb.
         try:
             target = "/mnt/usb"
+            logger = logging.getLogger(__name__)
             # discover first removable partition
             dev = None
             fstype = None
@@ -1364,11 +1366,15 @@ def create_app(tracker, config_manager=None):
                 fstype = fs or None
                 # if already mounted where we want, reuse
                 if mp == target:
+                    logger.info("USB refresh: already mounted %s at %s", dev, target)
                     tracker.add_event(f"USB already mounted at {target}: {dev}")
                     tracker.set_usb_status("ready", f"Mounted {dev}")
                     return jsonify({"ok": True, "device": dev, "fs": fstype or "unknown"})
                 break
             if not dev:
+                logger.info("USB refresh: no removable partition detected")
+                os.makedirs(target, exist_ok=True)
+                subprocess.run(["mount", "--make-rshared", target], check=False)
                 tracker.add_event("USB refresh: no removable partition found.", level="error")
                 tracker.set_usb_status("missing", "No removable partition detected")
                 return jsonify({"ok": False, "error": "no removable partition"})
@@ -1380,6 +1386,7 @@ def create_app(tracker, config_manager=None):
             subprocess.run(["umount", target], check=False)
 
             opts = "uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
+            logger.info("USB refresh: mounting %s -> %s (fstype=%s)", dev, target, fstype or "auto")
             cmd = ["mount", "-o", opts]
             if fstype:
                 cmd += ["-t", fstype]
@@ -1387,17 +1394,22 @@ def create_app(tracker, config_manager=None):
             rc = subprocess.run(cmd, capture_output=True, text=True, check=False)
             if rc.returncode != 0:
                 # retry without explicit fs type
+                logger.info("USB refresh: retry mount %s -> %s without fstype", dev, target)
                 rc = subprocess.run(["mount", "-o", opts, dev, target], capture_output=True, text=True, check=False)
             if rc.returncode == 0:
+                logger.info("USB refresh: mounted %s -> %s", dev, target)
                 tracker.add_event(f"USB mounted: {dev} -> {target}")
                 tracker.set_usb_status("ready", f"Mounted {dev}")
                 return jsonify({"ok": True, "device": dev, "fs": fstype or "auto"})
             else:
                 msg = rc.stderr.strip() or rc.stdout.strip() or "unknown error"
+                logger.error("USB refresh: failed to mount %s -> %s: %s", dev, target, msg)
                 tracker.add_event(f"USB refresh failed to mount {dev}: {msg}", level="error")
                 tracker.set_usb_status("error", f"Mount failed: {msg}")
                 return jsonify({"ok": False, "error": msg}), 500
         except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.exception("USB refresh request failed")
             tracker.add_event(f"USB refresh request failed: {e}", level="error")
             tracker.set_usb_status("error", "Refresh failed")
             return jsonify({"ok": False, "error": str(e)}), 500
