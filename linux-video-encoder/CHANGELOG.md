@@ -133,6 +133,9 @@
 ## 1.23.3 - 2025-12-07
 - Hooked up USB buttons in the main template to the correct endpoints (refresh/force remount) so clicks execute and log attempts.
 - Version bump to 1.23.3.
+
+## 1.23.4 - 2025-12-07
+- USB force remount endpoint now guards logger initialization to avoid exceptions when helper returns errors (e.g., 404 from outdated helper); version bumped.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

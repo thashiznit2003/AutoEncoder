@@ -1540,6 +1540,7 @@ def create_app(tracker, config_manager=None):
     @require_auth
     def usb_force_remount():
         helper_url = os.environ.get("USB_HELPER_URL", "http://host.docker.internal:8765")
+        logger = logging.getLogger(__name__)
         try:
             if helper_url:
                 try:
@@ -1579,7 +1580,6 @@ def create_app(tracker, config_manager=None):
                     return jsonify({"ok": False, "error": str(helper_exc)}), 500
             return jsonify({"ok": False, "error": "helper not configured"}), 500
         except Exception as e:
-            logger = logging.getLogger(__name__)
             logger.exception("USB force remount failed")
             tracker.add_event(f"USB force remount failed: {e}", level="error")
             tracker.set_usb_status("error", "Force remount failed")
