@@ -1348,7 +1348,7 @@ def create_app(tracker, config_manager=None):
             dev = None
             fstype = None
             res = subprocess.run(
-                ["lsblk", "-nr", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE"],
+                ["lsblk", "-nr", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE,TRAN"],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -1361,7 +1361,11 @@ def create_app(tracker, config_manager=None):
                 name, typ, rm = parts[0], parts[1], parts[2]
                 mp = parts[3] if len(parts) >= 4 else ""
                 fs = parts[4] if len(parts) >= 5 else ""
-                if typ != "part" or rm != "1":
+                tran = parts[5] if len(parts) >= 6 else ""
+                # accept removable partitions OR USB transport even if rm=0 (some HDDs report non-removable)
+                if typ != "part":
+                    continue
+                if not (rm == "1" or tran.lower() == "usb"):
                     continue
                 dev = f"/dev/{name}"
                 fstype = fs or None
@@ -1373,7 +1377,7 @@ def create_app(tracker, config_manager=None):
                     return jsonify({"ok": True, "device": dev, "fs": fstype or "unknown"})
                 break
             if not dev:
-                logger.info("USB refresh: no removable partition detected")
+                logger.info("USB refresh: no removable/usb partition detected; lsblk output:\n%s", res.stdout)
                 os.makedirs(target, exist_ok=True)
                 subprocess.run(["mount", "--make-rshared", target], check=False)
                 tracker.add_event("USB refresh: no removable partition found.", level="error")
