@@ -138,8 +138,8 @@ MAIN_PAGE_TEMPLATE = """
       document.getElementById("smb-connect").click();
     }
 
-    async function fetchJSON(url) {
-      const res = await fetch(url);
+    async function fetchJSON(url, opts) {
+      const res = await fetch(url, opts);
       return res.json();
     }
 

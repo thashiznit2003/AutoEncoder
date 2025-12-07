@@ -63,6 +63,9 @@
 
 ## 1.21.19 - 2025-12-06
 - USB refresh: added lsblk output and logging of mount attempts/errors to app logs for visibility when clicking Refresh USB.
+
+## 1.21.20 - 2025-12-06
+- UI: fetch helper now supports POST options so Refresh USB calls reach the backend; keeps USB refresh button functional.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
