@@ -111,21 +111,30 @@ def find_first_usb_partition(lsblk_text: str, target: str):
 
 def ensure_shared(mountpoint: str):
     os.makedirs(mountpoint, exist_ok=True)
-    subprocess.run(["mount", "--make-rshared", mountpoint], check=False)
 
 
 def attempt_mount(dev: str, fstype: str, mountpoint: str) -> Dict[str, str]:
     ensure_shared(mountpoint)
+    # Always try to unmount first to clean up stale/broken mounts
     subprocess.run(["umount", mountpoint], check=False)
     opts = "uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
-    cmd = ["mount", "-o", opts]
-    if fstype:
-        cmd += ["-t", fstype]
-    cmd += [dev, mountpoint]
-    res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    def do_mount(force_fs: bool) -> subprocess.CompletedProcess:
+        cmd = ["mount", "-o", opts]
+        if force_fs and fstype:
+            cmd += ["-t", fstype]
+        cmd += [dev, mountpoint]
+        return subprocess.run(cmd, capture_output=True, text=True, check=False)
+
+    res = do_mount(True)
     if res.returncode != 0:
-        # retry without explicit fstype
-        res = subprocess.run(["mount", "-o", opts, dev, mountpoint], capture_output=True, text=True, check=False)
+        # retry without explicit fs type
+        res = do_mount(False)
+    if res.returncode != 0:
+        # final retry after rescan/unmount in case of stale state
+        subprocess.run(["umount", mountpoint], check=False)
+        rescan_block_devices()
+        res = do_mount(False)
+
     if res.returncode == 0:
         return {"ok": True, "device": dev, "fstype": fstype or "auto", "mountpoint": mountpoint}
     msg = res.stderr.strip() or res.stdout.strip() or "mount failed"

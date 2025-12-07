@@ -108,6 +108,9 @@
 ## 1.22.4 - 2025-12-07
 - Host helper now defaults to listen on 0.0.0.0 (configurable via HELPER_LISTEN_ADDR/PORT/MOUNTPOINT) so the container can always reach it; installer updated accordingly.
 - Docs/version updated to 1.22.4.
+
+## 1.22.5 - 2025-12-07
+- Host helper mount routine now always unmounts first, retries with/without fstype, rescans block devices, and retries once more to avoid transient mount failures; version bumped.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
