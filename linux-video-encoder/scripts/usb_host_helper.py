@@ -116,6 +116,9 @@ def list_usb_partitions(lsblk_text: str, target: str) -> List[Dict[str, str]]:
 
 def ensure_shared(mountpoint: str):
     os.makedirs(mountpoint, exist_ok=True)
+    # bind to self and set shared to ensure propagation into rslave bind mounts
+    subprocess.run(["mount", "--bind", mountpoint, mountpoint], check=False)
+    subprocess.run(["mount", "--make-rshared", mountpoint], check=False)
 
 
 def attempt_mount(dev: str, fstype: str, mountpoint: str) -> Dict[str, str]:

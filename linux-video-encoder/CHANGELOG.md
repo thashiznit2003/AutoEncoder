@@ -160,6 +160,9 @@
 ## 1.24.0 - 2025-12-07
 - Force remount now iterates all USB candidates per attempt and always returns attempts even on error (200 with ok=false), avoiding 500s; UI now reads HTTP error bodies to surface helper details in Events.
 - Version bump to 1.24.0.
+
+## 1.24.1 - 2025-12-07
+- Helper now bind-mounts the USB mountpoint and marks it shared to improve propagation into the container when re-mounted.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
