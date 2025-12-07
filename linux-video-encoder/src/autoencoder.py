@@ -36,6 +36,9 @@ LOG_DIR = Path(__file__).resolve().parents[1] / "logs"
 LOG_FILE = LOG_DIR / "app.log"
 WEB_PORT = 5959
 SMB_MOUNT_ROOT = Path("/mnt/smb")
+USB_SEEN_PATH = STATE_DIR / "usb_seen.json"
+# map staged USB path -> original source path
+USB_ORIGIN_MAP: Dict[str, str] = {}
 
 DEFAULT_CONFIG = {
     "search_path": None,
@@ -257,6 +260,58 @@ def load_config(path: Path):
     merged["low_bitrate_auto_proceed"] = bool(merged.get("low_bitrate_auto_proceed"))
     merged["low_bitrate_auto_skip"] = bool(merged.get("low_bitrate_auto_skip"))
     return merged
+
+def load_usb_seen() -> Dict[str, Dict[str, float]]:
+    try:
+        with USB_SEEN_PATH.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        logging.debug("Failed to load USB seen file; starting fresh", exc_info=True)
+    return {}
+
+
+def save_usb_seen(data: Dict[str, Dict[str, float]]) -> None:
+    try:
+        USB_SEEN_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with USB_SEEN_PATH.open("w", encoding="utf-8") as f:
+            json.dump(data, f)
+    except Exception:
+        logging.debug("Failed to save USB seen file", exc_info=True)
+
+
+def is_usb_already_encoded(src: Path, src_stat=None) -> bool:
+    if not src:
+        return False
+    try:
+        st = src.stat() if src_stat is None else src_stat
+    except Exception:
+        return False
+    seen = load_usb_seen()
+    entry = seen.get(str(src))
+    if not entry:
+        return False
+    try:
+        size_match = entry.get("size") == st.st_size
+        mtime_match = abs(entry.get("mtime", 0) - st.st_mtime) < 1
+        return size_match and mtime_match
+    except Exception:
+        return False
+
+
+def mark_usb_encoded(src: Path, src_stat=None) -> None:
+    if not src:
+        return
+    try:
+        st = src.stat() if src_stat is None else src_stat
+    except Exception:
+        return
+    seen = load_usb_seen()
+    seen[str(src)] = {"size": st.st_size, "mtime": st.st_mtime}
+    save_usb_seen(seen)
 
 
 def setup_logging():
@@ -514,6 +569,11 @@ def stage_usb_file(src: Path, staging_dir: Path, status_tracker: Optional[Status
     except Exception:
         src_stat = None
 
+    if is_usb_already_encoded(src, src_stat):
+        if status_tracker:
+            status_tracker.add_event(f"Skipping already-encoded USB file: {src}")
+        return None
+
     def pick_dest(existing_dest: Path) -> Path:
         if not existing_dest.exists():
             return existing_dest
@@ -549,6 +609,8 @@ def stage_usb_file(src: Path, staging_dir: Path, status_tracker: Optional[Status
 
     if copied and status_tracker:
         status_tracker.add_event(f"Staged USB file: {src} -> {dest}")
+    # remember origin so we can mark it encoded after success
+    USB_ORIGIN_MAP[str(dest)] = str(src)
     return dest
 
 
@@ -1170,6 +1232,16 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             except Exception:
                 logging.debug("Failed to delete source file %s", src, exc_info=True)
             cleanup_sidecars_and_allowlist(src)
+            # mark original USB source as encoded to avoid re-queuing
+            try:
+                orig_src = USB_ORIGIN_MAP.pop(str(src), None)
+                if orig_src:
+                    try:
+                        mark_usb_encoded(Path(orig_src))
+                    except Exception:
+                        logging.debug("Failed to mark USB source encoded: %s", orig_src, exc_info=True)
+            except Exception:
+                logging.debug("Failed USB origin bookkeeping for %s", src, exc_info=True)
             cleanup_usb_staging(src, config)
         if status_tracker:
             status_tracker.complete(str(src), True, dest_str, "Encode complete")
@@ -1294,6 +1366,8 @@ def main():
                 if str(p).startswith("/mnt/usb/"):
                     try:
                         staged = stage_usb_file(p, usb_staging_dir, status_tracker)
+                        if staged is None:
+                            continue
                         # register the staged file as queued if not already tracked
                         if status_tracker and not status_tracker.has_active(str(staged)):
                             dest_hint = compute_output_path(str(staged), config, Path(config.get("output_dir")))

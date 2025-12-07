@@ -35,6 +35,9 @@
 ## 1.21.10 - 2025-12-06
 - Scanner: ignore common trash/system dirs (`.Trashes`, `.Spotlight-V100`, `.fseventsd`, `.Trash*`) to avoid re-queuing deleted USB files.
 
+## 1.21.11 - 2025-12-06
+- USB: track encoded USB sources (size/mtime) in state and skip staging if already encoded; map staged files back to their origins to prevent re-queueing while the stick remains plugged in.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
