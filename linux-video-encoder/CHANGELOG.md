@@ -42,6 +42,9 @@
 - UI: added USB status indicator (ready/missing/error) fed by backend health checks.
 - Backend: status API now includes USB status for UI display.
 
+## 1.21.13 - 2025-12-06
+- UI: USB status panel wired into the main template and refresh loop (shows ready/missing/error and message).
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

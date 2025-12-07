@@ -65,6 +65,10 @@ MAIN_PAGE_TEMPLATE = """
       <div id="active"></div>
     </div>
     <div class="panel">
+      <h2>🔌 USB Status</h2>
+      <div id="usb-status" class="muted">USB status: unknown</div>
+    </div>
+    <div class="panel">
       <h2>🕒 Recent Jobs</h2>
       <div id="recent" style="max-height: 260px; overflow-y: auto;"></div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
@@ -249,6 +253,18 @@ MAIN_PAGE_TEMPLATE = """
         const hbDvd = hbCfg.handbrake_dvd || {};
         const hbBr = hbCfg.handbrake_br || {};
         const hbExt = hb.extension || ".mkv";
+        const usb = status.usb_status || {};
+        const usbEl = document.getElementById("usb-status");
+        if (usbEl) {
+          const state = (usb.state || "unknown").toLowerCase();
+          const msg = usb.message || "";
+          let color = "#cbd5e1";
+          if (state === "ready") color = "#22c55e";
+          else if (state === "missing") color = "#fbbf24";
+          else if (state === "error") color = "#f87171";
+          usbEl.style.color = color;
+          usbEl.textContent = "USB " + state + (msg ? (": " + msg) : "");
+        }
         const lbNote = (hbCfg.low_bitrate_auto_skip ? "Low bitrate: auto-skip" : (hbCfg.low_bitrate_auto_proceed ? "Low bitrate: auto-proceed" : "Low bitrate: ask"));
         const audioModeLabel = (hb.audio_mode === "auto_dolby") ? "Auto Dolby" : (hb.audio_mode === "copy" ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
         document.getElementById("hb-runtime").textContent =
