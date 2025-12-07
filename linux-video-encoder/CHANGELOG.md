@@ -148,6 +148,10 @@
 ## 1.23.7 - 2025-12-07
 - Scanner now keeps /mnt/usb in scan list when mounted even if a read error occurs, only dropping it when not mounted; still logs USB errors and immediate scans on ready.
 - Version bump to 1.23.7.
+
+## 1.23.8 - 2025-12-07
+- Helper now iterates over all removable/USB partitions (skipping system mounts) and uses the first candidate, recording candidates in response; avoids single-partition assumptions.
+- Version bump to 1.23.8.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

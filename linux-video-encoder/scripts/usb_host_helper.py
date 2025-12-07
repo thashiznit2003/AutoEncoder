@@ -58,13 +58,14 @@ def parse_lsblk_lines(lines: List[str]) -> List[Dict[str, str]]:
     return entries
 
 
-def find_first_usb_partition(lsblk_text: str, target: str):
+def list_usb_partitions(lsblk_text: str, target: str) -> List[Dict[str, str]]:
     """
-    Find the first partition that is removable or has usb transport.
-    Returns tuple (device, fstype) or (None, None).
+    List candidate partitions that are removable or have usb transport,
+    skipping system mounts. Returns list of dicts with keys: device, fstype, mountpoint.
     """
     skip_mounts = {"/", "/boot", "/boot/efi"}
     disk_transport: Dict[str, str] = {}
+    candidates: List[Dict[str, str]] = []
     for line in lsblk_text.splitlines():
         entry = {}
         # try key/value first
@@ -103,17 +104,14 @@ def find_first_usb_partition(lsblk_text: str, target: str):
                     tran = disk_tran
                     break
         # skip partitions already mounted elsewhere (e.g., root/boot) unless it's the target
-        if mp and mp not in skip_mounts and mp != target:
-            continue
         if mp in skip_mounts:
+            continue
+        if mp and mp != target:
             continue
         if not (rm == "1" or tran.lower() == "usb"):
             continue
-        dev = f"/dev/{name}"
-        if mp == target:
-            return dev, fs
-        return dev, fs
-    return None, None
+        candidates.append({"device": f"/dev/{name}", "fstype": fs or None, "mountpoint": mp})
+    return candidates
 
 
 def ensure_shared(mountpoint: str):
@@ -295,10 +293,13 @@ class Handler(BaseHTTPRequestHandler):
                 lsblk_text = ""
                 for i in range(3):
                     lsblk_text = run_lsblk(pretty=True)
-                    dev, fstype = find_first_usb_partition(lsblk_text, self.helper_mountpoint)
-                    attempts.append({"attempt": i + 1, "lsblk": lsblk_text.strip()})
-                    if dev:
-                        break
+                    parts = list_usb_partitions(lsblk_text, self.helper_mountpoint)
+                    attempts.append({"attempt": i + 1, "lsblk": lsblk_text.strip(), "candidates": parts})
+                    if parts:
+                        dev = parts[0].get("device")
+                        fstype = parts[0].get("fstype")
+                        if dev:
+                            break
                     rescan_block_devices()
                 if not dev:
                     self._json(200, {"ok": False, "error": "no removable/usb partition after rescans", "attempts": attempts})
