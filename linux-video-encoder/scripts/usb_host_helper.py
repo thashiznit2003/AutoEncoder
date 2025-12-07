@@ -16,6 +16,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Dict, List
 
@@ -131,6 +132,13 @@ def attempt_mount(dev: str, fstype: str, mountpoint: str) -> Dict[str, str]:
     return {"ok": False, "device": dev, "error": msg}
 
 
+def rescan_block_devices():
+    """Ask udev/kernel to rescan block devices to catch late-arriving sticks."""
+    subprocess.run(["udevadm", "trigger", "--action=change", "--subsystem-match=block"], check=False)
+    subprocess.run(["partprobe"], check=False)
+    time.sleep(1.0)
+
+
 class Handler(BaseHTTPRequestHandler):
     helper_mountpoint: str = "/linux-video-encoder/AutoEncoder/linux-video-encoder/USB"
 
@@ -172,13 +180,21 @@ class Handler(BaseHTTPRequestHandler):
                             self.helper_mountpoint = mp
                     except Exception:
                         pass
-                lsblk_text = run_lsblk(pretty=True)
-                dev, fstype = find_first_usb_partition(lsblk_text, self.helper_mountpoint)
+                attempts = []
+                dev = fstype = None
+                lsblk_text = ""
+                for i in range(3):
+                    lsblk_text = run_lsblk(pretty=True)
+                    dev, fstype = find_first_usb_partition(lsblk_text, self.helper_mountpoint)
+                    attempts.append({"attempt": i + 1, "lsblk": lsblk_text.strip()})
+                    if dev:
+                        break
+                    rescan_block_devices()
                 if not dev:
-                    self._json(200, {"ok": False, "error": "no removable/usb partition", "lsblk": lsblk_text})
+                    self._json(200, {"ok": False, "error": "no removable/usb partition after rescans", "attempts": attempts})
                     return
                 result = attempt_mount(dev, fstype, self.helper_mountpoint)
-                result["lsblk"] = lsblk_text
+                result["attempts"] = attempts
                 self._json(200 if result.get("ok") else 500, result)
                 return
             except Exception as e:

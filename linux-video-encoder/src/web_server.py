@@ -1383,7 +1383,10 @@ def create_app(tracker, config_manager=None):
                     with urllib.request.urlopen(req, timeout=8) as resp:
                         body = resp.read().decode("utf-8")
                         data = json.loads(body or "{}")
-                        helper_lsblk = (data.get("lsblk") or "").splitlines()
+                        attempts = data.get("attempts") or []
+                        helper_lsblk = []
+                        if attempts:
+                            helper_lsblk = (attempts[-1].get("lsblk") or "").splitlines()
                         helper_snippet = "\\n".join(helper_lsblk[:6])
                         if data.get("ok"):
                             dev = data.get("device")

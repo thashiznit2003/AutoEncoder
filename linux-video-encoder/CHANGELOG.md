@@ -95,6 +95,11 @@
 ## 1.22.1 - 2025-12-07
 - USB refresh now forwards host-helper lsblk/mount info into the app Events panel so users see what the helper tried (success/failure) directly in the UI.
 - Version bump to 1.22.1.
+
+## 1.22.2 - 2025-12-07
+- Host helper now auto-rescans block devices (udevadm/partprobe) and retries lsblk up to 3 times before giving up, then returns all attempts in the response.
+- UI still surfaces helper attempts in Status Messages.
+- Version bump to 1.22.2.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
