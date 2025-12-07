@@ -15,6 +15,14 @@ EXCLUDED_SCAN_PATHS = {
     "/etc/vulkan",
     "/mnt/auto_media",
 }
+
+IGNORED_DIRNAMES = {
+    ".Trashes",
+    ".Spotlight-V100",
+    ".fseventsd",
+    ".Trash",
+    ".Trash-1000",
+}
 class Scanner:
     def __init__(self, search_path='/'):
         self.search_path = search_path
@@ -423,6 +431,8 @@ class Scanner:
                 # Prune only directories that are explicitly excluded, otherwise descend into all subdirectories
                 good_dirs = []
                 for d in dirs:
+                    if d in IGNORED_DIRNAMES:
+                        continue
                     full = os.path.join(root, d)
                     if not self._is_excluded_path(full) and full not in EXCLUDED_SCAN_PATHS:
                         good_dirs.append(d)

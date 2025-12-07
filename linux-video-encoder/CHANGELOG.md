@@ -32,6 +32,9 @@
 ## 1.21.9 - 2025-12-06
 - USB automount: detect filesystem type, log detailed mount failures, and retry with auto type before giving up (better visibility in journalctl -t autoencoder-usb).
 
+## 1.21.10 - 2025-12-06
+- Scanner: ignore common trash/system dirs (`.Trashes`, `.Spotlight-V100`, `.fseventsd`, `.Trash*`) to avoid re-queuing deleted USB files.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
