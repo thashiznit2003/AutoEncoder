@@ -1375,6 +1375,14 @@ def create_app(tracker, config_manager=None):
                 text=True,
                 check=False,
             )
+            if not res.stdout.strip():
+                logger.info("USB refresh: lsblk returned empty output (rc=%s, stderr=%s). Retrying without -P.", res.returncode, res.stderr.strip())
+                res = subprocess.run(
+                    ["lsblk", "-nr", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE,TRAN"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
             logger.info("USB refresh: lsblk output:\n%s", res.stdout)
             disk_transport = {}
 
@@ -1387,7 +1395,15 @@ def create_app(tracker, config_manager=None):
                     parsed[k] = v.strip('"')
                 return parsed
 
-            for line in res.stdout.splitlines():
+            lines = res.stdout.splitlines()
+            if not lines:
+                msg = res.stderr.strip() or "no lsblk output"
+                logger.error("USB refresh: lsblk produced no parseable lines (%s)", msg)
+                tracker.add_event("USB refresh: lsblk produced no output", level="error")
+                tracker.set_usb_status("missing", "No block devices detected")
+                return jsonify({"ok": False, "error": "lsblk returned no output"}), 500
+
+            for line in lines:
                 entry = parse_lsblk_line(line)
                 name = entry.get("NAME", "")
                 typ = entry.get("TYPE", "")
