@@ -279,10 +279,10 @@ class Handler(BaseHTTPRequestHandler):
                         mounted_this_attempt = mounted_this_attempt or mount_res.get("ok", False)
                     if not mounted_this_attempt:
                         time.sleep(delay)
-                return self._json(500, {"ok": False, "error": last_err or "force remount failed", "attempts": results})
+                return self._json(200, {"ok": False, "error": last_err or "force remount failed", "attempts": results})
             except Exception as e:
                 logging.exception("force remount failed")
-                self._json(500, {"ok": False, "error": str(e)})
+                self._json(200, {"ok": False, "error": str(e), "attempts": results if 'results' in locals() else []})
                 return
 
         if self.path.startswith("/usb/refresh"):

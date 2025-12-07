@@ -1552,27 +1552,32 @@ def create_app(tracker, config_manager=None):
                         headers={"Content-Type": "application/json"},
                         method="POST",
                     )
-                    with urllib.request.urlopen(req, timeout=15) as resp:
+                    resp = None
+                    body = ""
+                    try:
+                        resp = urllib.request.urlopen(req, timeout=15)
                         body = resp.read().decode("utf-8")
-                        data = json.loads(body or "{}")
-                        attempts = data.get("attempts") or []
-                        helper_lsblk = ""
-                        if attempts:
-                            helper_lsblk = (attempts[-1].get("lsblk") or "").splitlines()
-                            helper_lsblk = "\\n".join(helper_lsblk[:6])
-                        if data.get("ok"):
-                            dev = data.get("device")
-                            tracker.add_event(f"USB force-remount mounted {dev} -> /mnt/usb (fs={data.get('fstype','auto')})")
-                            if helper_lsblk:
-                                tracker.add_event("USB helper lsblk:\n" + helper_lsblk)
-                            tracker.set_usb_status("ready", f"Mounted {dev} (force remount)")
-                            return jsonify({"ok": True, "device": dev, "fs": data.get("fstype", "auto"), "helper": True, "attempts": attempts})
-                        else:
-                            msg = data.get("error") or body or "host helper mount failed"
-                            tracker.add_event(f"USB force-remount failed: {msg}", level="error")
-                            if helper_lsblk:
-                                tracker.add_event("USB helper lsblk:\n" + helper_lsblk, level="error")
-                            return jsonify({"ok": False, "error": msg, "attempts": attempts}), 500
+                    except urllib.error.HTTPError as he:
+                        body = he.read().decode("utf-8")
+                    data = json.loads(body or "{}")
+                    attempts = data.get("attempts") or []
+                    helper_lsblk = ""
+                    if attempts:
+                        helper_lsblk = (attempts[-1].get("lsblk") or "").splitlines()
+                        helper_lsblk = "\\n".join(helper_lsblk[:6])
+                    if data.get("ok"):
+                        dev = data.get("device")
+                        tracker.add_event(f"USB force-remount mounted {dev} -> /mnt/usb (fs={data.get('fstype','auto')})")
+                        if helper_lsblk:
+                            tracker.add_event("USB helper lsblk:\n" + helper_lsblk)
+                        tracker.set_usb_status("ready", f"Mounted {dev} (force remount)")
+                        return jsonify({"ok": True, "device": dev, "fs": data.get("fstype", "auto"), "helper": True, "attempts": attempts})
+                    else:
+                        msg = data.get("error") or body or "host helper mount failed"
+                        tracker.add_event(f"USB force-remount failed: {msg}", level="error")
+                        if helper_lsblk:
+                            tracker.add_event("USB helper lsblk:\n" + helper_lsblk, level="error")
+                        return jsonify({"ok": False, "error": msg, "attempts": attempts}), 500
                 except Exception as helper_exc:
                     logger.warning("USB force-remount: host helper unavailable (%s)", helper_exc)
                     tracker.add_event(f"USB force-remount: helper unavailable ({helper_exc})", level="error")
