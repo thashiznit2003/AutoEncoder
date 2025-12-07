@@ -1381,13 +1381,17 @@ def create_app(tracker, config_manager=None):
         }
         return jsonify(data)
 
+    helper_mountpoint = os.environ.get("USB_HELPER_MOUNTPOINT", "/linux-video-encoder/AutoEncoder/linux-video-encoder/USB")
+    container_usb_mount = "/mnt/usb"
+
     @app.route("/api/usb/refresh", methods=["POST"])
     @require_auth
     def usb_refresh():
-        # Best-effort mount of first removable partition to /mnt/usb.
+        # Best-effort mount of first removable partition via host helper to helper_mountpoint,
+        # falling back to in-container mount at container_usb_mount.
         try:
             helper_url = os.environ.get("USB_HELPER_URL", "http://host.docker.internal:8765")
-            target = "/mnt/usb"
+            target = helper_mountpoint
             logger = logging.getLogger(__name__)
 
             # Try host helper first (if reachable), then fall back to in-container logic.
@@ -1426,7 +1430,7 @@ def create_app(tracker, config_manager=None):
                 except Exception as helper_exc:
                     logger.warning("USB refresh: host helper unavailable (%s); falling back", helper_exc)
 
-            # discover first removable partition
+            # discover first removable partition (fallback in-container)
             dev = None
             fstype = None
             res = subprocess.run(
@@ -1487,45 +1491,45 @@ def create_app(tracker, config_manager=None):
                     continue
                 dev = f"/dev/{name}"
                 fstype = fs or None
-                if mp == target:
-                    logger.info("USB refresh: already mounted %s at %s", dev, target)
-                    tracker.add_event(f"USB already mounted at {target}: {dev}")
+                if mp == container_usb_mount:
+                    logger.info("USB refresh: already mounted %s at %s", dev, container_usb_mount)
+                    tracker.add_event(f"USB already mounted at {container_usb_mount}: {dev}")
                     tracker.set_usb_status("ready", f"Mounted {dev}")
                     return jsonify({"ok": True, "device": dev, "fs": fstype or "unknown"})
                 break
             if not dev:
                 logger.info("USB refresh: no removable/usb partition detected; lsblk output:\n%s", res.stdout)
-                os.makedirs(target, exist_ok=True)
-                subprocess.run(["mount", "--make-rshared", target], check=False)
+                os.makedirs(container_usb_mount, exist_ok=True)
+                subprocess.run(["mount", "--make-rshared", container_usb_mount], check=False)
                 tracker.add_event("USB refresh: no removable partition found.", level="error")
                 tracker.set_usb_status("missing", "No removable partition detected")
                 return jsonify({"ok": False, "error": "no removable partition"})
 
             # ensure target exists and is shared
-            os.makedirs(target, exist_ok=True)
-            subprocess.run(["mount", "--make-rshared", target], check=False)
+            os.makedirs(container_usb_mount, exist_ok=True)
+            subprocess.run(["mount", "--make-rshared", container_usb_mount], check=False)
             # unmount previous if any
-            subprocess.run(["umount", target], check=False)
+            subprocess.run(["umount", container_usb_mount], check=False)
 
             opts = "uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
-            logger.info("USB refresh: mounting %s -> %s (fstype=%s)", dev, target, fstype or "auto")
+            logger.info("USB refresh: mounting %s -> %s (fstype=%s) [fallback]", dev, container_usb_mount, fstype or "auto")
             cmd = ["mount", "-o", opts]
             if fstype:
                 cmd += ["-t", fstype]
-            cmd += [dev, target]
+            cmd += [dev, container_usb_mount]
             rc = subprocess.run(cmd, capture_output=True, text=True, check=False)
             if rc.returncode != 0:
                 # retry without explicit fs type
-                logger.info("USB refresh: retry mount %s -> %s without fstype", dev, target)
-                rc = subprocess.run(["mount", "-o", opts, dev, target], capture_output=True, text=True, check=False)
+                logger.info("USB refresh: retry mount %s -> %s without fstype [fallback]", dev, container_usb_mount)
+                rc = subprocess.run(["mount", "-o", opts, dev, container_usb_mount], capture_output=True, text=True, check=False)
             if rc.returncode == 0:
-                logger.info("USB refresh: mounted %s -> %s", dev, target)
-                tracker.add_event(f"USB mounted: {dev} -> {target}")
+                logger.info("USB refresh: mounted %s -> %s [fallback]", dev, container_usb_mount)
+                tracker.add_event(f"USB mounted: {dev} -> {container_usb_mount}")
                 tracker.set_usb_status("ready", f"Mounted {dev}")
                 return jsonify({"ok": True, "device": dev, "fs": fstype or "auto"})
             else:
                 msg = rc.stderr.strip() or rc.stdout.strip() or "unknown error"
-                logger.error("USB refresh: failed to mount %s -> %s: %s", dev, target, msg)
+                logger.error("USB refresh: failed to mount %s -> %s: %s", dev, container_usb_mount, msg)
                 tracker.add_event(f"USB refresh failed to mount {dev}: {msg}", level="error")
                 tracker.set_usb_status("error", f"Mount failed: {msg}")
                 return jsonify({"ok": False, "error": msg}), 500
@@ -1540,12 +1544,13 @@ def create_app(tracker, config_manager=None):
     @require_auth
     def usb_force_remount():
         helper_url = os.environ.get("USB_HELPER_URL", "http://host.docker.internal:8765")
+        helper_mount = os.environ.get("USB_HELPER_MOUNTPOINT", "/linux-video-encoder/AutoEncoder/linux-video-encoder/USB")
         logger = logging.getLogger(__name__)
         try:
             if helper_url:
                 try:
                     import urllib.request
-                    payload = json.dumps({"target": "/mnt/usb", "attempts": 5, "delay": 1.5}).encode("utf-8")
+                    payload = json.dumps({"target": helper_mount, "attempts": 5, "delay": 1.5}).encode("utf-8")
                     req = urllib.request.Request(
                         helper_url.rstrip("/") + "/usb/force_remount",
                         data=payload,
@@ -1567,7 +1572,7 @@ def create_app(tracker, config_manager=None):
                         helper_lsblk = "\\n".join(helper_lsblk[:6])
                     if data.get("ok"):
                         dev = data.get("device")
-                        tracker.add_event(f"USB force-remount mounted {dev} -> /mnt/usb (fs={data.get('fstype','auto')})")
+                        tracker.add_event(f"USB force-remount mounted {dev} -> {helper_mount} (fs={data.get('fstype','auto')})")
                         if helper_lsblk:
                             tracker.add_event("USB helper lsblk:\n" + helper_lsblk)
                         tracker.set_usb_status("ready", f"Mounted {dev} (force remount)")

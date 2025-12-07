@@ -134,8 +134,9 @@ def find_first_usb_partition(lsblk_text: str, target: str):
 
 def attempt_mount(dev: str, fstype: str, mountpoint: str) -> Dict[str, str]:
     ensure_shared(mountpoint)
-    # Always try to unmount first to clean up stale/broken mounts
-    subprocess.run(["umount", mountpoint], check=False)
+    # Always try to unmount first to clean up stale/broken mounts (both the target and the common /mnt/usb)
+    for mp in {mountpoint, "/mnt/usb"}:
+        subprocess.run(["umount", mp], check=False)
     opts = "uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
 
     def do_mount(force_fs: bool) -> subprocess.CompletedProcess:
