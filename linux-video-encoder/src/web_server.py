@@ -1409,7 +1409,7 @@ def create_app(tracker, config_manager=None):
             dev = None
             fstype = None
             res = subprocess.run(
-                ["lsblk", "-nrP", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE,TRAN"],
+                ["lsblk", "-nP", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE,TRAN"],
                 capture_output=True,
                 text=True,
                 check=False,

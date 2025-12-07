@@ -100,6 +100,10 @@
 - Host helper now auto-rescans block devices (udevadm/partprobe) and retries lsblk up to 3 times before giving up, then returns all attempts in the response.
 - UI still surfaces helper attempts in Status Messages.
 - Version bump to 1.22.2.
+
+## 1.22.3 - 2025-12-07
+- Fix lsblk invocation flags (use -nP, avoid raw+pairs conflict) in both helper and container refresh so parsing always works.
+- Version bump to 1.22.3.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

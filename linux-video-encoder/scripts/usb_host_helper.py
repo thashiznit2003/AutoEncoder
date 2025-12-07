@@ -25,7 +25,7 @@ def run_lsblk(pretty: bool = True) -> str:
     """
     Return lsblk output. Uses key/value (-P) when pretty=True, otherwise space-delimited.
     """
-    flags = ["-nrP"] if pretty else ["-nr"]
+    flags = ["-nP"] if pretty else ["-nr"]
     try:
         res = subprocess.run(
             ["lsblk", *flags, "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE,TRAN"],
