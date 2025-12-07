@@ -27,6 +27,7 @@ TARGET="/linux-video-encoder/AutoEncoder/linux-video-encoder/USB"
 LOG_TAG="autoencoder-usb"
 
 mkdir -p "$TARGET"
+$MOUNT --make-rshared "$TARGET" || true
 
 # absolute paths for udev environment
 LOGGER=/usr/bin/logger
@@ -60,16 +61,22 @@ if mountpoint -q "$TARGET"; then
 fi
 
 opts="uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
-if output=$($MOUNT -t "$FSTYPE" -o "$opts" "$SRC" "$TARGET" 2>&1); then
-  $LOGGER -t "$LOG_TAG" "Mounted $SRC -> $TARGET (type=$FSTYPE)"
-else
-  # Try a second time without explicit fs type before giving up
-  if output2=$($MOUNT -o "$opts" "$SRC" "$TARGET" 2>&1); then
-    $LOGGER -t "$LOG_TAG" "Mounted $SRC -> $TARGET (auto type fallback)"
-  else
-    $LOGGER -t "$LOG_TAG" "Failed to mount $SRC -> $TARGET (type=$FSTYPE): ${output:-${output2:-unknown error}}"
+attempt=1
+max_attempts=3
+while [ "$attempt" -le "$max_attempts" ]; do
+  if output=$($MOUNT -t "$FSTYPE" -o "$opts" "$SRC" "$TARGET" 2>&1); then
+    $LOGGER -t "$LOG_TAG" "Mounted $SRC -> $TARGET (type=$FSTYPE, attempt=$attempt)"
+    exit 0
   fi
-fi
+  if output2=$($MOUNT -o "$opts" "$SRC" "$TARGET" 2>&1); then
+    $LOGGER -t "$LOG_TAG" "Mounted $SRC -> $TARGET (auto type fallback, attempt=$attempt)"
+    exit 0
+  fi
+  $LOGGER -t "$LOG_TAG" "Mount attempt $attempt failed for $SRC -> $TARGET (type=$FSTYPE): ${output:-${output2:-unknown error}}"
+  attempt=$((attempt + 1))
+  sleep 1
+done
+exit 0
 EOF
 chmod +x "$HELPER"
 
