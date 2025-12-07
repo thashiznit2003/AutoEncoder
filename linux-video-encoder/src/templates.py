@@ -87,7 +87,10 @@ MAIN_PAGE_TEMPLATE = """
     </div>
     <div class="panel">
       <h2>📊 System Metrics</h2>
-      <div id="usb-status" class="muted" style="margin-bottom:6px;">USB status: unknown</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div id="usb-status" class="muted">USB status: unknown</div>
+        <button type="button" id="usb-refresh-btn" style="padding:6px 10px; font-size:12px;">Refresh USB</button>
+      </div>
       <div id="metrics" class="log"></div>
     </div>
     <div class="panel">
@@ -292,6 +295,26 @@ MAIN_PAGE_TEMPLATE = """
         document.getElementById("events").textContent = lines.join("\\n") || "No recent events.";
       } catch (e) {
         document.getElementById("events").textContent = "Events unavailable.";
+      }
+      try {
+        const refreshBtn = document.getElementById("usb-refresh-btn");
+        if (refreshBtn && !refreshBtn.dataset.bound) {
+          refreshBtn.dataset.bound = "1";
+          refreshBtn.onclick = async function() {
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = "Refreshing...";
+            try {
+              await fetchJSON("/api/usb/refresh", { method: "POST" });
+            } catch (err) {
+              console.error("USB refresh failed", err);
+            } finally {
+              refreshBtn.disabled = false;
+              refreshBtn.textContent = "Refresh USB";
+            }
+          };
+        }
+      } catch (e) {
+        console.error("USB refresh setup failed", e);
       }
       try {
         const metrics = await fetchJSON("/api/metrics");

@@ -1336,6 +1336,23 @@ def create_app(tracker, config_manager=None):
         }
         return jsonify(data)
 
+    @app.route("/api/usb/refresh", methods=["POST"])
+    @require_auth
+    def usb_refresh():
+        # Best-effort trigger for host automount; may be a no-op if helper isn't present in container.
+        try:
+            # attempt to call helper if available
+            if os.path.exists("/usr/local/bin/autoencoder_usb_mount.sh"):
+                subprocess.run(["/usr/local/bin/autoencoder_usb_mount.sh", "auto"], check=False)
+            # trigger udev block events (may be no-op in container)
+            subprocess.run(["udevadm", "trigger", "-s", "block"], check=False)
+            tracker.add_event("USB refresh requested.")
+            tracker.set_usb_status("refresh", "Refresh requested")
+            return jsonify({"ok": True})
+        except Exception:
+            tracker.add_event("USB refresh request failed.", level="error")
+            return jsonify({"ok": False}), 500
+
     if config_manager:
         @app.route("/api/config", methods=["GET", "POST"])
         @require_auth

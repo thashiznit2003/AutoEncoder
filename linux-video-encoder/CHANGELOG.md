@@ -51,6 +51,10 @@
 ## 1.21.15 - 2025-12-06
 - UI: USB status now lives inside the System Metrics panel (dropped the standalone panel) to save space.
 
+## 1.21.16 - 2025-12-06
+- UI: added a "Refresh USB" button in System Metrics that calls a backend refresh endpoint.
+- API: new `/api/usb/refresh` best-effort trigger (calls helper/udevadm if present) and tracks USB status state for the UI.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
