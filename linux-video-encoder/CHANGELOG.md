@@ -85,6 +85,12 @@
 ## 1.21.25 - 2025-12-07
 - USB refresh: handle empty lsblk output by retrying without `-P`, emit clear error/status when nothing is returned, and continue logging attempts.
 - Version bump to 1.21.25.
+
+## 1.22.0 - 2025-12-07
+- Host USB helper service: new `usb_host_helper.py` + `install_usb_host_helper.sh` installs a host-side HTTP helper (systemd) that performs USB refresh/mount outside the container.
+- Container USB refresh now calls the host helper first via `host.docker.internal:8765` (compose adds host-gateway); falls back to in-container logic if unreachable.
+- Compose: added host-gateway extra_hosts so the container can reach the helper.
+- Docs/version updated to 1.22.0 with helper install instructions.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, Response, request
 import time
+import json
 import subprocess
 import os
 import sys
@@ -1364,8 +1365,37 @@ def create_app(tracker, config_manager=None):
     def usb_refresh():
         # Best-effort mount of first removable partition to /mnt/usb.
         try:
+            helper_url = os.environ.get("USB_HELPER_URL", "http://host.docker.internal:8765")
             target = "/mnt/usb"
             logger = logging.getLogger(__name__)
+
+            # Try host helper first (if reachable), then fall back to in-container logic.
+            if helper_url:
+                try:
+                    import urllib.request
+                    payload = json.dumps({"target": target}).encode("utf-8")
+                    req = urllib.request.Request(
+                        helper_url.rstrip("/") + "/usb/refresh",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        body = resp.read().decode("utf-8")
+                        data = json.loads(body or "{}")
+                        if data.get("ok"):
+                            dev = data.get("device")
+                            tracker.add_event(f"USB mounted via host helper: {dev} -> {target}")
+                            tracker.set_usb_status("ready", f"Mounted {dev} (host helper)")
+                            logger.info("USB refresh (helper): %s", body)
+                            return jsonify({"ok": True, "device": dev, "fs": data.get("fstype", "auto"), "helper": True})
+                        else:
+                            msg = data.get("error") or body or "host helper mount failed"
+                            tracker.add_event(f"USB refresh (helper) failed: {msg}", level="error")
+                            logger.warning("USB refresh (helper) failed: %s", body)
+                except Exception as helper_exc:
+                    logger.warning("USB refresh: host helper unavailable (%s); falling back", helper_exc)
+
             # discover first removable partition
             dev = None
             fstype = None
