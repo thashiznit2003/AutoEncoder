@@ -121,11 +121,23 @@ def ensure_shared(mountpoint: str):
     subprocess.run(["mount", "--make-rshared", mountpoint], check=False)
 
 
+def find_first_usb_partition(lsblk_text: str, target: str):
+    """
+    Return the first candidate partition tuple (device, fstype) or (None, None).
+    """
+    candidates = list_usb_partitions(lsblk_text, target)
+    if not candidates:
+        return None, None
+    first = candidates[0]
+    return first.get("device"), first.get("fstype")
+
+
 def attempt_mount(dev: str, fstype: str, mountpoint: str) -> Dict[str, str]:
     ensure_shared(mountpoint)
     # Always try to unmount first to clean up stale/broken mounts
     subprocess.run(["umount", mountpoint], check=False)
     opts = "uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
+
     def do_mount(force_fs: bool) -> subprocess.CompletedProcess:
         cmd = ["mount", "-o", opts]
         if force_fs and fstype:

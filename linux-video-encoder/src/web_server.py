@@ -1820,7 +1820,7 @@ def create_app(tracker, config_manager=None):
             return jsonify({"ok": False, "error": "makemkvcon not found"}), 500
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
-    
+
     @app.route("/api/presets", methods=["GET", "POST", "DELETE"])
     def hb_presets():
         if not config_manager:
@@ -1913,17 +1913,3 @@ def start_web_server(tracker, config_manager=None, port: int = 5959):
     t = threading.Thread(target=_run, daemon=True)
     t.start()
     return t
-    def cleanup_staged_file(path: str):
-        if not path:
-            return
-        try:
-            p = pathlib.Path(path)
-            name = p.name
-            if p.exists():
-                try:
-                    p.unlink()
-                except IsADirectoryError:
-                    shutil.rmtree(p, ignore_errors=True)
-            remove_from_allowlist(name)
-        except Exception:
-            pass
