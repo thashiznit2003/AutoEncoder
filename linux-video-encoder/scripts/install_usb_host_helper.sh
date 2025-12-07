@@ -8,9 +8,9 @@ HELPER_URL="https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/li
 TARGET_DIR="/usr/local/lib/autoencoder"
 HELPER_PATH="${TARGET_DIR}/usb_host_helper.py"
 SERVICE_PATH="/etc/systemd/system/autoencoder-usb-helper.service"
-LISTEN_ADDR="127.0.0.1"
-LISTEN_PORT="8765"
-MOUNTPOINT="/linux-video-encoder/AutoEncoder/linux-video-encoder/USB"
+LISTEN_ADDR="${HELPER_LISTEN_ADDR:-0.0.0.0}"
+LISTEN_PORT="${HELPER_LISTEN_PORT:-8765}"
+MOUNTPOINT="${HELPER_MOUNTPOINT:-/linux-video-encoder/AutoEncoder/linux-video-encoder/USB}"
 
 echo "[usb-helper] Installing helper to ${HELPER_PATH}"
 sudo mkdir -p "${TARGET_DIR}"

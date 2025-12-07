@@ -206,7 +206,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     parser = argparse.ArgumentParser(description="Host USB helper for linux-video-encoder.")
-    parser.add_argument("--listen", default="127.0.0.1", help="Listen address")
+    parser.add_argument("--listen", default="0.0.0.0", help="Listen address (use 0.0.0.0 so containers can reach it)")
     parser.add_argument("--port", type=int, default=8765, help="Listen port")
     parser.add_argument("--mountpoint", default="/linux-video-encoder/AutoEncoder/linux-video-encoder/USB", help="Mountpoint to use")
     args = parser.parse_args()

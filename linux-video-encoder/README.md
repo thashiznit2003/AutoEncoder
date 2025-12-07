@@ -19,13 +19,13 @@ pip install -r requirements.txt
 If you are working with blurays you'll need 'makemkv'. Depending on your OS you will have different [installation methods](https://makemkv.com/downloads)
 
 ### Host USB helper (recommended for reliable hotplug)
-On the host (not in the container), install the helper that listens on 127.0.0.1:8765 and performs USB refresh/mounts when the UI button is clicked:
+On the host (not in the container), install the helper that listens on 0.0.0.0:8765 and performs USB refresh/mounts when the UI button is clicked:
 ```
 curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_usb_host_helper.sh -o /tmp/install_usb_host_helper.sh \
   && chmod +x /tmp/install_usb_host_helper.sh \
   && /tmp/install_usb_host_helper.sh
 ```
-This installs a systemd service (`autoencoder-usb-helper.service`) and makes it reachable from the container via `host.docker.internal:8765` (compose sets the host-gateway alias).
+This installs a systemd service (`autoencoder-usb-helper.service`) and makes it reachable from the container via `host.docker.internal:8765` (compose sets the host-gateway alias). To bind a different address/port/mountpoint, set env vars before running the installer, e.g. `HELPER_LISTEN_ADDR=0.0.0.0 HELPER_LISTEN_PORT=8765 HELPER_MOUNTPOINT=/path`.
 
 
 ## Usage
