@@ -1353,6 +1353,7 @@ def create_app(tracker, config_manager=None):
                 text=True,
                 check=False,
             )
+            logger.info("USB refresh: lsblk output:\n%s", res.stdout)
             for line in res.stdout.splitlines():
                 parts = line.split()
                 if len(parts) < 3:

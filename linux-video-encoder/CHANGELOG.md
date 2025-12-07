@@ -60,6 +60,9 @@
 
 ## 1.21.18 - 2025-12-06
 - USB refresh now logs attempts/errors, makes the mountpoint shared even when no device is present, scans removable partitions, and retries mounts (with/without fstype) before reporting failure. Logged output is visible in app logs/Status Messages.
+
+## 1.21.19 - 2025-12-06
+- USB refresh: added lsblk output and logging of mount attempts/errors to app logs for visibility when clicking Refresh USB.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
