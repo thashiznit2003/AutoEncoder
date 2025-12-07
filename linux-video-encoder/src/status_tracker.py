@@ -27,6 +27,7 @@ class StatusTracker:
         self._disc_pending = False
         self._disc_rip_requested = False
         self._smb_pending = []
+        self._usb_status = {"state": "unknown", "message": "USB status unknown"}
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -181,12 +182,14 @@ class StatusTracker:
             history = list(self._history)
             disc_info = self._disc_info
             disc_pending = self._disc_pending
+            usb_status = dict(self._usb_status)
         return {
             "active": active,
             "recent": history[::-1],  # newest first
             "timestamp": now,
             "disc_info": disc_info,
             "disc_pending": disc_pending,
+            "usb_status": usb_status,
         }
 
     def tail_logs(self, lines: int = 400):
@@ -213,6 +216,14 @@ class StatusTracker:
     def events(self):
         with self._lock:
             return list(self._events)[-self._history_size :]
+
+    def set_usb_status(self, state: str, message: str = ""):
+        with self._lock:
+            self._usb_status = {"state": state, "message": message or ""}
+
+    def get_usb_status(self):
+        with self._lock:
+            return dict(self._usb_status)
 
     def clear_history(self, state: str = None):
         with self._lock:

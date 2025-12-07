@@ -1336,12 +1336,15 @@ def main():
                     if usb_state == "ready":
                         if status_tracker:
                             status_tracker.add_event("USB mount ready.")
+                            status_tracker.set_usb_status("ready", "USB mount ready")
                     elif usb_state == "not-mounted":
                         if status_tracker:
                             status_tracker.add_event("USB mount missing at /mnt/usb. Re-plug or remount.", level="error")
+                            status_tracker.set_usb_status("missing", "USB mount missing at /mnt/usb")
                     else:
                         if status_tracker:
                             status_tracker.add_event(f"USB mount I/O error at /mnt/usb ({usb_state}). Re-plug or fsck the stick.", level="error")
+                            status_tracker.set_usb_status("error", f"I/O error at /mnt/usb ({usb_state})")
             except Exception:
                 logging.debug("USB readiness check failed", exc_info=True)
             for root in scan_roots:

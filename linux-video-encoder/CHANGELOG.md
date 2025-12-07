@@ -38,6 +38,10 @@
 ## 1.21.11 - 2025-12-06
 - USB: track encoded USB sources (size/mtime) in state and skip staging if already encoded; map staged files back to their origins to prevent re-queueing while the stick remains plugged in.
 
+## 1.21.12 - 2025-12-06
+- UI: added USB status indicator (ready/missing/error) fed by backend health checks.
+- Backend: status API now includes USB status for UI display.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

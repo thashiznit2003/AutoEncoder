@@ -81,17 +81,21 @@ HTML_PAGE_TEMPLATE = """
       <div class="muted" style="margin-top:6px;">After changing, reload the page and use the new credentials.</div>
     </div>
   </header>
-  <div class="grid">
-    <div class="panel">
-      <h2>🟢 Active Encodes</h2>
-      <div class="muted" id="hb-runtime"></div>
-      <div id="active"></div>
-    </div>
-    <div class="panel">
-      <h2>🕒 Recent Jobs</h2>
-      <div id="recent" style="max-height: 260px; overflow-y: auto;"></div>
-      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
-        <button data-clear="success" class="clear-btn">Clear Success</button>
+    <div class="grid">
+      <div class="panel">
+        <h2>🟢 Active Encodes</h2>
+        <div class="muted" id="hb-runtime"></div>
+        <div id="active"></div>
+      </div>
+      <div class="panel">
+        <h2>🔌 USB Status</h2>
+        <div id="usb-status" class="muted">USB status: unknown</div>
+      </div>
+      <div class="panel">
+        <h2>🕒 Recent Jobs</h2>
+        <div id="recent" style="max-height: 260px; overflow-y: auto;"></div>
+        <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
+          <button data-clear="success" class="clear-btn">Clear Success</button>
         <button data-clear="error" class="clear-btn">Clear Error</button>
         <button data-clear="running" class="clear-btn">Clear Running</button>
         <button data-clear="canceled" class="clear-btn">Clear Canceled</button>
@@ -481,6 +485,18 @@ HTML_PAGE_TEMPLATE = """
         const hbDvd = hbCfg.handbrake_dvd || {};
         const hbBr = hbCfg.handbrake_br || {};
         const hbExt = hb.extension || ".mkv";
+        const usb = status.usb_status || {};
+        const usbEl = document.getElementById("usb-status");
+        if (usbEl) {
+          const state = (usb.state || "unknown").toLowerCase();
+          const msg = usb.message || "";
+          let color = "#cbd5e1";
+          if (state === "ready") color = "#22c55e";
+          else if (state === "missing") color = "#fbbf24";
+          else if (state === "error") color = "#f87171";
+          usbEl.style.color = color;
+          usbEl.textContent = "USB " + state + (msg ? (": " + msg) : "");
+        }
         document.getElementById("hb-runtime").textContent =
           "Runtime HB settings: Encoder=" + (hb.encoder || "x264") +
           " | Default RF=" + (hb.quality ?? 20) +
