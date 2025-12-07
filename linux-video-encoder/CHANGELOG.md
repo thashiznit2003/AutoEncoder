@@ -144,6 +144,10 @@
 ## 1.23.6 - 2025-12-07
 - USB helper mount flow now unmounts first, retries mounts, runs fsck.exfat when needed, and revalidates readability to recover from transient I/O errors automatically.
 - Version bump to 1.23.6.
+
+## 1.23.7 - 2025-12-07
+- Scanner now keeps /mnt/usb in scan list when mounted even if a read error occurs, only dropping it when not mounted; still logs USB errors and immediate scans on ready.
+- Version bump to 1.23.7.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

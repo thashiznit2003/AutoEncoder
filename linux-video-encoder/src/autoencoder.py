@@ -1330,14 +1330,13 @@ def main():
                 usb_state = "ready"
                 if not os.path.ismount(usb_path):
                     usb_state = "not-mounted"
+                    usb_ready = False
                 else:
                     try:
                         os.listdir(usb_path)
                     except OSError as e:
                         usb_state = f"error:{getattr(e, 'errno', 'unknown')}"
-                        usb_ready = False
-                if usb_state.startswith("error") or usb_state == "not-mounted":
-                    usb_ready = False
+                        # keep usb_ready True so we still scan to detect recovery
                 if usb_state != last_usb_state:
                     last_usb_state = usb_state
                     if usb_state == "ready":
@@ -1352,14 +1351,16 @@ def main():
                             status_tracker.add_event("USB mount missing at /mnt/usb. Re-plug or remount.", level="error")
                             status_tracker.set_usb_status("missing", "USB mount missing at /mnt/usb")
                     else:
-                        usb_ready = False
                         if status_tracker:
                             status_tracker.add_event(f"USB mount I/O error at /mnt/usb ({usb_state}). Re-plug or fsck the stick.", level="error")
                             status_tracker.set_usb_status("error", f"I/O error at /mnt/usb ({usb_state})")
             except Exception:
                 logging.debug("USB readiness check failed", exc_info=True)
 
-            if not usb_ready and "/mnt/usb" in scan_roots:
+            if not usb_ready and "/mnt/usb" in scan_roots and usb_state != "not-mounted":
+                # If mounted but error, keep it to allow recovery on next pass; only drop when not mounted
+                pass
+            if usb_state == "not-mounted" and "/mnt/usb" in scan_roots:
                 scan_roots = [r for r in scan_roots if r != "/mnt/usb"]
             for root in scan_roots:
                 try:
