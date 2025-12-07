@@ -1383,15 +1383,21 @@ def create_app(tracker, config_manager=None):
                     with urllib.request.urlopen(req, timeout=8) as resp:
                         body = resp.read().decode("utf-8")
                         data = json.loads(body or "{}")
+                        helper_lsblk = (data.get("lsblk") or "").splitlines()
+                        helper_snippet = "\\n".join(helper_lsblk[:6])
                         if data.get("ok"):
                             dev = data.get("device")
-                            tracker.add_event(f"USB mounted via host helper: {dev} -> {target}")
+                            tracker.add_event(f"USB helper mounted {dev} -> {target} (fs={data.get('fstype','auto')})")
+                            if helper_snippet:
+                                tracker.add_event("USB helper lsblk:\n" + helper_snippet)
                             tracker.set_usb_status("ready", f"Mounted {dev} (host helper)")
                             logger.info("USB refresh (helper): %s", body)
                             return jsonify({"ok": True, "device": dev, "fs": data.get("fstype", "auto"), "helper": True})
                         else:
                             msg = data.get("error") or body or "host helper mount failed"
                             tracker.add_event(f"USB refresh (helper) failed: {msg}", level="error")
+                            if helper_snippet:
+                                tracker.add_event("USB helper lsblk:\n" + helper_snippet, level="error")
                             logger.warning("USB refresh (helper) failed: %s", body)
                 except Exception as helper_exc:
                     logger.warning("USB refresh: host helper unavailable (%s); falling back", helper_exc)

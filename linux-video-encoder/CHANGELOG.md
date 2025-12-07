@@ -91,6 +91,10 @@
 - Container USB refresh now calls the host helper first via `host.docker.internal:8765` (compose adds host-gateway); falls back to in-container logic if unreachable.
 - Compose: added host-gateway extra_hosts so the container can reach the helper.
 - Docs/version updated to 1.22.0 with helper install instructions.
+
+## 1.22.1 - 2025-12-07
+- USB refresh now forwards host-helper lsblk/mount info into the app Events panel so users see what the helper tried (success/failure) directly in the UI.
+- Version bump to 1.22.1.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
