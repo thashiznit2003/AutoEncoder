@@ -90,11 +90,12 @@ HTML_PAGE_TEMPLATE = """
         <div id="active"></div>
       </div>
       <div class="panel">
-        <h2>🔌 USB Status</h2>
-        <div id="usb-status" class="muted">USB status: unknown</div>
+        <h2>📊 System Metrics</h2>
+        <div id="metrics" class="log"></div>
         <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
           <button id="usb-force-remount" type="button">Force Remount</button>
           <button id="usb-refresh" type="button">Refresh USB</button>
+          <div id="usb-status" class="muted">USB status: unknown</div>
         </div>
       </div>
       <div class="panel">

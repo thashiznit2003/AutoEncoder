@@ -121,6 +121,10 @@
 - API: new `/api/usb/force_remount` endpoint.
 - Helper: new `/usb/force_remount` that unmounts, rescans block devices, retries mount with/without fstype, and stops when non-dot entries are seen (or after retry budget).
 - Version bump to 1.23.0.
+
+## 1.23.1 - 2025-12-07
+- Moved Force Remount/Refresh USB buttons into the System Metrics panel alongside USB status for easier access.
+- Version bump to 1.23.1.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
