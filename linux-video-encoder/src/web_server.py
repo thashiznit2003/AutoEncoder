@@ -91,6 +91,9 @@ HTML_PAGE_TEMPLATE = """
       <div class="panel">
         <h2>🔌 USB Status</h2>
         <div id="usb-status" class="muted">USB status: unknown</div>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="usb-refresh" type="button">Refresh USB</button>
+        </div>
       </div>
       <div class="panel">
         <h2>🕒 Recent Jobs</h2>
@@ -372,8 +375,8 @@ HTML_PAGE_TEMPLATE = """
       document.getElementById("smb-connect").click();
     }
 
-    async function fetchJSON(url) {
-      const res = await fetch(url);
+    async function fetchJSON(url, opts) {
+      const res = await fetch(url, opts);
       return res.json();
     }
 
@@ -757,6 +760,25 @@ HTML_PAGE_TEMPLATE = """
         alert("Failed to copy logs: " + e);
       }
     });
+
+    const usbRefreshBtn = document.getElementById("usb-refresh");
+    if (usbRefreshBtn) {
+      usbRefreshBtn.addEventListener("click", async () => {
+        const prev = usbRefreshBtn.textContent;
+        usbRefreshBtn.disabled = true;
+        usbRefreshBtn.textContent = "Refreshing...";
+        try {
+          await fetchJSON("/api/usb/refresh", { method: "POST" });
+        } catch (e) {
+          console.error("USB refresh failed", e);
+          alert("USB refresh failed: " + e);
+        } finally {
+          usbRefreshBtn.disabled = false;
+          usbRefreshBtn.textContent = prev;
+          refresh();
+        }
+      });
+    }
 
     // Presets
     async function loadPresets() {
@@ -1354,6 +1376,7 @@ def create_app(tracker, config_manager=None):
                 check=False,
             )
             logger.info("USB refresh: lsblk output:\n%s", res.stdout)
+            disk_transport = {}
             for line in res.stdout.splitlines():
                 parts = line.split()
                 if len(parts) < 3:
@@ -1362,9 +1385,17 @@ def create_app(tracker, config_manager=None):
                 mp = parts[3] if len(parts) >= 4 else ""
                 fs = parts[4] if len(parts) >= 5 else ""
                 tran = parts[5] if len(parts) >= 6 else ""
+                if typ == "disk":
+                    disk_transport[name] = tran
+                    continue
                 # accept removable partitions OR USB transport even if rm=0 (some HDDs report non-removable)
                 if typ != "part":
                     continue
+                if not tran:
+                    for disk_name, disk_tran in disk_transport.items():
+                        if name.startswith(disk_name):
+                            tran = disk_tran
+                            break
                 if not (rm == "1" or tran.lower() == "usb"):
                     continue
                 dev = f"/dev/{name}"
