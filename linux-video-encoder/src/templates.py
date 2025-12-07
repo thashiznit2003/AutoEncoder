@@ -298,10 +298,12 @@ MAIN_PAGE_TEMPLATE = """
         document.getElementById("events").textContent = "Events unavailable.";
       }
       try {
-        const refreshBtn = document.getElementById("usb-refresh-btn");
+        const refreshBtn = document.getElementById("usb-refresh");
+        const forceBtn = document.getElementById("usb-force-remount");
         if (refreshBtn && !refreshBtn.dataset.bound) {
           refreshBtn.dataset.bound = "1";
           refreshBtn.onclick = async function() {
+            const prev = refreshBtn.textContent;
             refreshBtn.disabled = true;
             refreshBtn.textContent = "Refreshing...";
             try {
@@ -310,12 +312,28 @@ MAIN_PAGE_TEMPLATE = """
               console.error("USB refresh failed", err);
             } finally {
               refreshBtn.disabled = false;
-              refreshBtn.textContent = "Refresh USB";
+              refreshBtn.textContent = prev;
+            }
+          };
+        }
+        if (forceBtn && !forceBtn.dataset.bound) {
+          forceBtn.dataset.bound = "1";
+          forceBtn.onclick = async function() {
+            const prev = forceBtn.textContent;
+            forceBtn.disabled = true;
+            forceBtn.textContent = "Remounting...";
+            try {
+              await fetchJSON("/api/usb/force_remount", { method: "POST" });
+            } catch (err) {
+              console.error("USB force remount failed", err);
+            } finally {
+              forceBtn.disabled = false;
+              forceBtn.textContent = prev;
             }
           };
         }
       } catch (e) {
-        console.error("USB refresh setup failed", e);
+        console.error("USB refresh/force setup failed", e);
       }
       try {
         const metrics = await fetchJSON("/api/metrics");
