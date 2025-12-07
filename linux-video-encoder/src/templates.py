@@ -87,9 +87,10 @@ MAIN_PAGE_TEMPLATE = """
     </div>
     <div class="panel">
       <h2>📊 System Metrics</h2>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px;">
+        <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px;">Force Remount</button>
+        <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px;">Refresh USB</button>
         <div id="usb-status" class="muted">USB status: unknown</div>
-        <button type="button" id="usb-refresh-btn" style="padding:6px 10px; font-size:12px;">Refresh USB</button>
       </div>
       <div id="metrics" class="log"></div>
     </div>

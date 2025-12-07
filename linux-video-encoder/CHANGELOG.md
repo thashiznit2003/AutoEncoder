@@ -125,6 +125,10 @@
 ## 1.23.1 - 2025-12-07
 - Moved Force Remount/Refresh USB buttons into the System Metrics panel alongside USB status for easier access.
 - Version bump to 1.23.1.
+
+## 1.23.2 - 2025-12-07
+- Fixed template so USB controls (Force Remount + Refresh USB + status) appear in the System Metrics panel.
+- Version bump to 1.23.2.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
