@@ -1339,19 +1339,68 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/usb/refresh", methods=["POST"])
     @require_auth
     def usb_refresh():
-        # Best-effort trigger for host automount; may be a no-op if helper isn't present in container.
+        # Best-effort mount of first removable partition to /mnt/usb.
         try:
-            # attempt to call helper if available
-            if os.path.exists("/usr/local/bin/autoencoder_usb_mount.sh"):
-                subprocess.run(["/usr/local/bin/autoencoder_usb_mount.sh", "auto"], check=False)
-            # trigger udev block events (may be no-op in container)
-            subprocess.run(["udevadm", "trigger", "-s", "block"], check=False)
-            tracker.add_event("USB refresh requested.")
-            tracker.set_usb_status("refresh", "Refresh requested")
-            return jsonify({"ok": True})
-        except Exception:
-            tracker.add_event("USB refresh request failed.", level="error")
-            return jsonify({"ok": False}), 500
+            target = "/mnt/usb"
+            # discover first removable partition
+            dev = None
+            fstype = None
+            res = subprocess.run(
+                ["lsblk", "-nr", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            for line in res.stdout.splitlines():
+                parts = line.split()
+                if len(parts) < 3:
+                    continue
+                name, typ, rm = parts[0], parts[1], parts[2]
+                mp = parts[3] if len(parts) >= 4 else ""
+                fs = parts[4] if len(parts) >= 5 else ""
+                if typ != "part" or rm != "1":
+                    continue
+                dev = f"/dev/{name}"
+                fstype = fs or None
+                # if already mounted where we want, reuse
+                if mp == target:
+                    tracker.add_event(f"USB already mounted at {target}: {dev}")
+                    tracker.set_usb_status("ready", f"Mounted {dev}")
+                    return jsonify({"ok": True, "device": dev, "fs": fstype or "unknown"})
+                break
+            if not dev:
+                tracker.add_event("USB refresh: no removable partition found.", level="error")
+                tracker.set_usb_status("missing", "No removable partition detected")
+                return jsonify({"ok": False, "error": "no removable partition"})
+
+            # ensure target exists and is shared
+            os.makedirs(target, exist_ok=True)
+            subprocess.run(["mount", "--make-rshared", target], check=False)
+            # unmount previous if any
+            subprocess.run(["umount", target], check=False)
+
+            opts = "uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8"
+            cmd = ["mount", "-o", opts]
+            if fstype:
+                cmd += ["-t", fstype]
+            cmd += [dev, target]
+            rc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if rc.returncode != 0:
+                # retry without explicit fs type
+                rc = subprocess.run(["mount", "-o", opts, dev, target], capture_output=True, text=True, check=False)
+            if rc.returncode == 0:
+                tracker.add_event(f"USB mounted: {dev} -> {target}")
+                tracker.set_usb_status("ready", f"Mounted {dev}")
+                return jsonify({"ok": True, "device": dev, "fs": fstype or "auto"})
+            else:
+                msg = rc.stderr.strip() or rc.stdout.strip() or "unknown error"
+                tracker.add_event(f"USB refresh failed to mount {dev}: {msg}", level="error")
+                tracker.set_usb_status("error", f"Mount failed: {msg}")
+                return jsonify({"ok": False, "error": msg}), 500
+        except Exception as e:
+            tracker.add_event(f"USB refresh request failed: {e}", level="error")
+            tracker.set_usb_status("error", "Refresh failed")
+            return jsonify({"ok": False, "error": str(e)}), 500
 
     if config_manager:
         @app.route("/api/config", methods=["GET", "POST"])

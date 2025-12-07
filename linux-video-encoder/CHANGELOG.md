@@ -55,6 +55,8 @@
 - UI: added a "Refresh USB" button in System Metrics that calls a backend refresh endpoint.
 - API: new `/api/usb/refresh` best-effort trigger (calls helper/udevadm if present) and tracks USB status state for the UI.
 
+## 1.21.17 - 2025-12-06
+- USB refresh endpoint now scans removable partitions, sets mountpoint shared, unmounts/retries mount (with fs-type detection) up to 2 attempts and reports errors; improved consistency for hotplug/refresh.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
