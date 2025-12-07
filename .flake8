@@ -1,11 +1,3 @@
 [flake8]
 max-line-length = 140
-# Loosen linting in CI for now; project has many legacy long lines/templates.
-# Ignore common style nit picks so CI can pass without code churn.
-ignore =
-    E501,  # line too long
-    E302, E305, E306,  # blank line expectations
-    E203, E231, E401,  # whitespace/import nits
-    E265,              # block comment style
-    W291, W292, W293,  # trailing whitespace/newline
-    F401, F841, E741   # unused imports/vars, ambiguous names
+ignore = E501,E302,E305,E306,E203,E231,E401,E265,W291,W292,W293,F401,F841,E741
