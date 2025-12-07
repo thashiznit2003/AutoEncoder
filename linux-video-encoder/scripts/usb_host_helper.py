@@ -62,6 +62,7 @@ def find_first_usb_partition(lsblk_text: str, target: str):
     Find the first partition that is removable or has usb transport.
     Returns tuple (device, fstype) or (None, None).
     """
+    skip_mounts = {"/", "/boot", "/boot/efi"}
     disk_transport: Dict[str, str] = {}
     for line in lsblk_text.splitlines():
         entry = {}
@@ -100,6 +101,11 @@ def find_first_usb_partition(lsblk_text: str, target: str):
                 if name.startswith(disk_name):
                     tran = disk_tran
                     break
+        # skip partitions already mounted elsewhere (e.g., root/boot) unless it's the target
+        if mp and mp not in skip_mounts and mp != target:
+            continue
+        if mp in skip_mounts:
+            continue
         if not (rm == "1" or tran.lower() == "usb"):
             continue
         dev = f"/dev/{name}"
