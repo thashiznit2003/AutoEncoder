@@ -301,24 +301,34 @@ class Handler(BaseHTTPRequestHandler):
                     except Exception:
                         pass
                 attempts = []
-                dev = fstype = None
                 lsblk_text = ""
+                last_err = None
                 for i in range(3):
                     lsblk_text = run_lsblk(pretty=True)
                     parts = list_usb_partitions(lsblk_text, self.helper_mountpoint)
                     attempts.append({"attempt": i + 1, "lsblk": lsblk_text.strip(), "candidates": parts})
-                    if parts:
-                        dev = parts[0].get("device")
-                        fstype = parts[0].get("fstype")
-                        if dev:
-                            break
+                    if not parts:
+                        rescan_block_devices()
+                        continue
+                    for cand in parts:
+                        dev = cand.get("device")
+                        fstype = cand.get("fstype")
+                        if not dev:
+                            continue
+                        mount_res = attempt_mount(dev, fstype, self.helper_mountpoint)
+                        step = {"device": dev, "fstype": fstype, "mount_result": mount_res}
+                        try:
+                            entries = [e.name for e in os.scandir(self.helper_mountpoint)]
+                            step["entries"] = entries[:20]
+                            if any(name not in (".", "..") for name in entries):
+                                self._json(200, {"ok": True, "device": dev, "fstype": fstype or "auto", "attempts": attempts + [step]})
+                                return
+                        except Exception as e:
+                            step["entries_error"] = str(e)
+                        attempts.append(step)
+                        last_err = mount_res.get("error") if isinstance(mount_res, dict) else None
                     rescan_block_devices()
-                if not dev:
-                    self._json(200, {"ok": False, "error": "no removable/usb partition after rescans", "attempts": attempts})
-                    return
-                result = attempt_mount(dev, fstype, self.helper_mountpoint)
-                result["attempts"] = attempts
-                self._json(200 if result.get("ok") else 500, result)
+                self._json(200, {"ok": False, "error": last_err or "no removable/usb partition after rescans", "attempts": attempts})
                 return
             except Exception as e:
                 logging.exception("refresh failed")

@@ -163,6 +163,9 @@
 
 ## 1.24.1 - 2025-12-07
 - Helper now bind-mounts the USB mountpoint and marks it shared to improve propagation into the container when re-mounted.
+
+## 1.24.2 - 2025-12-07
+- Refresh endpoint now iterates all removable/USB candidates per attempt and requires actual entries (beyond . and ..) before succeeding; returns detailed attempts when it fails to find files.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 
