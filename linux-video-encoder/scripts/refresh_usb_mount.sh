@@ -17,15 +17,6 @@ sudo mkdir -p "$MNT"
 echo "[refresh-usb] Unmounting $MNT (if mounted)..."
 sudo umount "$MNT" 2>/dev/null || true
 
-echo "[refresh-usb] Binding mountpoint to itself (for shared propagation)..."
-sudo mount --bind "$MNT" "$MNT" 2>/dev/null || echo "[refresh-usb] Warning: bind mount failed (continuing)"
-
-echo "[refresh-usb] Marking mountpoint shared..."
-# Some hosts return error when making a plain directory shared; ignore failures.
-set +e
-sudo mount --make-rshared "$MNT" 2>/dev/null || echo "[refresh-usb] Warning: make-rshared failed (continuing)"
-set -e
-
 echo "[refresh-usb] Mounting $DEV -> $MNT ..."
 sudo mount -t exfat -o uid=1000,gid=1000,fmask=0022,dmask=0022,iocharset=utf8 "$DEV" "$MNT"
 
