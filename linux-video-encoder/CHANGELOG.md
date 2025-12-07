@@ -111,6 +111,10 @@
 
 ## 1.22.5 - 2025-12-07
 - Host helper mount routine now always unmounts first, retries with/without fstype, rescans block devices, and retries once more to avoid transient mount failures; version bumped.
+
+## 1.22.6 - 2025-12-07
+- Scanner now skips /mnt/usb when USB status is missing/error and triggers an immediate (near-zero delay) scan when USB transitions to ready, while still requiring stable files before queueing.
+- Version bump to 1.22.6.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

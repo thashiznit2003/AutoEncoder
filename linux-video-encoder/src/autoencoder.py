@@ -1274,6 +1274,7 @@ def main():
     last_search_path = search_path
     rescan_interval = float(config.get("rescan_interval", 30))
     last_usb_state = None  # track mount/readability status to avoid noisy repeats
+    usb_state_changed_to_ready = False
 
     logging.info("Starting continuous scanner. search_path=%s output=%s interval=%.1fs",
                  search_path if search_path else "<auto-detect>", output_dir, rescan_interval)
@@ -1300,6 +1301,8 @@ def main():
                 last_search_path = search_path
 
             # decide which directories will be scanned this pass
+            usb_state_changed_to_ready = False
+
             if search_path:
                 scan_roots = [search_path]
             else:
@@ -1321,6 +1324,7 @@ def main():
             # debug: show mount status and a sample of contents for each scan root
             import os
             # USB health check: log once per state change if mount is missing or unreadable
+            usb_ready = True
             try:
                 usb_path = Path("/mnt/usb")
                 usb_state = "ready"
@@ -1331,22 +1335,32 @@ def main():
                         os.listdir(usb_path)
                     except OSError as e:
                         usb_state = f"error:{getattr(e, 'errno', 'unknown')}"
+                        usb_ready = False
+                if usb_state.startswith("error") or usb_state == "not-mounted":
+                    usb_ready = False
                 if usb_state != last_usb_state:
                     last_usb_state = usb_state
                     if usb_state == "ready":
+                        usb_ready = True
+                        usb_state_changed_to_ready = True
                         if status_tracker:
                             status_tracker.add_event("USB mount ready.")
                             status_tracker.set_usb_status("ready", "USB mount ready")
                     elif usb_state == "not-mounted":
+                        usb_ready = False
                         if status_tracker:
                             status_tracker.add_event("USB mount missing at /mnt/usb. Re-plug or remount.", level="error")
                             status_tracker.set_usb_status("missing", "USB mount missing at /mnt/usb")
                     else:
+                        usb_ready = False
                         if status_tracker:
                             status_tracker.add_event(f"USB mount I/O error at /mnt/usb ({usb_state}). Re-plug or fsck the stick.", level="error")
                             status_tracker.set_usb_status("error", f"I/O error at /mnt/usb ({usb_state})")
             except Exception:
                 logging.debug("USB readiness check failed", exc_info=True)
+
+            if not usb_ready and "/mnt/usb" in scan_roots:
+                scan_roots = [r for r in scan_roots if r != "/mnt/usb"]
             for root in scan_roots:
                 try:
                     is_m = os.path.ismount(root)
@@ -1456,7 +1470,10 @@ def main():
                 except Exception as e:
                     print(f"❌ {video_file}: {e}")
 
-            time.sleep(rescan_interval)
+            sleep_for = rescan_interval
+            if usb_state_changed_to_ready:
+                sleep_for = 0.1
+            time.sleep(sleep_for)
             # after a successful scan/pass, unmount devices the scanner mounted
             try:
                 unmounted = scanner.unmount_mountpoints()
