@@ -48,6 +48,9 @@
 ## 1.21.14 - 2025-12-06
 - USB automount: make mountpoint shared and retry mount up to 3 times (with fs-type detection) to improve consistency across devices.
 
+## 1.21.15 - 2025-12-06
+- UI: USB status now lives inside the System Metrics panel (dropped the standalone panel) to save space.
+
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

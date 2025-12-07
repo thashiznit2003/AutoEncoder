@@ -65,10 +65,6 @@ MAIN_PAGE_TEMPLATE = """
       <div id="active"></div>
     </div>
     <div class="panel">
-      <h2>🔌 USB Status</h2>
-      <div id="usb-status" class="muted">USB status: unknown</div>
-    </div>
-    <div class="panel">
       <h2>🕒 Recent Jobs</h2>
       <div id="recent" style="max-height: 260px; overflow-y: auto;"></div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
@@ -91,6 +87,7 @@ MAIN_PAGE_TEMPLATE = """
     </div>
     <div class="panel">
       <h2>📊 System Metrics</h2>
+      <div id="usb-status" class="muted" style="margin-bottom:6px;">USB status: unknown</div>
       <div id="metrics" class="log"></div>
     </div>
     <div class="panel">
