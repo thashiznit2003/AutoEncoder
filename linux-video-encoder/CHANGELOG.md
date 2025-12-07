@@ -115,6 +115,12 @@
 ## 1.22.6 - 2025-12-07
 - Scanner now skips /mnt/usb when USB status is missing/error and triggers an immediate (near-zero delay) scan when USB transitions to ready, while still requiring stable files before queueing.
 - Version bump to 1.22.6.
+
+## 1.23.0 - 2025-12-07
+- UI: added a "Force Remount" button above Refresh USB that asks the host helper to unmount/rescan/remount multiple times until it finds real files, logging attempts to the Events panel.
+- API: new `/api/usb/force_remount` endpoint.
+- Helper: new `/usb/force_remount` that unmounts, rescans block devices, retries mount with/without fstype, and stops when non-dot entries are seen (or after retry budget).
+- Version bump to 1.23.0.
 ## 1.20.5 - 2025-12-06
 - Compose: USB bind now uses `rslave` propagation so host USB mounts appear inside the container without restarting the stack.
 

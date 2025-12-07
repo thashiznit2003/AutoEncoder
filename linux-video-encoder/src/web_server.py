@@ -93,6 +93,7 @@ HTML_PAGE_TEMPLATE = """
         <h2>🔌 USB Status</h2>
         <div id="usb-status" class="muted">USB status: unknown</div>
         <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="usb-force-remount" type="button">Force Remount</button>
           <button id="usb-refresh" type="button">Refresh USB</button>
         </div>
       </div>
@@ -776,6 +777,25 @@ HTML_PAGE_TEMPLATE = """
         } finally {
           usbRefreshBtn.disabled = false;
           usbRefreshBtn.textContent = prev;
+          refresh();
+        }
+      });
+    }
+
+    const usbForceBtn = document.getElementById("usb-force-remount");
+    if (usbForceBtn) {
+      usbForceBtn.addEventListener("click", async () => {
+        const prev = usbForceBtn.textContent;
+        usbForceBtn.disabled = true;
+        usbForceBtn.textContent = "Remounting...";
+        try {
+          await fetchJSON("/api/usb/force_remount", { method: "POST" });
+        } catch (e) {
+          console.error("USB force remount failed", e);
+          alert("USB force remount failed: " + e);
+        } finally {
+          usbForceBtn.disabled = false;
+          usbForceBtn.textContent = prev;
           refresh();
         }
       });
@@ -1513,6 +1533,55 @@ def create_app(tracker, config_manager=None):
             logger.exception("USB refresh request failed")
             tracker.add_event(f"USB refresh request failed: {e}", level="error")
             tracker.set_usb_status("error", "Refresh failed")
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/usb/force_remount", methods=["POST"])
+    @require_auth
+    def usb_force_remount():
+        helper_url = os.environ.get("USB_HELPER_URL", "http://host.docker.internal:8765")
+        try:
+            if helper_url:
+                try:
+                    import urllib.request
+                    payload = json.dumps({"target": "/mnt/usb", "attempts": 5, "delay": 1.5}).encode("utf-8")
+                    req = urllib.request.Request(
+                        helper_url.rstrip("/") + "/usb/force_remount",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        body = resp.read().decode("utf-8")
+                        data = json.loads(body or "{}")
+                        attempts = data.get("attempts") or []
+                        helper_lsblk = ""
+                        if attempts:
+                            helper_lsblk = (attempts[-1].get("lsblk") or "").splitlines()
+                            helper_lsblk = "\\n".join(helper_lsblk[:6])
+                        if data.get("ok"):
+                            dev = data.get("device")
+                            tracker.add_event(f"USB force-remount mounted {dev} -> /mnt/usb (fs={data.get('fstype','auto')})")
+                            if helper_lsblk:
+                                tracker.add_event("USB helper lsblk:\n" + helper_lsblk)
+                            tracker.set_usb_status("ready", f"Mounted {dev} (force remount)")
+                            return jsonify({"ok": True, "device": dev, "fs": data.get("fstype", "auto"), "helper": True, "attempts": attempts})
+                        else:
+                            msg = data.get("error") or body or "host helper mount failed"
+                            tracker.add_event(f"USB force-remount failed: {msg}", level="error")
+                            if helper_lsblk:
+                                tracker.add_event("USB helper lsblk:\n" + helper_lsblk, level="error")
+                            return jsonify({"ok": False, "error": msg, "attempts": attempts}), 500
+                except Exception as helper_exc:
+                    logger.warning("USB force-remount: host helper unavailable (%s)", helper_exc)
+                    tracker.add_event(f"USB force-remount: helper unavailable ({helper_exc})", level="error")
+                    tracker.set_usb_status("error", "Helper unavailable")
+                    return jsonify({"ok": False, "error": str(helper_exc)}), 500
+            return jsonify({"ok": False, "error": "helper not configured"}), 500
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.exception("USB force remount failed")
+            tracker.add_event(f"USB force remount failed: {e}", level="error")
+            tracker.set_usb_status("error", "Force remount failed")
             return jsonify({"ok": False, "error": str(e)}), 500
 
     if config_manager:

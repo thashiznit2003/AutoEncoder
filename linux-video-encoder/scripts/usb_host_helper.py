@@ -177,6 +177,54 @@ class Handler(BaseHTTPRequestHandler):
         self._json(404, {"error": "not found"})
 
     def do_POST(self):
+        if self.path.startswith("/usb/force_remount"):
+            try:
+                length = int(self.headers.get("Content-Length", "0") or 0)
+                target = self.helper_mountpoint
+                attempts = 5
+                delay = 2.0
+                if length:
+                    body = self.rfile.read(length)
+                    try:
+                        data = json.loads(body.decode("utf-8"))
+                        target = data.get("target") or target
+                        attempts = int(data.get("attempts", attempts))
+                        delay = float(data.get("delay", delay))
+                    except Exception:
+                        pass
+                results = []
+                last_err = None
+                for i in range(attempts):
+                    subprocess.run(["umount", target], check=False)
+                    rescan_block_devices()
+                    lsblk_text = run_lsblk(pretty=True)
+                    dev, fstype = find_first_usb_partition(lsblk_text, target)
+                    step = {"attempt": i + 1, "lsblk": lsblk_text.strip(), "device": dev, "fstype": fstype}
+                    if not dev:
+                        step["ok"] = False
+                        step["error"] = "no removable/usb partition"
+                        results.append(step)
+                        time.sleep(delay)
+                        continue
+                    mount_res = attempt_mount(dev, fstype, target)
+                    step.update(mount_res)
+                    try:
+                        entries = [e.name for e in os.scandir(target)]
+                        step["entries"] = entries[:20]
+                        if any(name not in (".", "..") for name in entries):
+                            results.append(step)
+                            return self._json(200 if mount_res.get("ok") else 500, {"ok": mount_res.get("ok", False), "device": dev, "fstype": fstype or "auto", "attempts": results})
+                    except Exception as e:
+                        step["entries_error"] = str(e)
+                    results.append(step)
+                    last_err = step.get("error")
+                    time.sleep(delay)
+                return self._json(500, {"ok": False, "error": last_err or "force remount failed", "attempts": results})
+            except Exception as e:
+                logging.exception("force remount failed")
+                self._json(500, {"ok": False, "error": str(e)})
+                return
+
         if self.path.startswith("/usb/refresh"):
             try:
                 length = int(self.headers.get("Content-Length", "0") or 0)
