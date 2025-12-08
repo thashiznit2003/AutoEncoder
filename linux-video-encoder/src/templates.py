@@ -371,6 +371,7 @@ MAIN_PAGE_TEMPLATE = """
         }
         const lbNote = (hbCfg.low_bitrate_auto_skip ? "Low bitrate: auto-skip" : (hbCfg.low_bitrate_auto_proceed ? "Low bitrate: auto-proceed" : "Low bitrate: ask"));
         const audioModeLabel = (hb.audio_mode === "auto_dolby") ? "Auto Dolby" : (hb.audio_mode === "copy" ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
+        const audioOffsetLabel = (hb.audio_offset_ms !== undefined && hb.audio_offset_ms !== null) ? (hb.audio_offset_ms + " ms (single)") : "0 ms (single)";
         document.getElementById("hb-runtime").textContent =
           "Runtime HB settings: Encoder=" + (hb.encoder || "x264") +
           " | Default RF=" + (hb.quality ?? 20) +
@@ -378,7 +379,8 @@ MAIN_PAGE_TEMPLATE = """
           " | BR RF=" + (hbBr.quality ?? 25) +
           " | Ext=" + hbExt +
           " | " + lbNote +
-          " | Audio=" + audioModeLabel;
+          " | Audio=" + audioModeLabel +
+          " | Offset=" + audioOffsetLabel;
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
@@ -739,6 +741,9 @@ SETTINGS_PAGE_TEMPLATE = """
         <label>Gain (dB)
           <input id="hb-audio-gain" type="number" step="0.5" placeholder="0" />
         </label>
+        <label>Audio offset (ms, applies only when a single file is queued)
+          <input id="hb-audio-offset" type="number" step="10" min="-2000" max="2000" placeholder="0" />
+        </label>
         <label>Language filter (comma codes, e.g., eng,fre)
           <input id="hb-audio-lang" placeholder="eng,fre" />
         </label>
@@ -931,6 +936,7 @@ SETTINGS_PAGE_TEMPLATE = """
       setSelectValue(document.getElementById("hb-audio-rate"), cfg.handbrake.audio_samplerate || "", "");
       document.getElementById("hb-audio-drc").value = (cfg.handbrake.audio_drc !== undefined && cfg.handbrake.audio_drc !== null) ? cfg.handbrake.audio_drc : "";
       document.getElementById("hb-audio-gain").value = (cfg.handbrake.audio_gain !== undefined && cfg.handbrake.audio_gain !== null) ? cfg.handbrake.audio_gain : "";
+      document.getElementById("hb-audio-offset").value = (cfg.handbrake.audio_offset_ms !== undefined && cfg.handbrake.audio_offset_ms !== null) ? cfg.handbrake.audio_offset_ms : 0;
       document.getElementById("hb-audio-lang").value = (cfg.handbrake.audio_lang_list || []).join(", ");
       document.getElementById("hb-audio-tracks").value = cfg.handbrake.audio_track_list || "";
     }
@@ -959,13 +965,15 @@ SETTINGS_PAGE_TEMPLATE = """
         const hbBr = cfg.handbrake_br || {};
         const lbNote = cfg.low_bitrate_auto_skip ? "Low bitrate: auto-skip" : (cfg.low_bitrate_auto_proceed ? "Low bitrate: auto-proceed" : "Low bitrate: ask");
         const audioModeLabel = (hb.audio_mode === "auto_dolby") ? "Auto Dolby" : (hb.audio_mode === "copy" ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
+        const audioOffsetLabel = (hb.audio_offset_ms !== undefined && hb.audio_offset_ms !== null) ? (hb.audio_offset_ms + " ms (single file)") : "0 ms (single file)";
         document.getElementById("hb-summary").textContent = "Encoder: " + (hb.encoder || "x264")
           + " | Default RF: " + (hb.quality !== undefined && hb.quality !== null ? hb.quality : 20)
           + " | DVD RF: " + (hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20)
           + " | BR RF: " + (hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25)
           + " | Ext: " + (hb.extension || ".mkv")
           + " | " + lbNote
-          + " | Audio: " + audioModeLabel;
+          + " | Audio: " + audioModeLabel
+          + " | Offset: " + audioOffsetLabel;
         document.getElementById("lb-auto-proceed").checked = !!cfg.low_bitrate_auto_proceed;
         document.getElementById("lb-auto-skip").checked = !!cfg.low_bitrate_auto_skip;
         if (!authDirty) {
@@ -995,6 +1003,7 @@ SETTINGS_PAGE_TEMPLATE = """
       const audioDrc = audioDrcRaw === "" ? null : Number(audioDrcRaw);
       const audioGainRaw = document.getElementById("hb-audio-gain").value;
       const audioGain = audioGainRaw === "" ? null : Number(audioGainRaw);
+      const audioOffset = parseInt(document.getElementById("hb-audio-offset").value || "0", 10) || 0;
       const audioLang = (document.getElementById("hb-audio-lang").value || "").split(",").map(v => v.trim()).filter(Boolean);
       const audioTracks = document.getElementById("hb-audio-tracks").value || "";
       let targetBitrate = document.getElementById("hb-bitrate").value;
@@ -1024,13 +1033,14 @@ SETTINGS_PAGE_TEMPLATE = """
           audio_samplerate: audioRate,
           audio_drc: audioDrc,
           audio_gain: audioGain,
+          audio_offset_ms: audioOffset,
           audio_lang_list: audioLang,
           audio_track_list: audioTracks,
           audio_all: audioAll,
           subtitle_mode: subtitleMode
         },
-        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass },
-        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass }
+        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass },
+        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass }
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       hbDirty = false;
@@ -1062,6 +1072,7 @@ SETTINGS_PAGE_TEMPLATE = """
       const audioDrc = audioDrcRaw === "" ? null : Number(audioDrcRaw);
       const audioGainRaw = document.getElementById("hb-audio-gain").value;
       const audioGain = audioGainRaw === "" ? null : Number(audioGainRaw);
+      const audioOffset = parseInt(document.getElementById("hb-audio-offset").value || "0", 10) || 0;
       const body = {
         name,
         handbrake: {
@@ -1075,13 +1086,14 @@ SETTINGS_PAGE_TEMPLATE = """
           audio_samplerate: audioRate,
           audio_drc: audioDrc,
           audio_gain: audioGain,
+          audio_offset_ms: audioOffset,
           audio_lang_list: audioLang,
           audio_track_list: audioTracks,
           audio_all: audioAll,
           subtitle_mode: subtitleMode
         },
-        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode },
-        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode }
+        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode },
+        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode }
       };
       await fetch("/api/presets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       await loadPresets();

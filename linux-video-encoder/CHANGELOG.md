@@ -40,6 +40,10 @@
 - SMB Browser header now uses an inline 8-bit Mario-style icon (custom pixel SVG).
 - Version bumped to 1.24.31.
 
+## 1.24.32 - 2025-12-08
+- Added HandBrake audio offset (ms) control in Settings; applies only when a single file is queued, wired into HandBrakeCLI via --audio-offset.
+- Version bumped to 1.24.32.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.

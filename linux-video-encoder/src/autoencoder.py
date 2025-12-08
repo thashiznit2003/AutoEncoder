@@ -62,6 +62,7 @@ DEFAULT_CONFIG = {
         "quality": 20,
         "video_bitrate_kbps": None,
         "two_pass": False,
+        "audio_offset_ms": 0,
         "audio_bitrate_kbps": 128,
         "audio_mode": "encode",  # encode | copy | auto_dolby
         "audio_encoder": "av_aac",
@@ -81,6 +82,7 @@ DEFAULT_CONFIG = {
         "quality": 20,
         "video_bitrate_kbps": None,
         "two_pass": False,
+        "audio_offset_ms": 0,
         "width": 1920,
         "height": 1080,
         "extension": ".mkv",
@@ -102,6 +104,7 @@ DEFAULT_CONFIG = {
         "quality": 25,
         "video_bitrate_kbps": None,
         "two_pass": False,
+        "audio_offset_ms": 0,
         "width": 3840,
         "height": 2160,
         "extension": ".mkv",
@@ -868,6 +871,8 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
     audio_lang_list = opts.get("audio_lang_list") or []
     audio_track_list = opts.get("audio_track_list") or ""
     subtitle_mode = opts.get("subtitle_mode", "none")
+    audio_offset_ms = opts.get("audio_offset_ms")
+    apply_audio_offset = bool(opts.get("_apply_audio_offset"))
     video_bitrate_kbps = opts.get("video_bitrate_kbps")
     two_pass = bool(opts.get("two_pass"))
     hwdev = opts.get("hwdev", "")
@@ -976,6 +981,11 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
             cmd.append("--all-subtitles")
         elif subtitle_mode == "burn_forced":
             cmd.extend(["--subtitle", "1", "--subtitle-burned"])
+        if apply_audio_offset and audio_offset_ms not in (None, ""):
+            try:
+                cmd.extend(["--audio-offset", str(int(audio_offset_ms))])
+            except Exception:
+                cmd.extend(["--audio-offset", str(audio_offset_ms)])
         cmd.extend(map(str, extra))
         logger.info("Running HandBrakeCLI: %s", " ".join(cmd))
     try:
@@ -1067,7 +1077,7 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
         logger.exception("Encoding run failed: %s", e)
         return False
 
-def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip_dir: Path, encoder: Encoder, status_tracker: Optional[StatusTracker] = None) -> bool:
+def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip_dir: Path, encoder: Encoder, status_tracker: Optional[StatusTracker] = None, single_job_mode: bool = False) -> bool:
     config_str = config.get("profile", "ffmpeg") 
     final_dir = config.get("final_dir", "")   
     # check if dvd, bluray, or video file    
@@ -1080,7 +1090,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         is_dvd = True 
         config_str = "handbrake_dvd"
 
-    hb_opts = config.get(config_str, {})
+    hb_opts = dict(config.get(config_str, {}) or {})
     extension = hb_opts.get("extension", ".mkv")
 
     src = Path(video_file)
@@ -1168,6 +1178,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             status_tracker.complete(str(src), False, dest_str, "No video file to encode")
         return False
     # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available
+    if single_job_mode:
+        hb_opts["_apply_audio_offset"] = True
     use_ffmpeg = str(config_str).startswith("ffmpeg")
     logging.info("Selected profile=%s encoder=%s ext=%s out=%s use_ffmpeg=%s audio_mode=%s audio_kbps=%s",
                  config_str, hb_opts.get("encoder"), extension, out_path, use_ffmpeg,
@@ -1425,6 +1437,11 @@ def main():
                 status_tracker.set_disc_info(info_payload)
                 status_tracker.add_event(f"Disc detected (index={disc_num}); auto-rip={'on' if auto_rip else 'off'}")
 
+            active_snapshot = status_tracker.snapshot() if status_tracker else {"active": []}
+            queued_active = sum(
+                1 for a in active_snapshot.get("active", []) if a.get("state") in ("queued", "starting", "running")
+            )
+            single_job_mode = len(video_files) == 1 and queued_active == 1
             # Process sequentially (FIFO)
             for video_file in video_files:
                 # Determine profile for this file
@@ -1466,7 +1483,7 @@ def main():
                 try:
                     if status_tracker:
                         status_tracker.set_state(str(video_file), "starting")
-                    out = process_video(video_file, config, output_dir, rip_dir, encoder, status_tracker)
+                    out = process_video(video_file, config, output_dir, rip_dir, encoder, status_tracker, single_job_mode=single_job_mode)
                     print(f"✅ {video_file} → {out}")
                 except Exception as e:
                     print(f"❌ {video_file}: {e}")
