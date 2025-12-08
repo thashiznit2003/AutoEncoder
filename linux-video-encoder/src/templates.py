@@ -154,22 +154,22 @@ MAIN_PAGE_TEMPLATE = """
       const cards = [];
       const cpuPct = (metrics.cpu_pct !== undefined && metrics.cpu_pct !== null) ? metrics.cpu_pct.toFixed(1) + "%" : "n/a";
       const toGb = (mb) => (mb === undefined || mb === null) ? "n/a" : (mb / 1024).toFixed(1) + " GB";
-      cards.push({ icon: "🖥️", label: "CPU", value: cpuPct });
+      cards.push({ icon: "🧠", label: "CPU", value: cpuPct });
       if (metrics.gpu) {
         const g = metrics.gpu;
-        cards.push({ icon: "🎞️", label: "GPU", value: g.util + "% | " + toGb(g.mem_used_mb) + " / " + toGb(g.mem_total_mb) });
+        cards.push({ icon: "🎮", label: "GPU", value: g.util + "% | " + toGb(g.mem_used_mb) + " / " + toGb(g.mem_total_mb) });
       }
       if (metrics.mem) {
-        cards.push({ icon: "💾", label: "Memory", value: toGb(metrics.mem.used_mb) + " / " + toGb(metrics.mem.total_mb) });
+        cards.push({ icon: "🧊", label: "Memory", value: toGb(metrics.mem.used_mb) + " / " + toGb(metrics.mem.total_mb) });
       }
       if (metrics.block) {
-        cards.push({ icon: "🗄️", label: "Disk", value: toGb(metrics.block.read_mb) + " r / " + toGb(metrics.block.write_mb) + " w" });
+        cards.push({ icon: "💽", label: "Disk", value: toGb(metrics.block.read_mb) + " r / " + toGb(metrics.block.write_mb) + " w" });
       }
       if (metrics.fs) {
-        cards.push({ icon: "📂", label: "Output FS", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB free" });
+        cards.push({ icon: "📂", label: "Output", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB free" });
       }
       if (metrics.net) {
-        cards.push({ icon: "🌐", label: "Net", value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx" });
+        cards.push({ icon: "🌐", label: "Network", value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx" });
       }
       const prevUsb = document.getElementById("usb-status") || {};
       const usbStatusText = prevUsb.textContent || "USB status: unknown";
@@ -185,7 +185,7 @@ MAIN_PAGE_TEMPLATE = """
       `).join("");
       const usbCard = `
         <div class="metric-card usb-card" style="grid-column: 1 / -1;">
-          <div class="metric-icon">💽</div>
+          <div class="metric-icon">🔌</div>
           <div style="display:flex; flex-direction:column; flex:1; gap:4px;">
             <div class="metric-label" style="margin-bottom:2px;">USB Controls</div>
             <div style="display:flex; flex-wrap:nowrap; gap:6px; align-items:center; width:100%;">

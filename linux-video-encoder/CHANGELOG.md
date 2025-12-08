@@ -12,6 +12,10 @@
 - Further reduced System Metrics card padding/height (non-USB) and grid gap to eliminate scroll and keep USB Controls in view.
 - Version bumped to 1.24.24.
 
+## 1.24.25 - 2025-12-08
+- Updated System Metrics labels/icons: CPU/GPU/Memory/Disk/Output/Network renamed as requested and icons swapped (USB uses plug icon).
+- Version bumped to 1.24.25.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.
