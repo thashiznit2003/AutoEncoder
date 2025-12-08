@@ -20,6 +20,10 @@
 - Preserve USB status color/text when re-rendering the System Metrics grid to avoid color flashing.
 - Version bumped to 1.24.12.
 
+## 1.24.13 - 2025-12-08
+- System Metrics cards shrunk ~50% (tighter padding/grid) while keeping text/icons same size; metric text now wraps within the card.
+- Version bumped to 1.24.13.
+
 ## 1.24.9 - 2025-12-08
 - Fixed indentation error in USB helper logging path that caused container restart loop.
 - Version bumped to 1.24.9.
