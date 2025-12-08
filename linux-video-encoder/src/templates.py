@@ -159,7 +159,7 @@ MAIN_PAGE_TEMPLATE = """
         disk: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="6.5" width="19" height="19" rx="3"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1"/><path d="M22 22.5h-5"/></svg>`,
         output: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h9l2 3h9v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9Z"/><path d="M6 9h7"/></svg>`,
         network: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="8" r="3.5"/><circle cx="8.5" cy="22" r="3.5"/><circle cx="23.5" cy="22" r="3.5"/><path d="M14.5 11.5 10 18.5m7-7 4.5 7"/></svg>`,
-        usb: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6h2v7l2-2.5V18m-4-5-2 2.5V14H9v4.5a3.5 3.5 0 1 0 7 0V18"/><circle cx="20.5" cy="18" r="1.5"/><path d="M14 6h4"/></svg>`
+        usb: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6h4v6h-4z"/><path d="M12 7h2M18 7h2"/><path d="M16 12v8"/><rect x="13" y="20" width="6" height="5" rx="1.2"/><path d="M16 25v3"/></svg>`
       };
       const cards = [];
       const cpuPct = (metrics.cpu_pct !== undefined && metrics.cpu_pct !== null) ? metrics.cpu_pct.toFixed(1) + "%" : "n/a";
