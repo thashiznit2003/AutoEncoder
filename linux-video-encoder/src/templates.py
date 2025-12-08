@@ -87,14 +87,6 @@ MAIN_PAGE_TEMPLATE = """
     </div>
     <div class="panel">
       <h2>📊 System Metrics</h2>
-      <div style="border:1px solid #e5e7eb; border-radius:8px; padding:8px; margin-bottom:8px;">
-        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px;">
-          <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px;">Refresh USB</button>
-          <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px;">Force Remount</button>
-          <button type="button" id="usb-eject" style="padding:6px 10px; font-size:12px;">Eject USB</button>
-          <div id="usb-status" class="muted" style="flex:1; min-width:200px;">USB status: unknown</div>
-        </div>
-      </div>
       <div id="metrics" class="log"></div>
     </div>
     <div class="panel">
@@ -172,12 +164,25 @@ MAIN_PAGE_TEMPLATE = """
       if (metrics.net) {
         cards.push({ icon: "🌐", label: "Net", value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx" });
       }
-      el.innerHTML = '<div class="metric-grid">' + cards.map(c => `
+      const usbStatusText = (document.getElementById("usb-status") || {}).textContent || "USB status: unknown";
+      const cardsHtml = cards.map(c => `
         <div class="metric-card">
           <div class="metric-label">${c.icon} ${c.label}</div>
           <div class="metric-value">${c.value}</div>
         </div>
-      `).join("") + '</div>';
+      `).join("");
+      const usbCard = `
+        <div class="metric-card" style="grid-column: 1 / -1;">
+          <div class="metric-label">💽 USB</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:4px;">
+            <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px;">Refresh USB</button>
+            <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px;">Force Remount</button>
+            <button type="button" id="usb-eject" style="padding:6px 10px; font-size:12px;">Eject USB</button>
+            <div id="usb-status" class="muted" style="flex:1; min-width:200px;">${usbStatusText}</div>
+          </div>
+        </div>`;
+      el.innerHTML = '<div class="metric-grid">' + cardsHtml + usbCard + '</div>';
+      bindUsbButtons();
     }
 
     function renderLogs(lines) {
@@ -186,6 +191,57 @@ MAIN_PAGE_TEMPLATE = """
       el.textContent = (lines && lines.length ? lines : ["Ready to encode"]).join("\\n");
       if (atBottom) {
         el.scrollTop = el.scrollHeight;
+      }
+    }
+
+    function bindUsbButtons() {
+      const refreshBtn = document.getElementById("usb-refresh");
+      const forceBtn = document.getElementById("usb-force-remount");
+      const ejectBtn = document.getElementById("usb-eject");
+      if (refreshBtn) {
+        refreshBtn.onclick = async function() {
+          const prev = refreshBtn.textContent;
+          refreshBtn.disabled = true;
+          refreshBtn.textContent = "Refreshing...";
+          try {
+            await fetchJSON("/api/usb/refresh", { method: "POST" });
+          } catch (err) {
+            console.error("USB refresh failed", err);
+          } finally {
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = prev;
+          }
+        };
+      }
+      if (ejectBtn) {
+        ejectBtn.onclick = async function() {
+          const prev = ejectBtn.textContent;
+          ejectBtn.disabled = true;
+          ejectBtn.textContent = "Ejecting...";
+          try {
+            await fetchJSON("/api/usb/eject", { method: "POST" });
+          } catch (err) {
+            console.error("USB eject failed", err);
+          } finally {
+            ejectBtn.disabled = false;
+            ejectBtn.textContent = prev;
+          }
+        };
+      }
+      if (forceBtn) {
+        forceBtn.onclick = async function() {
+          const prev = forceBtn.textContent;
+          forceBtn.disabled = true;
+          forceBtn.textContent = "Remounting...";
+          try {
+            await fetchJSON("/api/usb/force_remount", { method: "POST" });
+          } catch (err) {
+            console.error("USB force remount failed", err);
+          } finally {
+            forceBtn.disabled = false;
+            forceBtn.textContent = prev;
+          }
+        };
       }
     }
 
@@ -301,57 +357,7 @@ MAIN_PAGE_TEMPLATE = """
         document.getElementById("events").textContent = "Events unavailable.";
       }
       try {
-        const refreshBtn = document.getElementById("usb-refresh");
-        const forceBtn = document.getElementById("usb-force-remount");
-        const ejectBtn = document.getElementById("usb-eject");
-        if (refreshBtn && !refreshBtn.dataset.bound) {
-          refreshBtn.dataset.bound = "1";
-          refreshBtn.onclick = async function() {
-            const prev = refreshBtn.textContent;
-            refreshBtn.disabled = true;
-            refreshBtn.textContent = "Refreshing...";
-            try {
-              await fetchJSON("/api/usb/refresh", { method: "POST" });
-            } catch (err) {
-              console.error("USB refresh failed", err);
-            } finally {
-              refreshBtn.disabled = false;
-              refreshBtn.textContent = prev;
-            }
-          };
-        }
-        if (ejectBtn && !ejectBtn.dataset.bound) {
-          ejectBtn.dataset.bound = "1";
-          ejectBtn.onclick = async function() {
-            const prev = ejectBtn.textContent;
-            ejectBtn.disabled = true;
-            ejectBtn.textContent = "Ejecting...";
-            try {
-              await fetchJSON("/api/usb/eject", { method: "POST" });
-            } catch (err) {
-              console.error("USB eject failed", err);
-            } finally {
-              ejectBtn.disabled = false;
-              ejectBtn.textContent = prev;
-            }
-          };
-        }
-        if (forceBtn && !forceBtn.dataset.bound) {
-          forceBtn.dataset.bound = "1";
-          forceBtn.onclick = async function() {
-            const prev = forceBtn.textContent;
-            forceBtn.disabled = true;
-            forceBtn.textContent = "Remounting...";
-            try {
-              await fetchJSON("/api/usb/force_remount", { method: "POST" });
-            } catch (err) {
-              console.error("USB force remount failed", err);
-            } finally {
-              forceBtn.disabled = false;
-              forceBtn.textContent = prev;
-            }
-          };
-        }
+        bindUsbButtons();
       } catch (e) {
         console.error("USB refresh/force setup failed", e);
       }
