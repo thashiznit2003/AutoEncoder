@@ -182,14 +182,14 @@ MAIN_PAGE_TEMPLATE = """
       const usbCard = `
         <div class="metric-card" style="grid-column: 1 / -1;">
           <div class="metric-icon">💽</div>
-          <div style="display:flex; flex-direction:column; flex:1; gap:6px;">
+          <div style="display:flex; flex-direction:column; flex:1; gap:4px;">
             <div class="metric-label" style="margin-bottom:2px;">USB Controls</div>
-            <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
-            <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px; flex:1 1 0; min-width:0;">Refresh USB</button>
-            <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px; flex:1 1 0; min-width:0;">Force Remount</button>
-            <button type="button" id="usb-eject" style="padding:6px 10px; font-size:12px; flex:1 1 0; min-width:0;">Eject USB</button>
-            <div id="usb-status" class="muted" style="flex:1; min-width:200px; color:${usbStatusColor};">${usbStatusText}</div>
+            <div style="display:flex; flex-wrap:nowrap; gap:6px; align-items:center; width:100%;">
+              <button type="button" id="usb-refresh" style="padding:4px 6px; font-size:9px; flex:1 1 0; min-width:0; white-space:nowrap;">Refresh</button>
+              <button type="button" id="usb-force-remount" style="padding:4px 6px; font-size:9px; flex:1 1 0; min-width:0; white-space:nowrap;">Force Remount</button>
+              <button type="button" id="usb-eject" style="padding:4px 6px; font-size:9px; flex:1 1 0; min-width:0; white-space:nowrap;">Eject</button>
             </div>
+            <div id="usb-status" class="muted" style="min-height:14px; color:${usbStatusColor};">${usbStatusText}</div>
           </div>
         </div>`;
       el.innerHTML = '<div class="metric-grid">' + cardsHtml + usbCard + '</div>';

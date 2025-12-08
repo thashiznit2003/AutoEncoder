@@ -8,6 +8,10 @@
 - System Metrics now shows Disk and Memory in GB; GPU label trimmed (drops “util”); USB controls buttons auto-shrink to fit.
 - Version bumped to 1.24.19.
 
+## 1.24.20 - 2025-12-08
+- USB Controls card tightened: buttons stay on one line, shrink text/padding, status sits on its own line underneath.
+- Version bumped to 1.24.20.
+
 ## 1.24.7 - 2025-12-08
 - USB helper mount/lsblk summaries now log to the Logs panel instead of Status Messages; status still updates USB state text.
 - Version bumped to 1.24.7.
