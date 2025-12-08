@@ -8,6 +8,10 @@
 - Installer now installs the USB host helper service before NVIDIA toolkit setup; helper uses repo USB mount by default.
 - Version bumped to 1.24.8.
 
+## 1.24.9 - 2025-12-08
+- Fixed indentation error in USB helper logging path that caused container restart loop.
+- Version bumped to 1.24.9.
+
 ## 1.24.6 - 2025-12-08
 - Added a dedicated “USB Metrics” card in System Metrics spanning full width, housing Refresh/Force Remount/Eject buttons and status text.
 - Version bumped to 1.24.6.

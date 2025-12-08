@@ -1411,7 +1411,7 @@ def create_app(tracker, config_manager=None):
                         attempts = data.get("attempts") or []
                         helper_lsblk = []
                         if attempts:
-                        helper_lsblk = (attempts[-1].get("lsblk") or "").splitlines()
+                            helper_lsblk = (attempts[-1].get("lsblk") or "").splitlines()
                     helper_snippet = "\\n".join(helper_lsblk[:6])
                     if data.get("ok"):
                         dev = data.get("device")
