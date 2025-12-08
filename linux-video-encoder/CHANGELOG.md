@@ -4,6 +4,10 @@
 - Restyled System Metrics cards (excluding USB Controls): softer gradients, larger icons, and cleaner spacing while keeping values compact.
 - Version bumped to 1.24.22.
 
+## 1.24.23 - 2025-12-08
+- Tightened System Metrics card padding/height (non-USB) to reduce vertical whitespace so USB controls stay visible without scrolling.
+- Version bumped to 1.24.23.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.
