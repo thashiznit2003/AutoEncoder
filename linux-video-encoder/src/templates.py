@@ -87,13 +87,16 @@ MAIN_PAGE_TEMPLATE = """
     </div>
     <div class="panel">
       <h2>📊 System Metrics</h2>
-      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px;">
-        <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px;">Force Remount</button>
-        <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px; margin-right:6px;">Refresh USB</button>
-        <button type="button" id="usb-eject" style="padding:6px 10px; font-size:12px;">Eject USB</button>
-        <div id="usb-status" class="muted">USB status: unknown</div>
-      </div>
       <div id="metrics" class="log"></div>
+    </div>
+    <div class="panel" style="grid-column: 1 / span 3;">
+      <h2>💽 USB Metrics</h2>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px;">
+        <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px;">Refresh USB</button>
+        <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px;">Force Remount</button>
+        <button type="button" id="usb-eject" style="padding:6px 10px; font-size:12px;">Eject USB</button>
+        <div id="usb-status" class="muted" style="flex:1; min-width:200px;">USB status: unknown</div>
+      </div>
     </div>
     <div class="panel">
       <h2>🌐 SMB Browser</h2>
