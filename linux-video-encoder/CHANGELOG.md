@@ -44,6 +44,10 @@
 - Added HandBrake audio offset (ms) control in Settings; applies only when a single file is queued, wired into HandBrakeCLI via --audio-offset.
 - Version bumped to 1.24.32.
 
+## 1.24.33 - 2025-12-08
+- Guard against false-success encodes: if HandBrake exits 0 but the output file is missing/empty, treat as failure so it doesn’t silently pass.
+- Version bumped to 1.24.33.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.

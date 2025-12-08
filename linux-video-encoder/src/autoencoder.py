@@ -1187,6 +1187,13 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     if status_tracker:
         status_tracker.set_state(str(src), "running")
     success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker, job_id=str(src))
+    if success:
+        try:
+            if not out_path.exists() or out_path.stat().st_size <= 0:
+                logging.warning("Encode reported success but output is missing/empty: %s", out_path)
+                success = False
+        except Exception:
+            logging.debug("Output existence/size check failed for %s", out_path, exc_info=True)
     if status_tracker and status_tracker.was_canceled(str(src)):
         logging.info("Job was canceled by user: %s", src)
         return False
