@@ -1,11 +1,12 @@
 # Changelog
 
-# Changelog
+## 1.24.7 - 2025-12-08
+- USB helper mount/lsblk summaries now log to the Logs panel instead of Status Messages; status still updates USB state text.
+- Version bumped to 1.24.7.
 
-## 1.24.4 - 2025-12-07
-- Added UI “Eject USB” button in System Metrics (host-helper driven) to cleanly unmount before swapping drives.
-- Host helper unmounts both the target mount and `/mnt/usb` before mounting to avoid stacked mounts; Web UI passes helper mountpoint consistently.
-- Version bumped to 1.24.4.
+## 1.24.6 - 2025-12-08
+- Added a dedicated “USB Metrics” card in System Metrics spanning full width, housing Refresh/Force Remount/Eject buttons and status text.
+- Version bumped to 1.24.6.
 
 ## 1.24.5 - 2025-12-07
 - USB helper now records video_count after mount and returns it to the UI; force-remount skips partitions with zero video files.
@@ -13,9 +14,10 @@
 - Added /usb/eject endpoint to helper; UI eject stays host-driven.
 - Version bumped to 1.24.5.
 
-## 1.24.6 - 2025-12-08
-- Added a dedicated “USB Metrics” card in System Metrics spanning full width, housing Refresh/Force Remount/Eject buttons and status text.
-- Version bumped to 1.24.6.
+## 1.24.4 - 2025-12-07
+- Added UI “Eject USB” button in System Metrics (host-helper driven) to cleanly unmount before swapping drives.
+- Host helper unmounts both the target mount and `/mnt/usb` before mounting to avoid stacked mounts; Web UI passes helper mountpoint consistently.
+- Version bumped to 1.24.4.
 
 ## 1.24.3 - 2025-12-07
 - USB helper now unmounts both the host USB target and `/mnt/usb` before mounting to avoid stacked/broken mounts, and iterates helper mountpoint explicitly.

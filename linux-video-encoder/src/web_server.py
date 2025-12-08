@@ -1411,24 +1411,24 @@ def create_app(tracker, config_manager=None):
                         attempts = data.get("attempts") or []
                         helper_lsblk = []
                         if attempts:
-                            helper_lsblk = (attempts[-1].get("lsblk") or "").splitlines()
-                        helper_snippet = "\\n".join(helper_lsblk[:6])
-                        if data.get("ok"):
-                            dev = data.get("device")
-                            vid_ct = data.get("video_count")
-                            tracker.add_event(f"USB helper mounted {dev} -> {target} (fs={data.get('fstype','auto')})"
-                                              + (f" [{vid_ct} video files]" if vid_ct is not None else ""))
-                            if helper_snippet:
-                                tracker.add_event("USB helper lsblk:\n" + helper_snippet)
-                            tracker.set_usb_status("ready", f"Mounted {dev} (host helper)")
-                            logger.info("USB refresh (helper): %s", body)
-                            return jsonify({"ok": True, "device": dev, "fs": data.get("fstype", "auto"), "helper": True})
-                        else:
-                            msg = data.get("error") or body or "host helper mount failed"
-                            tracker.add_event(f"USB refresh (helper) failed: {msg}", level="error")
-                            if helper_snippet:
-                                tracker.add_event("USB helper lsblk:\n" + helper_snippet, level="error")
-                            logger.warning("USB refresh (helper) failed: %s", body)
+                        helper_lsblk = (attempts[-1].get("lsblk") or "").splitlines()
+                    helper_snippet = "\\n".join(helper_lsblk[:6])
+                    if data.get("ok"):
+                        dev = data.get("device")
+                        vid_ct = data.get("video_count")
+                        logger.info("USB helper mounted %s -> %s (fs=%s)%s", dev, target, data.get("fstype", "auto"),
+                                    f" [{vid_ct} video files]" if vid_ct is not None else "")
+                        if helper_snippet:
+                            logger.info("USB helper lsblk:\n%s", helper_snippet)
+                        tracker.set_usb_status("ready", f"Mounted {dev} (host helper)")
+                        logger.info("USB refresh (helper): %s", body)
+                        return jsonify({"ok": True, "device": dev, "fs": data.get("fstype", "auto"), "helper": True})
+                    else:
+                        msg = data.get("error") or body or "host helper mount failed"
+                        logger.warning("USB refresh (helper) failed: %s", msg)
+                        if helper_snippet:
+                            logger.warning("USB helper lsblk:\n%s", helper_snippet)
+                        logger.warning("USB refresh (helper) failed: %s", body)
                 except Exception as helper_exc:
                     logger.warning("USB refresh: host helper unavailable (%s); falling back", helper_exc)
 
@@ -1575,17 +1575,17 @@ def create_app(tracker, config_manager=None):
                     if data.get("ok"):
                         dev = data.get("device")
                         vid_ct = data.get("video_count")
-                        tracker.add_event(f"USB force-remount mounted {dev} -> {helper_mount} (fs={data.get('fstype','auto')})"
-                                          + (f" [{vid_ct} video files]" if vid_ct is not None else ""))
+                        logger.info("USB force-remount mounted %s -> %s (fs=%s)%s", dev, helper_mount, data.get("fstype", "auto"),
+                                    f" [{vid_ct} video files]" if vid_ct is not None else "")
                         if helper_lsblk:
-                            tracker.add_event("USB helper lsblk:\n" + helper_lsblk)
+                            logger.info("USB helper lsblk:\n%s", helper_lsblk)
                         tracker.set_usb_status("ready", f"Mounted {dev} (force remount)")
                         return jsonify({"ok": True, "device": dev, "fs": data.get("fstype", "auto"), "helper": True, "attempts": attempts})
                     else:
                         msg = data.get("error") or body or "host helper mount failed"
-                        tracker.add_event(f"USB force-remount failed: {msg}", level="error")
+                        logger.warning("USB force-remount failed: %s", msg)
                         if helper_lsblk:
-                            tracker.add_event("USB helper lsblk:\n" + helper_lsblk, level="error")
+                            logger.warning("USB helper lsblk:\n%s", helper_lsblk)
                         return jsonify({"ok": False, "error": msg, "attempts": attempts}), 500
                 except Exception as helper_exc:
                     logger.warning("USB force-remount: host helper unavailable (%s)", helper_exc)
