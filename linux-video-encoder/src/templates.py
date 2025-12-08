@@ -167,7 +167,7 @@ MAIN_PAGE_TEMPLATE = """
       cards.push({ icon: icons.cpu, label: "CPU", value: cpuPct });
       if (metrics.gpu) {
         const g = metrics.gpu;
-        cards.push({ icon: icons.gpu, label: "GPU", value: g.util + "% | " + toGb(g.mem_used_mb) + " / " + toGb(g.mem_total_mb) });
+        cards.push({ icon: icons.gpu, label: "GPU", value: g.util + "%<br>" + toGb(g.mem_used_mb) + " / " + toGb(g.mem_total_mb) });
       }
       if (metrics.mem) {
         cards.push({ icon: icons.memory, label: "Memory", value: toGb(metrics.mem.used_mb) + " / " + toGb(metrics.mem.total_mb) });
@@ -176,10 +176,10 @@ MAIN_PAGE_TEMPLATE = """
         cards.push({ icon: icons.disk, label: "Disk", value: toGb(metrics.block.read_mb) + " r / " + toGb(metrics.block.write_mb) + " w" });
       }
       if (metrics.fs) {
-        cards.push({ icon: icons.output, label: "Output", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB free" });
+        cards.push({ icon: icons.output, label: "Output", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB" });
       }
       if (metrics.net) {
-        cards.push({ icon: icons.network, label: "Network", value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx" });
+        cards.push({ icon: icons.network, label: "Network", value: metrics.net.rx_mb + " MB ↓ / " + metrics.net.tx_mb + " MB ↑" });
       }
       const prevUsb = document.getElementById("usb-status") || {};
       const usbStatusText = prevUsb.textContent || "USB status: unknown";

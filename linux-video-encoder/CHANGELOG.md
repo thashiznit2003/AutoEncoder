@@ -28,6 +28,10 @@
 - Matched USB Controls icon background/shine to the other metric icons.
 - Version bumped to 1.24.28.
 
+## 1.24.29 - 2025-12-08
+- GPU metric splits percent and memory onto separate lines, Output drops the word "free", and Network uses arrow indicators (down/up) instead of rx/tx.
+- Version bumped to 1.24.29.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.
