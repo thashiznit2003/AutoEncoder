@@ -1415,7 +1415,9 @@ def create_app(tracker, config_manager=None):
                         helper_snippet = "\\n".join(helper_lsblk[:6])
                         if data.get("ok"):
                             dev = data.get("device")
-                            tracker.add_event(f"USB helper mounted {dev} -> {target} (fs={data.get('fstype','auto')})")
+                            vid_ct = data.get("video_count")
+                            tracker.add_event(f"USB helper mounted {dev} -> {target} (fs={data.get('fstype','auto')})"
+                                              + (f" [{vid_ct} video files]" if vid_ct is not None else ""))
                             if helper_snippet:
                                 tracker.add_event("USB helper lsblk:\n" + helper_snippet)
                             tracker.set_usb_status("ready", f"Mounted {dev} (host helper)")
@@ -1572,7 +1574,9 @@ def create_app(tracker, config_manager=None):
                         helper_lsblk = "\\n".join(helper_lsblk[:6])
                     if data.get("ok"):
                         dev = data.get("device")
-                        tracker.add_event(f"USB force-remount mounted {dev} -> {helper_mount} (fs={data.get('fstype','auto')})")
+                        vid_ct = data.get("video_count")
+                        tracker.add_event(f"USB force-remount mounted {dev} -> {helper_mount} (fs={data.get('fstype','auto')})"
+                                          + (f" [{vid_ct} video files]" if vid_ct is not None else ""))
                         if helper_lsblk:
                             tracker.add_event("USB helper lsblk:\n" + helper_lsblk)
                         tracker.set_usb_status("ready", f"Mounted {dev} (force remount)")

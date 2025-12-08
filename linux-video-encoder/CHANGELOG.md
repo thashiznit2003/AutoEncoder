@@ -7,6 +7,12 @@
 - Host helper unmounts both the target mount and `/mnt/usb` before mounting to avoid stacked mounts; Web UI passes helper mountpoint consistently.
 - Version bumped to 1.24.4.
 
+## 1.24.5 - 2025-12-07
+- USB helper now records video_count after mount and returns it to the UI; force-remount skips partitions with zero video files.
+- Refresh/force-remount status messages include the number of video files detected.
+- Added /usb/eject endpoint to helper; UI eject stays host-driven.
+- Version bumped to 1.24.5.
+
 ## 1.24.3 - 2025-12-07
 - USB helper now unmounts both the host USB target and `/mnt/usb` before mounting to avoid stacked/broken mounts, and iterates helper mountpoint explicitly.
 - Web UI refresh/force-remount now targets the host mount path (not the container bind) and shares the helper mountpoint, reducing stale mount mismatches.

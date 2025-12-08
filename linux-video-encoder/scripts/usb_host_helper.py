@@ -20,6 +20,12 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Dict, List
 import shutil
+import pathlib
+
+VIDEO_EXTS = {
+    ".mkv", ".mp4", ".m4v", ".mov", ".avi", ".mpg", ".mpeg", ".ts", ".m2ts", ".wmv", ".flv",
+    ".iso", ".vob", ".mka", ".webm"
+}
 
 
 def run_lsblk(pretty: bool = True) -> str:
@@ -132,6 +138,20 @@ def find_first_usb_partition(lsblk_text: str, target: str):
     return first.get("device"), first.get("fstype")
 
 
+def count_video_files(mountpoint: str) -> int:
+    """Count video files (by extension) under the mountpoint (non-recursive)."""
+    try:
+        cnt = 0
+        for entry in os.scandir(mountpoint):
+            if not entry.is_file():
+                continue
+            if pathlib.Path(entry.name).suffix.lower() in VIDEO_EXTS:
+                cnt += 1
+        return cnt
+    except Exception:
+        return 0
+
+
 def attempt_mount(dev: str, fstype: str, mountpoint: str) -> Dict[str, str]:
     ensure_shared(mountpoint)
     # Always try to unmount first to clean up stale/broken mounts (both the target and the common /mnt/usb)
@@ -197,6 +217,7 @@ def attempt_mount(dev: str, fstype: str, mountpoint: str) -> Dict[str, str]:
                     result["fsck_msg"] = fsck_msg
                 return result
         result["ok"] = True
+        result["video_count"] = count_video_files(mountpoint)
         if fsck_ran:
             result["fsck_msg"] = fsck_msg
         return result
@@ -307,9 +328,11 @@ class Handler(BaseHTTPRequestHandler):
                         try:
                             entries = [e.name for e in os.scandir(target)]
                             sub["entries"] = entries[:20]
-                            if any(name not in (".", "..") for name in entries):
+                            video_count = mount_res.get("video_count", 0)
+                            sub["video_count"] = video_count
+                            if video_count > 0:
                                 results.append({**step, **sub, "ok": True})
-                                return self._json(200, {"ok": True, "device": dev, "fstype": fstype or "auto", "attempts": results})
+                                return self._json(200, {"ok": True, "device": dev, "fstype": fstype or "auto", "attempts": results, "video_count": video_count})
                         except Exception as e:
                             sub["entries_error"] = str(e)
                         results.append({**step, **sub, "ok": mount_res.get("ok", False), "error": mount_res.get("error")})
@@ -355,8 +378,10 @@ class Handler(BaseHTTPRequestHandler):
                         try:
                             entries = [e.name for e in os.scandir(self.helper_mountpoint)]
                             step["entries"] = entries[:20]
-                            if any(name not in (".", "..") for name in entries):
-                                self._json(200, {"ok": True, "device": dev, "fstype": fstype or "auto", "attempts": attempts + [step]})
+                            video_count = mount_res.get("video_count", 0)
+                            step["video_count"] = video_count
+                            if video_count > 0:
+                                self._json(200, {"ok": True, "device": dev, "fstype": fstype or "auto", "attempts": attempts + [step], "video_count": video_count})
                                 return
                         except Exception as e:
                             step["entries_error"] = str(e)
