@@ -28,6 +28,10 @@
 - Further reduced System Metrics card height (tighter padding/line-height) while keeping text/icons the same size; wrapping retained.
 - Version bumped to 1.24.14.
 
+## 1.24.15 - 2025-12-08
+- Further reduced System Metrics card height (tighter padding/line-height/gap) while keeping text/icons the same size; wrapping retained.
+- Version bumped to 1.24.15.
+
 ## 1.24.9 - 2025-12-08
 - Fixed indentation error in USB helper logging path that caused container restart loop.
 - Version bumped to 1.24.9.
