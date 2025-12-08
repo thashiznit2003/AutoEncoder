@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.24.21 - 2025-12-08
+- System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
+- Version bumped to 1.24.21.
+
 ## 1.24.18 - 2025-12-08
 - Halved System Metrics card dimensions again (smaller padding, icons, and text) for the skinnier KPI-style look.
 - Version bumped to 1.24.18.
