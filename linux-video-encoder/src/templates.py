@@ -54,6 +54,7 @@ MAIN_PAGE_TEMPLATE = """
     .smb-btn { padding: 7px 10px; border: 0; border-radius: 8px; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; cursor: pointer; }
     .smb-path { word-break: break-all; flex: 1; }
     .icon { width: 16px; height: 16px; display:inline-block; }
+    .icon.mario-icon svg { width: 100%; height: 100%; image-rendering: pixelated; }
   </style>
 </head>
 <body>
@@ -97,7 +98,25 @@ MAIN_PAGE_TEMPLATE = """
       <div id="metrics" class="log"></div>
     </div>
     <div class="panel">
-      <h2>🌐 SMB Browser</h2>
+      <h2><span class="icon mario-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+        <rect width="16" height="16" fill="none"/>
+        <rect x="2" y="0" width="12" height="1" fill="#d62828"/>
+        <rect x="1" y="1" width="14" height="1" fill="#d62828"/>
+        <rect x="1" y="2" width="7" height="1" fill="#d62828"/><rect x="9" y="2" width="6" height="1" fill="#d62828"/>
+        <rect x="0" y="3" width="4" height="1" fill="#7c4a1d"/><rect x="4" y="3" width="8" height="1" fill="#f2c29c"/><rect x="12" y="3" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="4" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="4" width="10" height="1" fill="#f2c29c"/><rect x="12" y="4" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="5" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="5" width="2" height="1" fill="#f2c29c"/><rect x="4" y="5" width="2" height="1" fill="#0b1220"/><rect x="6" y="5" width="2" height="1" fill="#f2c29c"/><rect x="8" y="5" width="2" height="1" fill="#0b1220"/><rect x="10" y="5" width="2" height="1" fill="#f2c29c"/><rect x="12" y="5" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="6" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="6" width="4" height="1" fill="#f2c29c"/><rect x="6" y="6" width="2" height="1" fill="#3b2a1a"/><rect x="8" y="6" width="4" height="1" fill="#f2c29c"/><rect x="12" y="6" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="7" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="7" width="2" height="1" fill="#f2c29c"/><rect x="4" y="7" width="6" height="1" fill="#3b2a1a"/><rect x="10" y="7" width="2" height="1" fill="#f2c29c"/><rect x="12" y="7" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="8" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="8" width="10" height="1" fill="#f2c29c"/><rect x="12" y="8" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="9" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="9" width="2" height="1" fill="#f2c29c"/><rect x="4" y="9" width="6" height="1" fill="#2563eb"/><rect x="10" y="9" width="2" height="1" fill="#f2c29c"/><rect x="12" y="9" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="10" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="10" width="2" height="1" fill="#f2c29c"/><rect x="4" y="10" width="6" height="1" fill="#2563eb"/><rect x="10" y="10" width="2" height="1" fill="#f2c29c"/><rect x="12" y="10" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="11" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="11" width="2" height="1" fill="#f2c29c"/><rect x="4" y="11" width="6" height="1" fill="#2563eb"/><rect x="10" y="11" width="2" height="1" fill="#f2c29c"/><rect x="12" y="11" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="12" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="12" width="2" height="1" fill="#f2c29c"/><rect x="4" y="12" width="6" height="1" fill="#2563eb"/><rect x="10" y="12" width="2" height="1" fill="#f2c29c"/><rect x="12" y="12" width="4" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="13" width="3" height="1" fill="#7c4a1d"/><rect x="3" y="13" width="8" height="1" fill="#2563eb"/><rect x="11" y="13" width="5" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="14" width="1" height="1" fill="none"/><rect x="1" y="14" width="1" height="1" fill="#7c4a1d"/><rect x="2" y="14" width="2" height="1" fill="#2563eb"/><rect x="4" y="14" width="6" height="1" fill="none"/><rect x="10" y="14" width="2" height="1" fill="#2563eb"/><rect x="12" y="14" width="2" height="1" fill="#7c4a1d"/>
+        <rect x="0" y="15" width="1" height="1" fill="none"/><rect x="1" y="15" width="2" height="1" fill="#7c4a1d"/><rect x="3" y="15" width="2" height="1" fill="#2563eb"/><rect x="5" y="15" width="4" height="1" fill="none"/><rect x="9" y="15" width="2" height="1" fill="#2563eb"/><rect x="11" y="15" width="2" height="1" fill="#7c4a1d"/>
+      </svg></span> SMB Browser</h2>
       <form id="smb-form" style="display:grid; gap:6px;">
         <input id="smb-url" placeholder="smb://server/share[/path]" />
         <input id="smb-user" placeholder="Username" />

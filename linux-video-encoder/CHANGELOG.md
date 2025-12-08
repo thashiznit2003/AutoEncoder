@@ -36,6 +36,10 @@
 - Tightened Network metric text spacing so arrows stay on one line with their values.
 - Version bumped to 1.24.30.
 
+## 1.24.31 - 2025-12-08
+- SMB Browser header now uses an inline 8-bit Mario-style icon (custom pixel SVG).
+- Version bumped to 1.24.31.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.
