@@ -24,6 +24,10 @@
 - Refined the USB Controls icon to resemble a USB-A cable end.
 - Version bumped to 1.24.27.
 
+## 1.24.28 - 2025-12-08
+- Matched USB Controls icon background/shine to the other metric icons.
+- Version bumped to 1.24.28.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.

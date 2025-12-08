@@ -42,7 +42,7 @@ MAIN_PAGE_TEMPLATE = """
     .metric-card.usb-card { background: #0f172a; border: 1px solid #1f2937; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); padding: 10px 12px; min-height: 64px; gap: 6px; }
     .metric-icon { width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #60a5fa, #a78bfa); color: #0b1220; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; box-shadow: 0 6px 14px rgba(79,70,229,0.35); }
     .metric-icon svg { width: 100%; height: 100%; }
-    .usb-card .metric-icon { width: 24px; height: 24px; font-size: 12px; background: #fff; color: #0f172a; box-shadow: none; }
+    .usb-card .metric-icon { width: 24px; height: 24px; font-size: 12px; background: linear-gradient(135deg, #60a5fa, #a78bfa); color: #0b1220; box-shadow: 0 6px 14px rgba(79,70,229,0.35); }
     .metric-text { display: flex; flex-direction: column; line-height: 1.15; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
     .metric-label { font-size: 14px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.8px; }
     .usb-card .metric-label { letter-spacing: 0.6px; }
