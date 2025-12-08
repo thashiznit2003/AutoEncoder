@@ -244,6 +244,28 @@ class Handler(BaseHTTPRequestHandler):
         self._json(404, {"error": "not found"})
 
     def do_POST(self):
+        if self.path.startswith("/usb/eject"):
+            try:
+                target = self.helper_mountpoint
+                length = int(self.headers.get("Content-Length", "0") or 0)
+                if length:
+                    body = self.rfile.read(length)
+                    try:
+                        data = json.loads(body.decode("utf-8"))
+                        target = data.get("target") or target
+                    except Exception:
+                        pass
+                # attempt unmount on both the target and /mnt/usb to clear stale mounts
+                attempts = []
+                for mp in {target, "/mnt/usb"}:
+                    res = subprocess.run(["umount", mp], capture_output=True, text=True, check=False)
+                    attempts.append({"mountpoint": mp, "returncode": res.returncode, "stderr": res.stderr.strip(), "stdout": res.stdout.strip()})
+                rescan_block_devices()
+                return self._json(200, {"ok": True, "attempts": attempts, "mountpoint": target})
+            except Exception as e:
+                logging.exception("eject failed")
+                return self._json(200, {"ok": False, "error": str(e)})
+
         if self.path.startswith("/usb/force_remount"):
             try:
                 length = int(self.headers.get("Content-Length", "0") or 0)

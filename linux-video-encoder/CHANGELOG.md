@@ -1,5 +1,12 @@
 # Changelog
 
+# Changelog
+
+## 1.24.4 - 2025-12-07
+- Added UI “Eject USB” button in System Metrics (host-helper driven) to cleanly unmount before swapping drives.
+- Host helper unmounts both the target mount and `/mnt/usb` before mounting to avoid stacked mounts; Web UI passes helper mountpoint consistently.
+- Version bumped to 1.24.4.
+
 ## 1.24.3 - 2025-12-07
 - USB helper now unmounts both the host USB target and `/mnt/usb` before mounting to avoid stacked/broken mounts, and iterates helper mountpoint explicitly.
 - Web UI refresh/force-remount now targets the host mount path (not the container bind) and shares the helper mountpoint, reducing stale mount mismatches.

@@ -1595,6 +1595,55 @@ def create_app(tracker, config_manager=None):
             tracker.set_usb_status("error", "Force remount failed")
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/usb/eject", methods=["POST"])
+    @require_auth
+    def usb_eject():
+        helper_url = os.environ.get("USB_HELPER_URL", "http://host.docker.internal:8765")
+        helper_mount = os.environ.get("USB_HELPER_MOUNTPOINT", "/linux-video-encoder/AutoEncoder/linux-video-encoder/USB")
+        logger = logging.getLogger(__name__)
+        try:
+            if helper_url:
+                try:
+                    import urllib.request
+                    payload = json.dumps({"target": helper_mount}).encode("utf-8")
+                    req = urllib.request.Request(
+                        helper_url.rstrip("/") + "/usb/eject",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        body = resp.read().decode("utf-8")
+                        data = json.loads(body or "{}")
+                        if data.get("ok"):
+                            tracker.add_event(f"USB ejected at {helper_mount}")
+                            tracker.set_usb_status("missing", "Ejected")
+                            return jsonify({"ok": True, "helper": True, "mountpoint": helper_mount})
+                        else:
+                            msg = data.get("error") or body or "host helper eject failed"
+                            tracker.add_event(f"USB eject failed: {msg}", level="error")
+                            return jsonify({"ok": False, "error": msg}), 500
+                except Exception as helper_exc:
+                    logger.warning("USB eject: host helper unavailable (%s)", helper_exc)
+                    tracker.add_event(f"USB eject: helper unavailable ({helper_exc})", level="error")
+                    tracker.set_usb_status("error", "Eject failed")
+                    return jsonify({"ok": False, "error": str(helper_exc)}), 500
+            # fallback: in-container unmount (best effort)
+            rc = subprocess.run(["umount", container_usb_mount], capture_output=True, text=True, check=False)
+            if rc.returncode == 0:
+                tracker.add_event(f"USB ejected at {container_usb_mount}")
+                tracker.set_usb_status("missing", "Ejected")
+                return jsonify({"ok": True, "helper": False, "mountpoint": container_usb_mount})
+            msg = rc.stderr.strip() or rc.stdout.strip() or "umount failed"
+            tracker.add_event(f"USB eject failed: {msg}", level="error")
+            tracker.set_usb_status("error", "Eject failed")
+            return jsonify({"ok": False, "error": msg}), 500
+        except Exception as e:
+            logger.exception("USB eject failed")
+            tracker.add_event(f"USB eject failed: {e}", level="error")
+            tracker.set_usb_status("error", "Eject failed")
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     if config_manager:
         @app.route("/api/config", methods=["GET", "POST"])
         @require_auth

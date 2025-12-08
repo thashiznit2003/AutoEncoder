@@ -89,7 +89,8 @@ MAIN_PAGE_TEMPLATE = """
       <h2>📊 System Metrics</h2>
       <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px;">
         <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px;">Force Remount</button>
-        <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px;">Refresh USB</button>
+        <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px; margin-right:6px;">Refresh USB</button>
+        <button type="button" id="usb-eject" style="padding:6px 10px; font-size:12px;">Eject USB</button>
         <div id="usb-status" class="muted">USB status: unknown</div>
       </div>
       <div id="metrics" class="log"></div>
@@ -300,6 +301,7 @@ MAIN_PAGE_TEMPLATE = """
       try {
         const refreshBtn = document.getElementById("usb-refresh");
         const forceBtn = document.getElementById("usb-force-remount");
+        const ejectBtn = document.getElementById("usb-eject");
         if (refreshBtn && !refreshBtn.dataset.bound) {
           refreshBtn.dataset.bound = "1";
           refreshBtn.onclick = async function() {
@@ -313,6 +315,22 @@ MAIN_PAGE_TEMPLATE = """
             } finally {
               refreshBtn.disabled = false;
               refreshBtn.textContent = prev;
+            }
+          };
+        }
+        if (ejectBtn && !ejectBtn.dataset.bound) {
+          ejectBtn.dataset.bound = "1";
+          ejectBtn.onclick = async function() {
+            const prev = ejectBtn.textContent;
+            ejectBtn.disabled = true;
+            ejectBtn.textContent = "Ejecting...";
+            try {
+              await fetchJSON("/api/usb/eject", { method: "POST" });
+            } catch (err) {
+              console.error("USB eject failed", err);
+            } finally {
+              ejectBtn.disabled = false;
+              ejectBtn.textContent = prev;
             }
           };
         }
