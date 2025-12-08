@@ -36,9 +36,9 @@ MAIN_PAGE_TEMPLATE = """
     .muted { color: #94a3b8; }
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
-    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
     .metric-card { background: linear-gradient(145deg, #0f1b2e, #0c1626); border: 1px solid #1d2a40; border-radius: 12px; padding: 12px 14px; min-height: 78px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); }
-    .metric-card.metric-standard { align-items: center; padding: 8px 10px; min-height: 56px; }
+    .metric-card.metric-standard { align-items: center; padding: 6px 8px; min-height: 44px; gap: 8px; }
     .metric-card.usb-card { background: #0f172a; border: 1px solid #1f2937; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); padding: 10px 12px; min-height: 64px; gap: 6px; }
     .metric-icon { width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #60a5fa, #a78bfa); color: #0b1220; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; box-shadow: 0 6px 14px rgba(79,70,229,0.35); }
     .usb-card .metric-icon { width: 24px; height: 24px; font-size: 12px; background: #fff; color: #0f172a; box-shadow: none; }

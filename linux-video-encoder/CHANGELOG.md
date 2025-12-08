@@ -8,6 +8,10 @@
 - Tightened System Metrics card padding/height (non-USB) to reduce vertical whitespace so USB controls stay visible without scrolling.
 - Version bumped to 1.24.23.
 
+## 1.24.24 - 2025-12-08
+- Further reduced System Metrics card padding/height (non-USB) and grid gap to eliminate scroll and keep USB Controls in view.
+- Version bumped to 1.24.24.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.
