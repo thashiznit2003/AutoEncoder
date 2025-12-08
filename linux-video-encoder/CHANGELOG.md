@@ -16,6 +16,10 @@
 - Updated System Metrics labels/icons: CPU/GPU/Memory/Disk/Output/Network renamed as requested and icons swapped (USB uses plug icon).
 - Version bumped to 1.24.25.
 
+## 1.24.26 - 2025-12-08
+- Replaced System Metrics emoji icons with inline SVGs for CPU, GPU, Memory, Disk, Output, Network, and USB controls.
+- Version bumped to 1.24.26.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.

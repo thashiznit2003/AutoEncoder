@@ -41,6 +41,7 @@ MAIN_PAGE_TEMPLATE = """
     .metric-card.metric-standard { align-items: center; padding: 6px 8px; min-height: 44px; gap: 8px; }
     .metric-card.usb-card { background: #0f172a; border: 1px solid #1f2937; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); padding: 10px 12px; min-height: 64px; gap: 6px; }
     .metric-icon { width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #60a5fa, #a78bfa); color: #0b1220; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; box-shadow: 0 6px 14px rgba(79,70,229,0.35); }
+    .metric-icon svg { width: 100%; height: 100%; }
     .usb-card .metric-icon { width: 24px; height: 24px; font-size: 12px; background: #fff; color: #0f172a; box-shadow: none; }
     .metric-text { display: flex; flex-direction: column; line-height: 1.15; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
     .metric-label { font-size: 14px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.8px; }
@@ -151,25 +152,34 @@ MAIN_PAGE_TEMPLATE = """
         el.textContent = "Metrics unavailable.";
         return;
       }
+      const icons = {
+        cpu: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="8.5" width="15" height="15" rx="2"/><rect x="12" y="12" width="9" height="9" rx="1"/><path d="M12 4v3m4-3v3m4-3v3M12 28v-3m4 3v-3m4 3v-3M4 12h3m-3 4h3m-3 4h3M28 12h-3m3 4h-3m3 4h-3"/></svg>`,
+        gpu: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="22" height="14" rx="2.5"/><circle cx="12" cy="16" r="3.5"/><path d="M22 12h3v8h-3zM8 12h2M8 16h2M8 20h2M26 14h2m-2 4h2m-8 6v-4m-4 4v-4"/></svg>`,
+        memory: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="24" height="10" rx="2"/><path d="M8 11v-2m4 2v-2m4 2v-2m4 2v-2M8 23v-2m4 2v-2m4 2v-2m4 2v-2M8 15h16"/></svg>`,
+        disk: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="6.5" width="19" height="19" rx="3"/><circle cx="16" cy="16" r="4.5"/><circle cx="16" cy="16" r="1"/><path d="M22 22.5h-5"/></svg>`,
+        output: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h9l2 3h9v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9Z"/><path d="M6 9h7"/></svg>`,
+        network: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="8" r="3.5"/><circle cx="8.5" cy="22" r="3.5"/><circle cx="23.5" cy="22" r="3.5"/><path d="M14.5 11.5 10 18.5m7-7 4.5 7"/></svg>`,
+        usb: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6h2v7l2-2.5V18m-4-5-2 2.5V14H9v4.5a3.5 3.5 0 1 0 7 0V18"/><circle cx="20.5" cy="18" r="1.5"/><path d="M14 6h4"/></svg>`
+      };
       const cards = [];
       const cpuPct = (metrics.cpu_pct !== undefined && metrics.cpu_pct !== null) ? metrics.cpu_pct.toFixed(1) + "%" : "n/a";
       const toGb = (mb) => (mb === undefined || mb === null) ? "n/a" : (mb / 1024).toFixed(1) + " GB";
-      cards.push({ icon: "🧠", label: "CPU", value: cpuPct });
+      cards.push({ icon: icons.cpu, label: "CPU", value: cpuPct });
       if (metrics.gpu) {
         const g = metrics.gpu;
-        cards.push({ icon: "🎮", label: "GPU", value: g.util + "% | " + toGb(g.mem_used_mb) + " / " + toGb(g.mem_total_mb) });
+        cards.push({ icon: icons.gpu, label: "GPU", value: g.util + "% | " + toGb(g.mem_used_mb) + " / " + toGb(g.mem_total_mb) });
       }
       if (metrics.mem) {
-        cards.push({ icon: "🧊", label: "Memory", value: toGb(metrics.mem.used_mb) + " / " + toGb(metrics.mem.total_mb) });
+        cards.push({ icon: icons.memory, label: "Memory", value: toGb(metrics.mem.used_mb) + " / " + toGb(metrics.mem.total_mb) });
       }
       if (metrics.block) {
-        cards.push({ icon: "💽", label: "Disk", value: toGb(metrics.block.read_mb) + " r / " + toGb(metrics.block.write_mb) + " w" });
+        cards.push({ icon: icons.disk, label: "Disk", value: toGb(metrics.block.read_mb) + " r / " + toGb(metrics.block.write_mb) + " w" });
       }
       if (metrics.fs) {
-        cards.push({ icon: "📂", label: "Output", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB free" });
+        cards.push({ icon: icons.output, label: "Output", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB free" });
       }
       if (metrics.net) {
-        cards.push({ icon: "🌐", label: "Network", value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx" });
+        cards.push({ icon: icons.network, label: "Network", value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx" });
       }
       const prevUsb = document.getElementById("usb-status") || {};
       const usbStatusText = prevUsb.textContent || "USB status: unknown";
@@ -185,7 +195,7 @@ MAIN_PAGE_TEMPLATE = """
       `).join("");
       const usbCard = `
         <div class="metric-card usb-card" style="grid-column: 1 / -1;">
-          <div class="metric-icon">🔌</div>
+          <div class="metric-icon">${icons.usb}</div>
           <div style="display:flex; flex-direction:column; flex:1; gap:4px;">
             <div class="metric-label" style="margin-bottom:2px;">USB Controls</div>
             <div style="display:flex; flex-wrap:nowrap; gap:6px; align-items:center; width:100%;">
