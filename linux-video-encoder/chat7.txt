@@ -1,0 +1,42 @@
+Chat 7 Continuation Guide
+
+Project summary
+- App: linux-video-encoder (Dockerized Python/Flask UI + HandBrake/FFmpeg tools).
+- Core flow: scanner watches mounted sources (input/DVD/Bluray/USB/smb_staging/usb_staging/ripped/state) every ~30s, queues stable video files, encodes to /mnt/output. UI shows Active/Recent jobs and status/log panels.
+- USB staging: USB files copy to /mnt/usb_staging (bind to USBStaging) before encode; originals remain on the stick. Staged sources delete after successful encode. Already-encoded USB files are skipped based on state tracking.
+
+USB host helper
+- Installed on host via scripts/install_usb_host_helper.sh; runs systemd service autoencoder-usb-helper listening (default 0.0.0.0:8765) with target mountpoint ./USB.
+- Endpoints: /usb/refresh (find/mount best USB partition; skips empty/no files; returns video_count), /usb/force_remount (unmounts target+/mnt/usb, iterates candidates until files exist), /usb/eject (clean unmount), /usb/status (lsblk snapshot).
+- Logs: helper mount/lsblk summaries go to Logs panel; Status Messages only for state. Host helper unmounts stacked mounts and marks mountpoint shared to avoid r/w issues.
+- UI USB controls live inside System Metrics card (full-width); buttons Refresh/Force Remount/Eject. Status colored by ready/missing/error and should not flash.
+
+UI expectations
+- System Metrics cards compact KPI style; Disk/Memory shown in GB; GPU label omits “util”.
+- Logs panel for helper mount details, not Status Messages. Status Messages remain concise for user-facing state.
+- USB card buttons stay on one line, text shrinks with buttons; status line sits below buttons.
+
+Versioning & changelog
+- Semantic x.y.z: major when user says, minor for feature, patch for fixes/tweaks. Always bump version in src/version.py and add entry to CHANGELOG.md for every change.
+- Keep changelog ordered by newest first (current latest: 1.24.20).
+
+Command style for user
+- Provide runnable one-liners chained with && (no multi-line unless unavoidable). Assume working dir /linux-video-encoder/AutoEncoder/linux-video-encoder on host for runtime commands; /Users/joe/VS Code/Git/AutoEncoder on Mac for git edits.
+- After each change: push to GitHub when possible, then give the user the command to pull/restart container (docker compose down && docker compose up -d). If helper reinstall is needed, include curl/chmod/systemctl steps. If push is blocked, tell user to push locally.
+
+Git/CI
+- CI: GitHub Actions workflow runs flake8 and pytest (pytest || true to allow no tests). .gitignore ignores .github by default; use git add -f if needed.
+- Use apply_patch for edits; do not reformat unrelated code.
+
+Other notes
+- Config persistence: state volume (/var/lib/autoencoder/state/config.json) seeded from repo config.json on first run to preserve UI settings across updates.
+- USB auto-mount udev script exists (setup_usb_automount.sh) but helper is primary path for reliable mounts.
+- Keep SMB shares/USBStaging shares scripts in scripts/. SMB scripts already run on host.
+
+How to detect GitHub access
+- In a new chat, test with: git ls-remote https://github.com/thashiznit2003/AutoEncoder.git. If blocked, push locally from the user’s machine.
+
+Default deploy commands (after pulling)
+cd /linux-video-encoder/AutoEncoder/linux-video-encoder && \
+docker compose down && \
+docker compose up -d
