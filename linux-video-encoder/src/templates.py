@@ -36,12 +36,12 @@ MAIN_PAGE_TEMPLATE = """
     .muted { color: #94a3b8; }
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
-    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; }
-    .metric-card { background: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 4px 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); min-height: 0; display: flex; align-items: center; gap: 6px; }
-    .metric-icon { width: 18px; height: 18px; border-radius: 999px; background: #fff; color: #0f172a; display: flex; align-items: center; justify-content: center; font-size: 8px; flex-shrink: 0; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; }
+    .metric-card { background: #0f172a; border: 1px solid #1f2937; border-radius: 10px; padding: 2px 4px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); min-height: 0; display: flex; align-items: center; gap: 4px; }
+    .metric-icon { width: 12px; height: 12px; border-radius: 999px; background: #fff; color: #0f172a; display: flex; align-items: center; justify-content: center; font-size: 6px; flex-shrink: 0; }
     .metric-text { display: flex; flex-direction: column; line-height: 1.05; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
-    .metric-label { font-size: 9px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.6px; }
-    .metric-value { font-size: 12px; font-weight: 700; color: #e5edff; }
+    .metric-label { font-size: 7px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.6px; }
+    .metric-value { font-size: 10px; font-weight: 700; color: #e5edff; }
     .smb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
     .smb-list { max-height: 220px; overflow-y: auto; border: 1px solid #1f2937; border-radius: 10px; padding: 8px; background: #0b1220; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
     .smb-item { padding: 6px 0; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; gap: 8px; align-items: center; }

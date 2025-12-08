@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.24.18 - 2025-12-08
+- Halved System Metrics card dimensions again (smaller padding, icons, and text) for the skinnier KPI-style look.
+- Version bumped to 1.24.18.
+
 ## 1.24.7 - 2025-12-08
 - USB helper mount/lsblk summaries now log to the Logs panel instead of Status Messages; status still updates USB state text.
 - Version bumped to 1.24.7.
@@ -35,6 +39,10 @@
 ## 1.24.17 - 2025-12-08
 - Further shrunk System Metrics cards (half-size icons/text/spacing) to reduce unused space; text still wraps within cards.
 - Version bumped to 1.24.17.
+
+## 1.24.18 - 2025-12-08
+- Halved System Metrics card dimensions again (smaller padding, icons, and text) for the skinnier KPI-style look.
+- Version bumped to 1.24.18.
 
 ## 1.24.15 - 2025-12-08
 - Further reduced System Metrics card height (tighter padding/line-height/gap) while keeping text/icons the same size; wrapping retained.
