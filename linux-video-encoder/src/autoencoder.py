@@ -983,9 +983,9 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
             cmd.extend(["--subtitle", "1", "--subtitle-burned"])
         if apply_audio_offset and audio_offset_ms not in (None, ""):
             try:
-                cmd.extend(["--audio-offset", str(int(audio_offset_ms))])
+                cmd.extend(["--audio-delay", str(int(audio_offset_ms))])
             except Exception:
-                cmd.extend(["--audio-offset", str(audio_offset_ms)])
+                cmd.extend(["--audio-delay", str(audio_offset_ms)])
         cmd.extend(map(str, extra))
         logger.info("Running HandBrakeCLI: %s", " ".join(cmd))
     try:

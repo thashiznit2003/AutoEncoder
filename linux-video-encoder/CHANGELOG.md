@@ -48,6 +48,10 @@
 - Guard against false-success encodes: if HandBrake exits 0 but the output file is missing/empty, treat as failure so it doesn’t silently pass.
 - Version bumped to 1.24.33.
 
+## 1.24.34 - 2025-12-08
+- Fixed audio offset flag to use HandBrakeCLI's supported `--audio-delay` so offsets apply correctly.
+- Version bumped to 1.24.34.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.
