@@ -32,6 +32,10 @@
 - GPU metric splits percent and memory onto separate lines, Output drops the word "free", and Network uses arrow indicators (down/up) instead of rx/tx.
 - Version bumped to 1.24.29.
 
+## 1.24.30 - 2025-12-08
+- Tightened Network metric text spacing so arrows stay on one line with their values.
+- Version bumped to 1.24.30.
+
 ## 1.24.21 - 2025-12-08
 - System Metrics cards doubled in height with enlarged icons and titles (value text unchanged) for clearer KPI-style sizing.
 - Version bumped to 1.24.21.

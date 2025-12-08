@@ -179,7 +179,7 @@ MAIN_PAGE_TEMPLATE = """
         cards.push({ icon: icons.output, label: "Output", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB" });
       }
       if (metrics.net) {
-        cards.push({ icon: icons.network, label: "Network", value: metrics.net.rx_mb + " MB ↓ / " + metrics.net.tx_mb + " MB ↑" });
+        cards.push({ icon: icons.network, label: "Network", value: metrics.net.rx_mb + "MB ↓ / " + metrics.net.tx_mb + "MB ↑" });
       }
       const prevUsb = document.getElementById("usb-status") || {};
       const usbStatusText = prevUsb.textContent || "USB status: unknown";
