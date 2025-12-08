@@ -24,6 +24,10 @@
 - System Metrics cards shrunk ~50% (tighter padding/grid) while keeping text/icons same size; metric text now wraps within the card.
 - Version bumped to 1.24.13.
 
+## 1.24.14 - 2025-12-08
+- Further reduced System Metrics card height (tighter padding/line-height) while keeping text/icons the same size; wrapping retained.
+- Version bumped to 1.24.14.
+
 ## 1.24.9 - 2025-12-08
 - Fixed indentation error in USB helper logging path that caused container restart loop.
 - Version bumped to 1.24.9.

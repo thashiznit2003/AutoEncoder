@@ -37,9 +37,9 @@ MAIN_PAGE_TEMPLATE = """
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
     .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 4px; }
-    .metric-card { background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 10px; padding: 3px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); min-height: 0; }
-    .metric-label { font-size: 10px; color: #8ea0bd; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
-    .metric-value { font-size: 13px; font-weight: 700; color: #e5edff; margin-top: 2px; font-family: Arial, "Helvetica Neue", sans-serif; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
+    .metric-card { background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 10px; padding: 2px 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); min-height: 0; }
+    .metric-label { font-size: 10px; color: #8ea0bd; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 6px; line-height: 1.1; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
+    .metric-value { font-size: 13px; font-weight: 700; color: #e5edff; margin-top: 2px; font-family: Arial, "Helvetica Neue", sans-serif; line-height: 1.1; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
     .smb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
     .smb-list { max-height: 220px; overflow-y: auto; border: 1px solid #1f2937; border-radius: 10px; padding: 8px; background: #0b1220; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
     .smb-item { padding: 6px 0; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
