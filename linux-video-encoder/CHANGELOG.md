@@ -28,6 +28,10 @@
 - Further reduced System Metrics card height (tighter padding/line-height) while keeping text/icons the same size; wrapping retained.
 - Version bumped to 1.24.14.
 
+## 1.24.16 - 2025-12-08
+- Redesigned System Metrics cards to a compact icon+value/label layout (skinnier cards, tight padding, wrapped text) matching the requested look.
+- Version bumped to 1.24.16.
+
 ## 1.24.15 - 2025-12-08
 - Further reduced System Metrics card height (tighter padding/line-height/gap) while keeping text/icons the same size; wrapping retained.
 - Version bumped to 1.24.15.
