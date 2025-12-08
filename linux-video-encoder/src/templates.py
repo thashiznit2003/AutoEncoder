@@ -36,11 +36,15 @@ MAIN_PAGE_TEMPLATE = """
     .muted { color: #94a3b8; }
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
-    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; }
-    .metric-card { background: #0f172a; border: 1px solid #1f2937; border-radius: 10px; padding: 8px 10px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); min-height: 64px; display: flex; align-items: center; gap: 6px; }
-    .metric-icon { width: 24px; height: 24px; border-radius: 999px; background: #fff; color: #0f172a; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
-    .metric-text { display: flex; flex-direction: column; line-height: 1.05; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
-    .metric-label { font-size: 14px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.6px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+    .metric-card { background: linear-gradient(145deg, #0f1b2e, #0c1626); border: 1px solid #1d2a40; border-radius: 12px; padding: 12px 14px; min-height: 78px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); }
+    .metric-card.metric-standard { align-items: center; }
+    .metric-card.usb-card { background: #0f172a; border: 1px solid #1f2937; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); padding: 10px 12px; min-height: 64px; gap: 6px; }
+    .metric-icon { width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #60a5fa, #a78bfa); color: #0b1220; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; box-shadow: 0 6px 14px rgba(79,70,229,0.35); }
+    .usb-card .metric-icon { width: 24px; height: 24px; font-size: 12px; background: #fff; color: #0f172a; box-shadow: none; }
+    .metric-text { display: flex; flex-direction: column; line-height: 1.15; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
+    .metric-label { font-size: 14px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.8px; }
+    .usb-card .metric-label { letter-spacing: 0.6px; }
     .metric-value { font-size: 10px; font-weight: 700; color: #e5edff; }
     .smb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
     .smb-list { max-height: 220px; overflow-y: auto; border: 1px solid #1f2937; border-radius: 10px; padding: 8px; background: #0b1220; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
@@ -171,7 +175,7 @@ MAIN_PAGE_TEMPLATE = """
       const usbStatusText = prevUsb.textContent || "USB status: unknown";
       const usbStatusColor = prevUsb.style ? (prevUsb.style.color || "#94a3b8") : "#94a3b8";
       const cardsHtml = cards.map(c => `
-        <div class="metric-card">
+        <div class="metric-card metric-standard">
           <div class="metric-icon">${c.icon}</div>
           <div class="metric-text">
             <div class="metric-value">${c.value}</div>
@@ -180,7 +184,7 @@ MAIN_PAGE_TEMPLATE = """
         </div>
       `).join("");
       const usbCard = `
-        <div class="metric-card" style="grid-column: 1 / -1;">
+        <div class="metric-card usb-card" style="grid-column: 1 / -1;">
           <div class="metric-icon">💽</div>
           <div style="display:flex; flex-direction:column; flex:1; gap:4px;">
             <div class="metric-label" style="margin-bottom:2px;">USB Controls</div>
