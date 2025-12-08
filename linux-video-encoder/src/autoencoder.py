@@ -873,6 +873,7 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
     subtitle_mode = opts.get("subtitle_mode", "none")
     audio_offset_ms = opts.get("audio_offset_ms")
     apply_audio_offset = bool(opts.get("_apply_audio_offset"))
+    temp_offset_path = None
     video_bitrate_kbps = opts.get("video_bitrate_kbps")
     two_pass = bool(opts.get("two_pass"))
     hwdev = opts.get("hwdev", "")
@@ -906,6 +907,44 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
         cmd.append(str(output_path))
         logger.info("Running ffmpeg: %s", " ".join(cmd))
     else:
+        if apply_audio_offset and audio_offset_ms not in (None, "", 0, "0"):
+            try:
+                offset_sec = float(audio_offset_ms) / 1000.0
+                temp_offset_path = Path("/tmp") / f"hb_offset_{uuid.uuid4().hex}{Path(input_path).suffix}"
+                pre_cmd = [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    str(input_path),
+                    "-itsoffset",
+                    str(offset_sec),
+                    "-i",
+                    str(input_path),
+                    "-map",
+                    "0:v",
+                    "-map",
+                    "1:a?",
+                    "-map",
+                    "0:s?",
+                    "-c:v",
+                    "copy",
+                    "-c:a",
+                    "copy",
+                    "-c:s",
+                    "copy",
+                    str(temp_offset_path),
+                ]
+                logger.info("Pre-shifting audio via ffmpeg: %s", " ".join(map(str, pre_cmd)))
+                pre_rc = subprocess.run(pre_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                logger.info(pre_rc.stdout)
+                if pre_rc.returncode != 0:
+                    logger.error("Audio offset prep failed (ffmpeg). Skipping offset. rc=%s", pre_rc.returncode)
+                    temp_offset_path = None
+                else:
+                    input_path = str(temp_offset_path)
+            except Exception:
+                logger.exception("Audio offset prep failed; skipping offset")
+                temp_offset_path = None
         cmd = [
             "HandBrakeCLI",
             "-i", str(input_path),
@@ -981,11 +1020,6 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
             cmd.append("--all-subtitles")
         elif subtitle_mode == "burn_forced":
             cmd.extend(["--subtitle", "1", "--subtitle-burned"])
-        if apply_audio_offset and audio_offset_ms not in (None, ""):
-            try:
-                cmd.extend(["--audio-delay", str(int(audio_offset_ms))])
-            except Exception:
-                cmd.extend(["--audio-delay", str(audio_offset_ms)])
         cmd.extend(map(str, extra))
         logger.info("Running HandBrakeCLI: %s", " ".join(cmd))
     try:
@@ -1076,6 +1110,12 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
     except Exception as e:
         logger.exception("Encoding run failed: %s", e)
         return False
+    finally:
+        if temp_offset_path:
+            try:
+                Path(temp_offset_path).unlink(missing_ok=True)
+            except Exception:
+                logger.debug("Failed to cleanup temp offset file %s", temp_offset_path, exc_info=True)
 
 def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip_dir: Path, encoder: Encoder, status_tracker: Optional[StatusTracker] = None, single_job_mode: bool = False) -> bool:
     config_str = config.get("profile", "ffmpeg") 
