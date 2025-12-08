@@ -4,6 +4,10 @@
 - Halved System Metrics card dimensions again (smaller padding, icons, and text) for the skinnier KPI-style look.
 - Version bumped to 1.24.18.
 
+## 1.24.19 - 2025-12-08
+- System Metrics now shows Disk and Memory in GB; GPU label trimmed (drops “util”); USB controls buttons auto-shrink to fit.
+- Version bumped to 1.24.19.
+
 ## 1.24.7 - 2025-12-08
 - USB helper mount/lsblk summaries now log to the Logs panel instead of Status Messages; status still updates USB state text.
 - Version bumped to 1.24.7.

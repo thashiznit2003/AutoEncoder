@@ -149,16 +149,17 @@ MAIN_PAGE_TEMPLATE = """
       }
       const cards = [];
       const cpuPct = (metrics.cpu_pct !== undefined && metrics.cpu_pct !== null) ? metrics.cpu_pct.toFixed(1) + "%" : "n/a";
+      const toGb = (mb) => (mb === undefined || mb === null) ? "n/a" : (mb / 1024).toFixed(1) + " GB";
       cards.push({ icon: "🖥️", label: "CPU", value: cpuPct });
       if (metrics.gpu) {
         const g = metrics.gpu;
-        cards.push({ icon: "🎞️", label: "GPU", value: g.util + "% util | " + g.mem_used_mb + " / " + g.mem_total_mb + " MB" });
+        cards.push({ icon: "🎞️", label: "GPU", value: g.util + "% | " + toGb(g.mem_used_mb) + " / " + toGb(g.mem_total_mb) });
       }
       if (metrics.mem) {
-        cards.push({ icon: "💾", label: "Memory", value: metrics.mem.used_mb + " / " + metrics.mem.total_mb + " MB" });
+        cards.push({ icon: "💾", label: "Memory", value: toGb(metrics.mem.used_mb) + " / " + toGb(metrics.mem.total_mb) });
       }
       if (metrics.block) {
-        cards.push({ icon: "🗄️", label: "Disk", value: metrics.block.read_mb + " MB r / " + metrics.block.write_mb + " MB w" });
+        cards.push({ icon: "🗄️", label: "Disk", value: toGb(metrics.block.read_mb) + " r / " + toGb(metrics.block.write_mb) + " w" });
       }
       if (metrics.fs) {
         cards.push({ icon: "📂", label: "Output FS", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB free" });
@@ -183,10 +184,10 @@ MAIN_PAGE_TEMPLATE = """
           <div class="metric-icon">💽</div>
           <div style="display:flex; flex-direction:column; flex:1; gap:6px;">
             <div class="metric-label" style="margin-bottom:2px;">USB Controls</div>
-            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-            <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px;">Refresh USB</button>
-            <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px;">Force Remount</button>
-            <button type="button" id="usb-eject" style="padding:6px 10px; font-size:12px;">Eject USB</button>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+            <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px; flex:1 1 0; min-width:0;">Refresh USB</button>
+            <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px; flex:1 1 0; min-width:0;">Force Remount</button>
+            <button type="button" id="usb-eject" style="padding:6px 10px; font-size:12px; flex:1 1 0; min-width:0;">Eject USB</button>
             <div id="usb-status" class="muted" style="flex:1; min-width:200px; color:${usbStatusColor};">${usbStatusText}</div>
             </div>
           </div>
