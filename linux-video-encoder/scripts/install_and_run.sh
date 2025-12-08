@@ -130,10 +130,22 @@ setup_usb_automount() {
   $SUDO "$script" || log "USB automount setup exited non-zero (continuing)."
 }
 
+install_usb_host_helper() {
+  local helper="$REPO_DIR/linux-video-encoder/scripts/install_usb_host_helper.sh"
+  if [ ! -x "$helper" ]; then
+    log "USB host helper installer missing at $helper; skipping."
+    return
+  fi
+  log "Installing USB host helper service..."
+  HELPER_LISTEN_ADDR=0.0.0.0 HELPER_LISTEN_PORT=8765 HELPER_MOUNTPOINT="$REPO_DIR/linux-video-encoder/USB" $SUDO "$helper" || \
+    log "USB host helper install exited non-zero (continuing)."
+}
+
 build_and_run() {
   cd "$REPO_DIR/linux-video-encoder" || cd "$REPO_DIR"
   ensure_media_dirs
   setup_usb_automount
+  install_usb_host_helper
   log "Stopping any existing stack (docker compose down)..."
   IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" down || true
   # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build

@@ -4,6 +4,10 @@
 - USB helper mount/lsblk summaries now log to the Logs panel instead of Status Messages; status still updates USB state text.
 - Version bumped to 1.24.7.
 
+## 1.24.8 - 2025-12-08
+- Installer now installs the USB host helper service before NVIDIA toolkit setup; helper uses repo USB mount by default.
+- Version bumped to 1.24.8.
+
 ## 1.24.6 - 2025-12-08
 - Added a dedicated “USB Metrics” card in System Metrics spanning full width, housing Refresh/Force Remount/Eject buttons and status text.
 - Version bumped to 1.24.6.
