@@ -164,7 +164,9 @@ MAIN_PAGE_TEMPLATE = """
       if (metrics.net) {
         cards.push({ icon: "🌐", label: "Net", value: metrics.net.rx_mb + " MB rx / " + metrics.net.tx_mb + " MB tx" });
       }
-      const usbStatusText = (document.getElementById("usb-status") || {}).textContent || "USB status: unknown";
+      const prevUsb = document.getElementById("usb-status") || {};
+      const usbStatusText = prevUsb.textContent || "USB status: unknown";
+      const usbStatusColor = prevUsb.style ? (prevUsb.style.color || "#94a3b8") : "#94a3b8";
       const cardsHtml = cards.map(c => `
         <div class="metric-card">
           <div class="metric-label">${c.icon} ${c.label}</div>
@@ -178,7 +180,7 @@ MAIN_PAGE_TEMPLATE = """
             <button type="button" id="usb-refresh" style="padding:6px 10px; font-size:12px;">Refresh USB</button>
             <button type="button" id="usb-force-remount" style="padding:6px 10px; font-size:12px;">Force Remount</button>
             <button type="button" id="usb-eject" style="padding:6px 10px; font-size:12px;">Eject USB</button>
-            <div id="usb-status" class="muted" style="flex:1; min-width:200px;">${usbStatusText}</div>
+            <div id="usb-status" class="muted" style="flex:1; min-width:200px; color:${usbStatusColor};">${usbStatusText}</div>
           </div>
         </div>`;
       el.innerHTML = '<div class="metric-grid">' + cardsHtml + usbCard + '</div>';

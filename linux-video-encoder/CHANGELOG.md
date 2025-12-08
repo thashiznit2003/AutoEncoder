@@ -16,6 +16,10 @@
 - USB card now lives inside the System Metrics grid, full-width, alongside other metric cards (Disk/Output FS/Net), with buttons/status embedded.
 - Version bumped to 1.24.11.
 
+## 1.24.12 - 2025-12-08
+- Preserve USB status color/text when re-rendering the System Metrics grid to avoid color flashing.
+- Version bumped to 1.24.12.
+
 ## 1.24.9 - 2025-12-08
 - Fixed indentation error in USB helper logging path that caused container restart loop.
 - Version bumped to 1.24.9.
