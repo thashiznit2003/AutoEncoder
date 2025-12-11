@@ -2,7 +2,7 @@ FROM ubuntu:24.04
 
 ARG DOCKERFILE_REV=3
 ARG MAKEMKV_VERSION=1.18.2
-ARG MAKEMKV_BASE_URL=https://www.makemkv.com/download
+ARG MAKEMKV_BASE_URL=https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main
 ARG MAKEMKV_BIN_URL=${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz
 ARG MAKEMKV_OSS_URL=${MAKEMKV_BASE_URL}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz
 
