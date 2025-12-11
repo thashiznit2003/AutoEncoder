@@ -378,9 +378,9 @@ def rip_disc(
         lang_list_audio = []
         lang_list_subs = []
     if lang_list_audio:
-        cmd.append(f"--audio={','.join(lang_list_audio)}")
+        cmd.append(f"--alang={','.join(lang_list_audio)}")
     if lang_list_subs:
-        cmd.append(f"--subtitle={','.join(lang_list_subs)}")
+        cmd.append(f"--slang={','.join(lang_list_subs)}")
 
     # Check for existing MKVs; reuse newest if present
     existing_mkvs = sorted(output_dir_path.glob("*.mkv"), key=os.path.getmtime)
