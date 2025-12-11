@@ -22,7 +22,6 @@ import threading
 import uuid
 from typing import Optional, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from version import VERSION
 from scanner import Scanner, EXCLUDED_SCAN_PATHS
 from encoder import Encoder  # kept as a fallback if needed
 from status_tracker import StatusTracker
@@ -133,7 +132,6 @@ DEFAULT_CONFIG = {
     "makemkv_exclude_commentary": False,
     "makemkv_prefer_surround": True,
     "makemkv_auto_rip": False,
-    "debug_mode_enabled": False,
 }
 
 class ConfigManager:
@@ -186,7 +184,6 @@ class ConfigManager:
                 "low_bitrate_auto_skip",
                 "search_path",
                 "profile",
-                "debug_mode_enabled",
             ]:
                 if field in data and data[field] is not None:
                     cfg[field] = data[field]
@@ -203,148 +200,7 @@ class ConfigManager:
                     json.dump(cfg, f, indent=2)
             except Exception:
                 logging.exception("Failed to write config to %s", self.path)
-
-
-class DebugPublisher:
-    """Background helper that snapshots logs/status to git when debug mode is enabled."""
-
-    def __init__(self, repo_root: Path, tracker: StatusTracker, log_path: Path, interval_sec: int = 180):
-        self.repo_root = Path(repo_root)
-        self.tracker = tracker
-        self.log_path = Path(log_path)
-        self.debug_dir = self.repo_root / "debug_uploads"
-        self.interval_sec = max(60, int(interval_sec))
-        self._last_push = 0.0
-
-    def _sanitize_config(self, cfg: Dict[str, Any]) -> Dict[str, Any]:
-        try:
-            safe = json.loads(json.dumps(cfg))
-        except Exception:
-            try:
-                safe = dict(cfg)
-            except Exception:
-                return {}
-        safe.pop("auth_password", None)
-        safe.pop("auth_user", None)
-        return safe
-
-    def _git(self, args):
-        return subprocess.run(["git", *args], cwd=self.repo_root, capture_output=True, text=True, check=False)
-
-    def _git_push_folder(self, folder: Path, reason: str):
-        if not (self.repo_root / ".git").exists():
-            logging.warning("Debug push skipped: no git repository at %s", self.repo_root)
-            return
-        # Avoid mixing with pre-staged work.
-        staged = self._git(["diff", "--cached", "--name-only"])
-        if staged.stdout.strip():
-            self.tracker.add_event("Debug push skipped: existing staged changes present.", level="error")
-            return
-        rel = folder.relative_to(self.repo_root)
-        add = self._git(["add", str(rel)])
-        if add.returncode != 0:
-            msg = (add.stderr or add.stdout or "").strip() or "git add failed"
-            self.tracker.add_event(f"Debug push failed to stage: {msg}", level="error")
-            return
-        has_changes = self._git(["diff", "--cached", "--quiet"])
-        if has_changes.returncode == 0:
-            # nothing staged
-            return
-        ts = time.strftime("%Y-%m-%d %H:%M:%S")
-        commit = self._git(["commit", "-m", f"Debug snapshot {ts} ({reason})"])
-        if commit.returncode != 0:
-            msg = (commit.stderr or commit.stdout or "").strip() or "git commit failed"
-            self.tracker.add_event(f"Debug push failed to commit: {msg}", level="error")
-            # clear staged debug files to avoid interfering with the user
-            self._git(["reset", "HEAD", str(rel)])
-            return
-        push = self._git(["push", "origin", "main"])
-        if push.returncode != 0:
-            msg = (push.stderr or push.stdout or "").strip() or "git push failed"
-            self.tracker.add_event(f"Debug push failed to reach origin: {msg}", level="error")
-            return
-        self.tracker.add_event(f"Debug snapshot pushed: {rel}")
-
-    def publish_snapshot(self, cfg: Dict[str, Any], reason: str):
-        ts = time.strftime("%Y%m%d-%H%M%S")
-        folder = self.debug_dir / f"debug_{ts}"
-        try:
-            folder.mkdir(parents=True, exist_ok=True)
-        except Exception:
-            logging.exception("Failed to create debug folder %s", folder)
-            return
-        try:
-            status = self.tracker.snapshot()
-            status["version"] = VERSION
-            (folder / "status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
-        except Exception:
-            logging.exception("Failed to write debug status snapshot")
-        try:
-            events = self.tracker.events()
-            (folder / "events.json").write_text(json.dumps(events, indent=2), encoding="utf-8")
-        except Exception:
-            logging.exception("Failed to write debug events")
-        try:
-            log_lines = self.tracker.tail_logs(lines=400)
-            (folder / "app_log_tail.txt").write_text("\n".join(log_lines), encoding="utf-8")
-        except Exception:
-            logging.exception("Failed to write debug log tail")
-        try:
-            safe_cfg = self._sanitize_config(cfg)
-            safe_cfg["version"] = VERSION
-            (folder / "config_snapshot.json").write_text(json.dumps(safe_cfg, indent=2), encoding="utf-8")
-        except Exception:
-            logging.exception("Failed to write debug config snapshot")
-        try:
-            mk_dir = Path("/root/.MakeMKV")
-            mk_out = folder / "makemkv"
-            if mk_dir.exists():
-                mk_out.mkdir(parents=True, exist_ok=True)
-                for item in mk_dir.iterdir():
-                    if not item.is_file():
-                        continue
-                    name_low = item.name.lower()
-                    if item.name == "settings.conf":
-                        try:
-                            text = item.read_text(encoding="utf-8", errors="ignore")
-                            # Redact registration key lines
-                            import re as _re
-                            redacted = _re.sub(r"app_key\\s*=.*", "app_key = <redacted>", text, flags=_re.IGNORECASE)
-                            (mk_out / item.name).write_text(redacted, encoding="utf-8")
-                        except Exception:
-                            logging.exception("Failed to redact/copy MakeMKV settings")
-                        continue
-                    if "log" in name_low or name_low.endswith(".txt") or name_low.startswith("messages"):
-                        try:
-                            shutil.copy2(item, mk_out / item.name)
-                        except Exception:
-                            logging.exception("Failed to copy MakeMKV log %s", item)
-        except Exception:
-            logging.exception("Failed to capture MakeMKV logs")
-        self._git_push_folder(folder, reason)
-        self._last_push = time.time()
-
-    def run(self, cfg_manager: ConfigManager):
-        last_flag = False
-        while True:
-            try:
-                cfg = cfg_manager.read()
-                enabled = bool(cfg.get("debug_mode_enabled"))
-                now = time.time()
-                should_push = False
-                reason = "periodic"
-                if enabled and not last_flag:
-                    should_push = True
-                    reason = "enabled"
-                elif enabled and (now - self._last_push) >= self.interval_sec:
-                    should_push = True
-                    reason = "periodic"
-                if should_push:
-                    self.publish_snapshot(cfg, reason)
-                last_flag = enabled
-            except Exception:
-                logging.exception("Debug publisher loop error")
-            time.sleep(10)
+            return load_config(self.path)
 
 def load_config(path: Path):
     try:
@@ -1473,8 +1329,6 @@ def main():
     ensure_smb_root()
     status_tracker = StatusTracker(LOG_FILE)
     cfg_manager = ConfigManager(CONFIG_PATH)
-    debug_publisher = DebugPublisher(Path(__file__).resolve().parents[1], status_tracker, LOG_FILE)
-    threading.Thread(target=debug_publisher.run, args=(cfg_manager,), daemon=True).start()
     start_web_server(status_tracker, config_manager=cfg_manager, port=WEB_PORT)
 
     config = cfg_manager.read()
