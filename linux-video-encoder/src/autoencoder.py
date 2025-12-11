@@ -464,17 +464,19 @@ def get_disc_number():
     try:
         # Query MakeMKV for available drives
         result = subprocess.run(
-            ["makemkvcon", "-r", "info", "disc:9999"],
+            ["makemkvcon", "-r", "--cache=1", "info", "disc:9999"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            check=True
+            check=False,
         )
-    except subprocess.CalledProcessError as e:
-        print("Error running makemkvcon:", e.output.strip())
+    except FileNotFoundError:
+        print("makemkvcon not found on PATH")
         return None
 
-    output = result.stdout.strip()
+    output = (result.stdout or "").strip()
+    if result.returncode != 0:
+        print(f"makemkvcon info returned rc={result.returncode}; attempting to parse drive list anyway.")
 
     # Regex matches lines like:
     # DRV:0,0,999,0,"BD-RE HL-DT-ST BD-RE  WH16NS40 1.05","/dev/sr0"
