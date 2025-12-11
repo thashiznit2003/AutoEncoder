@@ -899,6 +899,25 @@ SETTINGS_PAGE_TEMPLATE = """
       return res.json();
     }
 
+    function buildDiscInfoText(info) {
+      if (!info) return "";
+      const payload = info.info ? info.info : info;
+      const summary = (payload && payload.summary) || info.summary || null;
+      const formatted = (payload && payload.formatted) || "";
+      const raw = (payload && payload.raw) || info.raw || "";
+      let summaryLine = "";
+      if (!formatted && summary) {
+        const parts = [];
+        if (summary.disc_label) parts.push("Label: " + summary.disc_label);
+        if (summary.drive) parts.push("Drive: " + summary.drive);
+        if (summary.titles_detected || summary.title_count) parts.push("Titles: " + (summary.titles_detected || summary.title_count));
+        if (summary.main_feature && summary.main_feature.duration) parts.push("Main: " + summary.main_feature.duration);
+        summaryLine = parts.join(" | ");
+      }
+      const combined = [formatted || summaryLine, raw].filter(Boolean).join("\\n\\n");
+      return combined || "";
+    }
+
     function setSelectValue(sel, value, fallback) {
       if (!sel) return;
       const val = (value === undefined || value === null) ? fallback : value;
@@ -1148,7 +1167,13 @@ SETTINGS_PAGE_TEMPLATE = """
       try {
         const info = await fetchJSON("/api/makemkv/info");
         const discInfoEl = document.getElementById("mk-info");
-        discInfoEl.value = (info && info.info && info.info.raw) ? info.info.raw : (info && info.raw) ? info.raw : "No disc info.";
+        const discStatusEl = document.getElementById("mk-disc-status");
+        const discText = buildDiscInfoText(info) || "No disc info.";
+        discInfoEl.value = discText;
+        if (discStatusEl) {
+          const idx = (info && info.disc_index !== undefined) ? info.disc_index : null;
+          discStatusEl.textContent = idx !== null ? ("Disc present (index " + idx + ")") : "Disc info refreshed.";
+        }
       } catch (e) {
         alert("Failed to fetch disc info: " + e);
       }

@@ -27,6 +27,7 @@ from encoder import Encoder  # kept as a fallback if needed
 from status_tracker import StatusTracker
 from smb_allowlist import enforce_smb_allowlist, load_smb_allowlist, save_smb_allowlist, remove_from_allowlist
 from web_server import start_web_server
+from makemkv_parser import parse_makemkv_info_output
 
 # locate config in the state volume (seeded from repo config.json on first run)
 STATE_DIR = Path("/var/lib/autoencoder/state")
@@ -822,28 +823,10 @@ def scan_disc_info(disc_index: int) -> Optional[dict]:
         )
     except FileNotFoundError:
         return None
-    if res.returncode != 0 and not res.stdout:
-        return None
     raw = res.stdout or res.stderr or ""
-    titles = []
-    for line in raw.splitlines():
-        if line.startswith("TINFO"):
-            # Format: TINFO:<title>,<type>,..., "<value>"
-            parts = line.split(",")
-            if len(parts) < 3:
-                continue
-            try:
-                t_id = int(parts[1])
-            except Exception:
-                continue
-            if len(parts) >= 4:
-                val_part = ",".join(parts[3:])
-            else:
-                val_part = ""
-            if "0,\"" in line and "\"M" in line:
-                pass
-            titles.append({"line": line.strip(), "title_id": t_id})
-    return {"raw": raw, "titles": titles}
+    if res.returncode != 0 and not raw:
+        return None
+    return parse_makemkv_info_output(raw)
 
 def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
     if hb_opts.get("video_bitrate_kbps"):

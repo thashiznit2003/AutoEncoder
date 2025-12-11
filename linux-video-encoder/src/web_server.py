@@ -13,6 +13,7 @@ from functools import wraps
 import logging
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
 from smb_allowlist import save_smb_allowlist, load_smb_allowlist, remove_from_allowlist
+from makemkv_parser import parse_makemkv_info_output
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
@@ -383,6 +384,25 @@ HTML_PAGE_TEMPLATE = """
       return res.json();
     }
 
+    function buildDiscInfoText(info) {
+      if (!info) return "";
+      const payload = info.info ? info.info : info;
+      const summary = (payload && payload.summary) || info.summary || null;
+      const formatted = (payload && payload.formatted) || "";
+      const raw = (payload && payload.raw) || info.raw || "";
+      let summaryLine = "";
+      if (!formatted && summary) {
+        const parts = [];
+        if (summary.disc_label) parts.push("Label: " + summary.disc_label);
+        if (summary.drive) parts.push("Drive: " + summary.drive);
+        if (summary.titles_detected || summary.title_count) parts.push("Titles: " + (summary.titles_detected || summary.title_count));
+        if (summary.main_feature && summary.main_feature.duration) parts.push("Main: " + summary.main_feature.duration);
+        summaryLine = parts.join(" | ");
+      }
+      const combined = [formatted || summaryLine, raw].filter(Boolean).join("\\n\\n");
+      return combined || "";
+    }
+
     function renderMetrics(metrics) {
       const el = document.getElementById("metrics");
       if (!metrics) {
@@ -516,7 +536,8 @@ HTML_PAGE_TEMPLATE = """
         const discStatusEl = document.getElementById("mk-disc-status");
         const discInfoEl = document.getElementById("mk-info");
         discStatusEl.textContent = discPending ? ("Disc present (index " + (discInfo.disc_index ?? "?") + ")") : "No disc detected.";
-        discInfoEl.value = discInfo.info && discInfo.info.raw ? discInfo.info.raw : (discPending ? "Disc detected; info not available yet." : "");
+        const discText = buildDiscInfoText(discInfo) || (discPending ? "Disc detected; info not available yet." : "");
+        discInfoEl.value = discText;
         const startBtn = document.getElementById("mk-start-rip");
         const autoRipEnabled = document.getElementById("mk-auto-rip").checked;
         startBtn.disabled = !discPending || autoRipEnabled;
@@ -944,7 +965,13 @@ HTML_PAGE_TEMPLATE = """
       try {
         const info = await fetchJSON("/api/makemkv/info");
         const discInfoEl = document.getElementById("mk-info");
-        discInfoEl.value = (info && info.info && info.info.raw) ? info.info.raw : (info && info.raw) ? info.raw : "No disc info.";
+        const discStatusEl = document.getElementById("mk-disc-status");
+        const discText = buildDiscInfoText(info) || "No disc info.";
+        discInfoEl.value = discText;
+        if (discStatusEl) {
+          const idx = (info && info.disc_index !== undefined) ? info.disc_index : null;
+          discStatusEl.textContent = idx !== null ? ("Disc present (index " + idx + ")") : "Disc info refreshed.";
+        }
       } catch (e) {
         alert("Failed to fetch disc info: " + e);
       }
@@ -1802,38 +1829,22 @@ def create_app(tracker, config_manager=None):
                 text=True,
                 check=False,
             )
-            stdout = result.stdout or ""
-            # Build a concise summary: drive model/title and title count (if present)
-            summary = {}
-            try:
-                title = None
-                drive = None
-                for line in stdout.splitlines():
-                    if line.startswith("DRV:") and not drive:
-                        parts = line.split(",")
-                        if len(parts) >= 5:
-                            drive = parts[4].strip('"')
-                            # title (disc label) may be in field 5
-                            if len(parts) >= 6:
-                                maybe_title = parts[5].strip('"')
-                                if maybe_title:
-                                    title = maybe_title
-                    if "was added as title" in line:
-                        summary["titles_detected"] = summary.get("titles_detected", 0) + 1
-                if drive:
-                    summary["drive"] = drive
-                if title:
-                    summary["disc_label"] = title
-            except Exception:
-                summary = {}
-            info_payload = {"raw": stdout}
-            if summary:
-                info_payload["summary"] = summary
+            raw_output = result.stdout or result.stderr or ""
+            parsed = parse_makemkv_info_output(raw_output)
+            info_payload = {
+                "disc_index": 0,
+                "info": parsed,
+                "raw": parsed.get("raw", raw_output),
+            }
+            if parsed.get("summary"):
+                info_payload["summary"] = parsed["summary"]
+            if parsed.get("formatted"):
+                info_payload["formatted"] = parsed["formatted"]
             if result.returncode == 0:
                 tracker.set_disc_info(info_payload)
                 return jsonify(info_payload)
             tracker.add_event(f"MakeMKV info failed (rc={result.returncode})", level="error")
-            return jsonify({"error": "info failed", "rc": result.returncode, "raw": stdout}), 500
+            return jsonify({"error": "info failed", "rc": result.returncode, "raw": raw_output}), 500
         except FileNotFoundError:
             tracker.add_event("MakeMKV not found when fetching disc info", level="error")
             return jsonify({"error": "makemkvcon not found"}), 500

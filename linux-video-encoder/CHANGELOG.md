@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.24.43 - 2025-12-12
+- MakeMKV disc info now parses title details (duration/chapters/tracks) and returns a formatted summary alongside the raw log.
+- Settings UI shows the formatted disc summary (and raw log) when refreshing disc info.
+- Version bumped to 1.24.43.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.
