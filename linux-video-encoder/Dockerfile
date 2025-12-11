@@ -14,6 +14,10 @@ LABEL build.dockerfile_rev="${DOCKERFILE_REV}"
 
 WORKDIR /linux-video-encoder
 
+# Pre-stage MakeMKV tarballs if provided in build context to avoid re-downloading
+COPY makemkv-oss-${MAKEMKV_VERSION}.tar.gz /tmp/makemkv/makemkv-oss.tar.gz
+COPY makemkv-bin-${MAKEMKV_VERSION}.tar.gz /tmp/makemkv/makemkv-bin.tar.gz
+
 # Base tools, Python, FFmpeg/HandBrakeCLI
 RUN set -eux; \
     apt-get update; \
