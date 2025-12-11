@@ -16,6 +16,9 @@ sudo apt-get install -y python3 ffmpeg libdvdread4 libbluray-bdj libdvdcss2 udis
 pip install -r requirements.txt
 ```
 
+**MakeMKV tarballs required for Docker build**  
+The Dockerfile expects `makemkv-oss-1.18.2.tar.gz` and `makemkv-bin-1.18.2.tar.gz` to be present in the `linux-video-encoder` directory (same folder as the Dockerfile) when building from a clean checkout. If they are missing, the build will fail during the `COPY makemkv-*.tar.gz` steps. Place both tarballs there (they live at the repo root in `/AutoEncoder` by default) before running `docker compose build`, or let `scripts/install_and_run.sh` download them automatically.
+
 If you are working with blurays you'll need 'makemkv'. Depending on your OS you will have different [installation methods](https://makemkv.com/downloads)
 
 ### Host USB helper (recommended for reliable hotplug)
