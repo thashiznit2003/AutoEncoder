@@ -44,6 +44,10 @@
 - Manual MakeMKV rip requests now wake the scanner loop quickly (<=0.5s) instead of waiting a full rescan interval.
 - Version bumped to 1.24.52.
 
+## 1.24.53 - 2025-12-12
+- MakeMKV disc info API now always returns 200 and stores/persists the payload (including errors) so the UI keeps showing info after navigation.
+- Version bumped to 1.24.53.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.
