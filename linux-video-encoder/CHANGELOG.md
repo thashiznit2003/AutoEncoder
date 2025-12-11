@@ -12,6 +12,10 @@
 - MakeMKV rip now passes language filters with the correct flags (`--alang/--slang`) instead of the unsupported `--audio` switch.
 - Version bumped to 1.24.37.
 
+## 1.24.38 - 2025-12-11
+- Removed MakeMKV language selector flags (unsupported in this build) to prevent rip failures; rips now run without language switches.
+- Version bumped to 1.24.38.
+
 ## 1.24.34 - 2025-12-08
 - Fixed audio offset flag to use HandBrakeCLI's supported `--audio-delay` so offsets apply correctly.
 - Version bumped to 1.24.34.

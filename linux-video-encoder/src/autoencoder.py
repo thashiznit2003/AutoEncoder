@@ -367,20 +367,7 @@ def rip_disc(
         "makemkvcon", "mkv", f"disc:{disc_index}", title_arg, output_dir,
         f"--minlength={min_length}", "--progress=-same"
     ]
-    lang_list_audio = []
-    lang_list_subs = []
-    try:
-        if audio_langs:
-            lang_list_audio = [str(l).strip() for l in audio_langs if str(l).strip()]
-        if subtitle_langs:
-            lang_list_subs = [str(l).strip() for l in subtitle_langs if str(l).strip()]
-    except Exception:
-        lang_list_audio = []
-        lang_list_subs = []
-    if lang_list_audio:
-        cmd.append(f"--alang={','.join(lang_list_audio)}")
-    if lang_list_subs:
-        cmd.append(f"--slang={','.join(lang_list_subs)}")
+    # MakeMKV CLI doesn't accept audio/subtitle language selectors in this build; skip them to avoid errors.
 
     # Check for existing MKVs; reuse newest if present
     existing_mkvs = sorted(output_dir_path.glob("*.mkv"), key=os.path.getmtime)
