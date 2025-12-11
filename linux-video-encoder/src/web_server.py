@@ -1803,7 +1803,32 @@ def create_app(tracker, config_manager=None):
                 check=False,
             )
             stdout = result.stdout or ""
+            # Build a concise summary: drive model/title and title count (if present)
+            summary = {}
+            try:
+                title = None
+                drive = None
+                for line in stdout.splitlines():
+                    if line.startswith("DRV:") and not drive:
+                        parts = line.split(",")
+                        if len(parts) >= 5:
+                            drive = parts[4].strip('"')
+                            # title (disc label) may be in field 5
+                            if len(parts) >= 6:
+                                maybe_title = parts[5].strip('"')
+                                if maybe_title:
+                                    title = maybe_title
+                    if "was added as title" in line:
+                        summary["titles_detected"] = summary.get("titles_detected", 0) + 1
+                if drive:
+                    summary["drive"] = drive
+                if title:
+                    summary["disc_label"] = title
+            except Exception:
+                summary = {}
             info_payload = {"raw": stdout}
+            if summary:
+                info_payload["summary"] = summary
             if result.returncode == 0:
                 tracker.set_disc_info(info_payload)
                 return jsonify(info_payload)

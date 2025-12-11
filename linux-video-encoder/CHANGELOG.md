@@ -25,6 +25,10 @@
 - MakeMKV “Refresh disc info” now invokes makemkvcon info, stores disc info in status, and returns the raw output so the UI panel can display it.
 - Version bumped to 1.24.40.
 
+## 1.24.41 - 2025-12-11
+- MakeMKV disc info endpoint now also returns a concise summary (drive/label/title count) alongside raw logs for cleaner display.
+- Version bumped to 1.24.41.
+
 ## 1.24.34 - 2025-12-08
 - Fixed audio offset flag to use HandBrakeCLI's supported `--audio-delay` so offsets apply correctly.
 - Version bumped to 1.24.34.
