@@ -97,15 +97,15 @@ RUN set -eux; \
     rm -rf /tmp/makemkv; \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY linux-video-encoder/requirements.txt ./requirements.txt
 RUN python3 -m venv /venv && \
     /venv/bin/pip install --no-cache-dir --upgrade pip && \
     /venv/bin/pip install --no-cache-dir -r requirements.txt
 ENV PATH="/venv/bin:${PATH}"
 
-COPY src ./src
-COPY assets ./assets
-COPY config.json README.md scripts ./
+COPY linux-video-encoder/src ./src
+COPY linux-video-encoder/assets ./assets
+COPY linux-video-encoder/config.json linux-video-encoder/README.md linux-video-encoder/scripts ./
 
 EXPOSE 5959
 
