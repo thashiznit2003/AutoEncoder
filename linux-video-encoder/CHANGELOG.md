@@ -28,6 +28,10 @@
 - Fix TINFO/SINFO parsing to capture durations/chapters/streams correctly and produce concise main-title summaries.
 - Version bumped to 1.24.48.
 
+## 1.24.49 - 2025-12-12
+- MakeMKV disc info area now has a title and spans the full width of the settings panel for better readability.
+- Version bumped to 1.24.49.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.

@@ -853,13 +853,14 @@ SETTINGS_PAGE_TEMPLATE = """
         <button type="button" id="mk-save">Save MakeMKV</button>
       </form>
       <div style="margin-top:8px;">
+        <h3 style="margin:0 0 6px 0; color:#cbd5e1; font-size:13px;">Disc Info</h3>
         <div class="muted" id="mk-disc-status">Disc status: unknown</div>
         <div style="display:flex; gap:6px; margin:6px 0; flex-wrap:wrap;">
           <button type="button" id="mk-refresh-info">Refresh disc info</button>
           <button type="button" id="mk-start-rip">Start rip</button>
           <button type="button" id="mk-copy-info">Copy disc info</button>
         </div>
-        <textarea id="mk-info" class="log" style="height:160px; margin-top:4px;" readonly placeholder="Disc info will appear here after detection."></textarea>
+        <textarea id="mk-info" class="log" style="height:160px; margin-top:4px; width:100%; box-sizing:border-box;" readonly placeholder="Disc info will appear here after detection."></textarea>
       </div>
       <div style="margin-top:8px; display:grid; gap:6px;">
         <label>MakeMKV registration key (paste monthly key)
