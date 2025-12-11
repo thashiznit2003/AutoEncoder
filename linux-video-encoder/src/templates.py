@@ -29,6 +29,7 @@ MAIN_PAGE_TEMPLATE = """
     .badge.error { background: #f87171; }
     .badge.queued { background: #60a5fa; color: #0b1220; }
     .badge.canceled { background: #cbd5e1; color: #0b1220; }
+    .badge.ripping { background: #38bdf8; color:#0b1220; }
     .progress { background: #1f2937; border-radius: 8px; height: 9px; overflow: hidden; margin-top: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
     .progress-bar { background: linear-gradient(90deg, #22c55e, #4ade80); height: 100%; transition: width 0.2s ease; }
     .item { padding: 9px; border-bottom: 1px solid #1f2937; }

@@ -18,6 +18,7 @@
 
 ## 1.24.39 - 2025-12-11
 - MakeMKV rips now run in robot mode with progress streaming (`-r --progress=-same`) to avoid UI hangs/prompts and mirror the working CLI command.
+- Ripping is now tracked in Active Encodes with a "ripping" state, progress updates, and badges; when ripping finishes, HandBrake picks up the queued MKV as before.
 - Version bumped to 1.24.39.
 
 ## 1.24.34 - 2025-12-08

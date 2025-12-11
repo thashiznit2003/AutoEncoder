@@ -350,9 +350,16 @@ def rip_disc(
     Rips a Blu-ray disc using MakeMKV CLI.
     Returns (path, reused_existing) where path is the first output file if successful, or (None, False) on failure.
     """
-    # return "/mnt/md0/ripped_discs/Interstellar_t00.mkv"
     logger = logging.getLogger(__name__)
     output_dir = output_dir_path.as_posix()
+    job_key = f"disc:{disc_index}"
+    dest_hint = output_dir
+    if status_tracker:
+        if not status_tracker.has_active(job_key):
+            status_tracker.start(job_key, dest_hint, info=None, state="ripping")
+        else:
+            status_tracker.set_state(job_key, "ripping")
+        status_tracker.set_message(job_key, f"Ripping disc {disc_index}")
     title_list = []
     if titles:
         try:
@@ -383,6 +390,7 @@ def rip_disc(
         print(msg_existing)
         if status_tracker:
             status_tracker.add_event(f"Using existing ripped MKV: {latest}")
+            status_tracker.complete(job_key, True, str(latest), "Reused existing rip")
         return str(latest), True
 
     msg = f"📀 Running: {' '.join(cmd)}"
@@ -391,45 +399,60 @@ def rip_disc(
         status_tracker.add_event(
             f"MakeMKV rip started (disc {disc_index}; titles={title_arg}; audio={','.join(lang_list_audio) or 'all'}; subs={','.join(lang_list_subs) or 'all'})"
         )
-
+    result = None
     try:
         result = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         # Iterate lines as they arrive and log them
         if result.stdout is not None:
             for line in result.stdout:
                 logger.info(line.rstrip())
+                try:
+                    if "PRGV:" in line and status_tracker:
+                        match = re.search(r"PRGV:(\d+)", line)
+                        if match:
+                            raw = int(match.group(1))
+                            pct = min(100.0, max(0.0, raw / 655.35))
+                            status_tracker.update_progress(job_key, pct)
+                            status_tracker.set_message(job_key, f"Ripping disc {disc_index} ({pct:.1f}%)")
+                except Exception:
+                    logger.debug("Failed to parse MakeMKV progress line: %s", line, exc_info=True)
         rc = result.wait()
         logger.debug("exited with code %s", rc)
     except FileNotFoundError:
         print("❌ Error: makemkvcon not found. Is MakeMKV installed?")
+        if status_tracker:
+            status_tracker.complete(job_key, False, dest_hint, "MakeMKV not found")
+        return None, False
+    except Exception as exc:
+        logger.exception("MakeMKV rip crashed: %s", exc)
+        if status_tracker:
+            status_tracker.complete(job_key, False, dest_hint, f"MakeMKV crashed: {exc}")
         return None, False
 
+    success = (result.returncode == 0)
     if status_tracker:
-        if rc == 0:
+        if success:
             status_tracker.add_event(f"MakeMKV rip complete (disc {disc_index})")
         else:
             status_tracker.add_event(f"MakeMKV rip failed (disc {disc_index})", level="error")
 
-    # Print (or log) the MakeMKV output
-    print(result.stdout)
-
-    # Check for success
-    if result.returncode != 0:
-        print(f"❌ MakeMKV failed with code {result.returncode}.")
+    if not success:
         return None, False
-
-    print("✅ MakeMKV completed successfully.")
 
     # Look for any .mkv files in the output directory
     mkv_files = sorted(output_dir_path.glob("*.mkv"), key=os.path.getmtime)
 
     if not mkv_files:
         print("⚠️  No MKV files found in output directory.")
+        if status_tracker:
+            status_tracker.complete(job_key, False, dest_hint, "Rip produced no MKVs")
         return None, False
 
     # Return the most recent or first MKV file path
     first_file = str(mkv_files[-1].resolve())
     print(f"🎬 Output file: {first_file}")
+    if status_tracker:
+        status_tracker.complete(job_key, True, first_file, "Rip complete")
     return first_file, False
 
 def get_disc_number():
