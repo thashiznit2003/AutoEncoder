@@ -242,7 +242,10 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
     if titles_out and "titles_detected" not in summary:
         summary["titles_detected"] = len(titles_out)
     if titles_out:
-        main = max(titles_out, key=lambda t: t.get("duration_seconds") or 0)
+        try:
+            main = max(titles_out, key=lambda t: t.get("duration_seconds") or 0)
+        except Exception:
+            main = None
         if main and main.get("duration_seconds"):
             summary["main_feature"] = {
                 "id": main.get("id"),
@@ -250,7 +253,6 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
                 "duration": main.get("duration"),
                 "chapters": main.get("chapters"),
             }
-    if titles_out:
         summary["title_count"] = len(titles_out)
     if summary:
         parsed["summary"] = summary

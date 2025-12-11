@@ -1837,7 +1837,10 @@ def create_app(tracker, config_manager=None):
             raw_output = result.stdout or result.stderr or ""
             if not raw_output:
                 raw_output = "No output from makemkvcon (disc:0)."
-            parsed = parse_makemkv_info_output(raw_output)
+            try:
+                parsed = parse_makemkv_info_output(raw_output)
+            except Exception as exc:
+                parsed = {"raw": raw_output, "error": str(exc)}
             if not parsed.get("raw"):
                 parsed["raw"] = raw_output
             info_payload = {
