@@ -79,9 +79,19 @@ RUN set -eux; \
       esac; \
       tar -tzf "$out" >/dev/null; \
     }; \
+    validate_or_fetch() { \
+      file="$1"; \
+      url="$2"; \
+      if ! tar -tzf "$file" >/dev/null 2>&1; then \
+        echo "Tarball $file invalid; re-downloading from $url"; \
+        download_and_verify "$url" "$file"; \
+      fi; \
+    }; \
     # Use pre-staged tarballs if present; otherwise download
     if [ ! -s makemkv-oss.tar.gz ]; then download_and_verify "${MAKEMKV_OSS_URL}" makemkv-oss.tar.gz; fi; \
     if [ ! -s makemkv-bin.tar.gz ]; then download_and_verify "${MAKEMKV_BIN_URL}" makemkv-bin.tar.gz; fi; \
+    validate_or_fetch makemkv-oss.tar.gz "${MAKEMKV_OSS_URL}"; \
+    validate_or_fetch makemkv-bin.tar.gz "${MAKEMKV_BIN_URL}"; \
     tar -xzf makemkv-oss.tar.gz; \
     tar -xzf makemkv-bin.tar.gz; \
     cd makemkv-oss-"${MAKEMKV_VERSION}"; \
