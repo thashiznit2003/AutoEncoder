@@ -40,6 +40,10 @@
 - Disc info refresh now persists (and displays) even when makemkvcon returns an error, so the panel doesn’t clear after navigating away.
 - Version bumped to 1.24.51.
 
+## 1.24.52 - 2025-12-12
+- Manual MakeMKV rip requests now wake the scanner loop quickly (<=0.5s) instead of waiting a full rescan interval.
+- Version bumped to 1.24.52.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.

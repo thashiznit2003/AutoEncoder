@@ -309,3 +309,7 @@ class StatusTracker:
             req = self._disc_rip_requested
             self._disc_rip_requested = False
             return req
+
+    def disc_rip_requested(self) -> bool:
+        with self._lock:
+            return self._disc_rip_requested

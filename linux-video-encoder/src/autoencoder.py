@@ -1578,6 +1578,9 @@ def main():
                     logging.info("Automatically unmounted: %s", ", ".join(unmounted))
             except Exception:
                 logging.debug("Automatic unmount step failed", exc_info=True)
+            # If a manual disc rip was requested, wake quickly instead of waiting full interval
+            if status_tracker and status_tracker.disc_rip_requested():
+                sleep_for = min(sleep_for, 0.5)
     except KeyboardInterrupt:
         logging.info("Interrupted, shutting down.")
     except Exception:
