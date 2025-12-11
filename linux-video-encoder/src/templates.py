@@ -882,6 +882,16 @@ SETTINGS_PAGE_TEMPLATE = """
       </div>
     </div>
     <div class="panel">
+      <h2>🐞 Debug Mode</h2>
+      <div class="muted" style="margin-bottom:8px;">When enabled, the app snapshots logs/status to <code>debug_uploads/</code> and pushes to your GitHub origin.</div>
+      <label style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="dbg-enabled" /> Enable debug auto-push to GitHub
+      </label>
+      <div class="muted" id="dbg-status" style="margin:6px 0 10px 0;">Debug mode is off.</div>
+      <button type="button" id="dbg-save">Save Debug Setting</button>
+      <div class="muted" style="margin-top:8px;">Requires git credentials inside the container (use <code>scripts/setup_debug_git.sh</code>).</div>
+    </div>
+    <div class="panel">
       <h2>🔒 Authentication</h2>
       <div class="muted" style="margin-bottom:6px;">HTTP Basic auth for this UI/API.</div>
       <label>Username <input id="auth-user" placeholder="admin" /></label>
@@ -1006,6 +1016,14 @@ SETTINGS_PAGE_TEMPLATE = """
         if (!authDirty) {
           document.getElementById("auth-user").value = cfg.auth_user || "";
           document.getElementById("auth-pass").value = cfg.auth_password || "";
+        }
+        const dbgToggle = document.getElementById("dbg-enabled");
+        const dbgStatus = document.getElementById("dbg-status");
+        if (dbgToggle) {
+          dbgToggle.checked = !!cfg.debug_mode_enabled;
+        }
+        if (dbgStatus) {
+          dbgStatus.textContent = cfg.debug_mode_enabled ? "Debug mode is ON (snapshots will push to GitHub)." : "Debug mode is off.";
         }
       } catch (e) {
         console.error("Failed to load config", e);
@@ -1276,6 +1294,19 @@ SETTINGS_PAGE_TEMPLATE = """
       } catch (e) {
         alert("Failed to request rip: " + e);
       }
+    });
+
+    document.getElementById("dbg-save").addEventListener("click", async () => {
+      const enabled = document.getElementById("dbg-enabled").checked;
+      await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ debug_mode_enabled: enabled }) });
+      const statusEl = document.getElementById("dbg-status");
+      if (statusEl) {
+        statusEl.textContent = enabled ? "Debug mode is ON (snapshots will push to GitHub)." : "Debug mode is off.";
+      }
+      try {
+        await fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: enabled ? "Debug mode enabled (auto-push to git)" : "Debug mode disabled", level: enabled ? "info" : "info" }) });
+      } catch (e) {}
+      alert("Debug setting saved.");
     });
 
     document.getElementById("auth-save").addEventListener("click", async () => {
