@@ -20,6 +20,10 @@
 - MakeMKV parser aggregates audio/subtitle languages, video stats, and trims noisy tracks so “Refresh disc info” isn’t overwhelming.
 - Version bumped to 1.24.46.
 
+## 1.24.47 - 2025-12-12
+- Ignore leading MakeMKV errors in disc info output (e.g., “list index out of range”) while still surfacing them; parsing skips those lines to avoid noise.
+- Version bumped to 1.24.47.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.

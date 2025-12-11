@@ -185,6 +185,13 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
         re.IGNORECASE,
     )
 
+    lines = [ln for ln in raw.splitlines() if ln]
+    error_lines = [ln for ln in lines if ln.lower().startswith("error:")]
+    if error_lines:
+        parsed["error"] = "; ".join(error_lines)
+    # filter out error lines from parsing
+    lines = [ln for ln in lines if not ln.lower().startswith("error:")]
+
     def ensure_title(idx: int) -> Dict[str, Any]:
         if idx not in titles:
             titles[idx] = {
@@ -199,7 +206,7 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
             }
         return titles[idx]
 
-    for line in raw.splitlines():
+    for line in lines:
         ln = line.strip()
         if not ln:
             continue
