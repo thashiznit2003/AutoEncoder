@@ -15,6 +15,11 @@
 - API now wraps parse errors and returns them in the payload so the UI can display the failure text.
 - Version bumped to 1.24.45.
 
+## 1.24.46 - 2025-12-12
+- Disc info panel now shows a concise summary only (no raw log) and filters to the main/long titles.
+- MakeMKV parser aggregates audio/subtitle languages, video stats, and trims noisy tracks so “Refresh disc info” isn’t overwhelming.
+- Version bumped to 1.24.46.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.

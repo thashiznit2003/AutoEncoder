@@ -82,7 +82,14 @@ def format_disc_overview(parsed: Dict[str, Any]) -> str:
     if head_parts:
         lines.append(" | ".join(head_parts))
     titles = parsed.get("titles") or []
-    for t in titles:
+    # Prefer titles >=10 minutes; otherwise show top 3 by duration
+    def title_duration(t):
+        return t.get("duration_seconds") or 0
+
+    long_titles = [t for t in titles if title_duration(t) >= 600]
+    selected = long_titles if long_titles else sorted(titles, key=title_duration, reverse=True)[:3]
+
+    for t in sorted(selected, key=title_duration, reverse=True):
         parts = []
         label = f"Title {t.get('id', '?')}"
         if t.get("playlist"):
@@ -92,13 +99,66 @@ def format_disc_overview(parsed: Dict[str, Any]) -> str:
             parts.append(t["duration"])
         if t.get("chapters") is not None:
             parts.append(f"{t['chapters']} chapters")
-        if t.get("video"):
-            parts.append(t["video"])
-        if t.get("audio_tracks"):
+        # Video summary
+        video_str = None
+        streams = t.get("streams") or {}
+        video_streams = [s for s in streams.values() if str(s.get("type", "")).lower().startswith("video")]
+        if video_streams:
+            v = video_streams[0]
+            bits = []
+            if v.get("codec"):
+                bits.append(v["codec"])
+            if v.get("resolution"):
+                bits.append(v["resolution"])
+            if v.get("framerate"):
+                bits.append(v["framerate"])
+            if bits:
+                video_str = "video: " + " ".join(bits)
+        if not video_streams and t.get("video"):
+            video_str = "video: " + t["video"]
+        if video_str:
+            parts.append(video_str)
+        # Audio summary
+        audio_streams = [s for s in streams.values() if str(s.get("type", "")).lower().startswith("audio")]
+        if audio_streams:
+            agg = {}
+            for a in audio_streams:
+                lang = a.get("lang_code") or a.get("lang_name") or "und"
+                codec = a.get("codec") or ""
+                ch = a.get("channels") or ""
+                key = (lang, codec, ch)
+                agg[key] = agg.get(key, 0) + 1
+            audio_bits = []
+            for (lang, codec, ch), count in sorted(agg.items(), key=lambda kv: kv[1], reverse=True):
+                desc = lang
+                if codec:
+                    desc += f" {codec}"
+                if ch:
+                    desc += f" {ch}"
+                if count > 1:
+                    desc += f" x{count}"
+                audio_bits.append(desc)
+            if audio_bits:
+                audio_short = ", ".join(audio_bits[:4])
+                if len(audio_bits) > 4:
+                    audio_short += " …"
+                parts.append("audio: " + audio_short)
+        elif t.get("audio_tracks"):
             audio_list = t["audio_tracks"]
             suffix = "…" if len(audio_list) > 2 else ""
             parts.append("audio: " + "; ".join(audio_list[:2]) + suffix)
-        if t.get("subtitle_tracks"):
+        # Subtitle summary
+        subtitle_streams = [s for s in streams.values() if str(s.get("type", "")).lower().startswith("subtitle")]
+        if subtitle_streams:
+            langs = []
+            for s in subtitle_streams:
+                langs.append(s.get("lang_code") or s.get("lang_name") or "und")
+            langs = _dedup(langs)
+            sub_short = ", ".join(langs[:6])
+            if len(langs) > 6:
+                sub_short += " …"
+            parts.append("subs: " + sub_short)
+        elif t.get("subtitle_tracks"):
             sub_list = t["subtitle_tracks"]
             suffix = "…" if len(sub_list) > 2 else ""
             parts.append("subs: " + "; ".join(sub_list[:2]) + suffix)
@@ -135,6 +195,7 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
                 "subtitle_tracks": [],
                 "audio_langs": [],
                 "subtitle_langs": [],
+                "streams": {},
             }
         return titles[idx]
 
@@ -201,9 +262,29 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
         sinfo_match = sinfo_re.match(ln)
         if sinfo_match:
             title_id = int(sinfo_match.group(1))
+            stream_id = int(sinfo_match.group(2))
+            field_id = int(sinfo_match.group(3))
             value = (sinfo_match.group(5) or "").strip()
             entry = ensure_title(title_id)
             entry["sinfo"].append(ln)
+            streams = entry.setdefault("streams", {})
+            stream = streams.setdefault(stream_id, {})
+            if field_id == 1:
+                stream["type"] = value
+            elif field_id == 3:
+                stream["lang_code"] = value
+            elif field_id == 4:
+                stream["lang_name"] = value
+            elif field_id in (5, 6, 7):
+                stream.setdefault("codec", value)
+            elif field_id == 14:
+                stream["channels"] = value
+            elif field_id == 19:
+                stream["resolution"] = value
+            elif field_id == 20:
+                stream["aspect"] = value
+            elif field_id == 21:
+                stream["framerate"] = value
             lower = value.lower()
             if lower.startswith("audio:"):
                 entry["audio_tracks"].append(value.split(":", 1)[1].strip() or value)

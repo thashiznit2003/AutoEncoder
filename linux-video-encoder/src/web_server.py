@@ -400,11 +400,11 @@ HTML_PAGE_TEMPLATE = """
         if (summary.main_feature && summary.main_feature.duration) parts.push("Main: " + summary.main_feature.duration);
         summaryLine = parts.join(" | ");
       }
+      if (formatted) return formatted;
       const chunks = [];
-      if (formatted) chunks.push(formatted);
-      else if (summaryLine) chunks.push(summaryLine);
+      if (summaryLine) chunks.push(summaryLine);
       if (error) chunks.push("Error: " + error);
-      if (raw) chunks.push(raw);
+      if (raw && !formatted) chunks.push(raw);
       return chunks.filter(Boolean).join("\\n\\n");
     }
 

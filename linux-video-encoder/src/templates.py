@@ -905,6 +905,7 @@ SETTINGS_PAGE_TEMPLATE = """
       const summary = (payload && payload.summary) || info.summary || null;
       const formatted = (payload && payload.formatted) || "";
       const raw = (payload && payload.raw) || info.raw || "";
+      const error = (payload && payload.error) || info.error || "";
       let summaryLine = "";
       if (!formatted && summary) {
         const parts = [];
@@ -914,8 +915,12 @@ SETTINGS_PAGE_TEMPLATE = """
         if (summary.main_feature && summary.main_feature.duration) parts.push("Main: " + summary.main_feature.duration);
         summaryLine = parts.join(" | ");
       }
-      const combined = [formatted || summaryLine, raw].filter(Boolean).join("\\n\\n");
-      return combined || "";
+      if (formatted) return formatted;
+      const chunks = [];
+      if (summaryLine) chunks.push(summaryLine);
+      if (error) chunks.push("Error: " + error);
+      if (raw && !formatted) chunks.push(raw);
+      return chunks.filter(Boolean).join("\\n\\n");
     }
 
     function setSelectValue(sel, value, fallback) {
