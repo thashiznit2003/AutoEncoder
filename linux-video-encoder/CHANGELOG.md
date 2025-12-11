@@ -29,6 +29,10 @@
 - MakeMKV disc info endpoint now also returns a concise summary (drive/label/title count) alongside raw logs for cleaner display.
 - Version bumped to 1.24.41.
 
+## 1.24.42 - 2025-12-11
+- Added a Copy Disc Info button in MakeMKV settings to quickly copy the fetched disc info/summary.
+- Version bumped to 1.24.42.
+
 ## 1.24.34 - 2025-12-08
 - Fixed audio offset flag to use HandBrakeCLI's supported `--audio-delay` so offsets apply correctly.
 - Version bumped to 1.24.34.

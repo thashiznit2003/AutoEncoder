@@ -854,9 +854,10 @@ SETTINGS_PAGE_TEMPLATE = """
       </form>
       <div style="margin-top:8px;">
         <div class="muted" id="mk-disc-status">Disc status: unknown</div>
-        <div style="display:flex; gap:6px; margin:6px 0;">
+        <div style="display:flex; gap:6px; margin:6px 0; flex-wrap:wrap;">
           <button type="button" id="mk-refresh-info">Refresh disc info</button>
           <button type="button" id="mk-start-rip">Start rip</button>
+          <button type="button" id="mk-copy-info">Copy disc info</button>
         </div>
         <textarea id="mk-info" class="log" style="height:160px; margin-top:4px;" readonly placeholder="Disc info will appear here after detection."></textarea>
       </div>
@@ -1212,6 +1213,26 @@ SETTINGS_PAGE_TEMPLATE = """
           document.body.removeChild(ta);
         }
         alert("Update command copied.");
+      } catch (e) {
+        alert("Failed to copy: " + e);
+      }
+    });
+
+    document.getElementById("mk-copy-info").addEventListener("click", async () => {
+      const text = (document.getElementById("mk-info").value || "").trim();
+      if (!text) { alert("No disc info to copy."); return; }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+        alert("Disc info copied.");
       } catch (e) {
         alert("Failed to copy: " + e);
       }
