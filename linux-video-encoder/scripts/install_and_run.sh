@@ -184,10 +184,25 @@ build_and_run() {
       log "$f already present and gzip-valid; reusing."
     fi
 
-    # Do a lightweight check but don't abort if it fails—proceed to tar regardless, per request.
-    if ! tar -tzf "$f" >/dev/null 2>&1; then
-      log "Warning: ${f} failed gzip/tar listing; proceeding anyway per relaxed validation."
+    # Force extraction test: unpack to a temp dir; if it fails, re-download once from MAKEMKV_BASE_URL and retry.
+    tmp_extract="$(mktemp -d)"
+    force_ok=0
+    if tar -xzf "$f" -C "$tmp_extract" >/dev/null 2>&1; then
+      force_ok=1
+    else
+      log "Forced extraction failed for ${f}; re-downloading from ${url} and retrying..."
+      rm -f "$f"
+      download_tarball || { log "Aborting build (second download failed for ${f})."; rm -rf "$tmp_extract"; exit 1; }
+      if tar -xzf "$f" -C "$tmp_extract" >/dev/null 2>&1; then
+        force_ok=1
+      fi
     fi
+    if [ "$force_ok" -ne 1 ]; then
+      log "ERROR: ${f} could not be extracted even after re-download. Aborting."
+      rm -rf "$tmp_extract"
+      exit 1
+    fi
+    rm -rf "$tmp_extract"
 
     # Best-effort content sanity: warn if expected markers are missing, but do not abort.
     if echo "$f" | grep -q "oss"; then
