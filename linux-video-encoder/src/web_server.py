@@ -20,6 +20,8 @@ ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
 DIAG_REPO_URL = os.environ.get("DIAG_REPO_URL", "https://github.com/thashiznit2003/AutoEncoder-Diagnostics.git")
 DIAG_REPO_PATH = pathlib.Path(os.environ.get("DIAG_REPO_PATH", "/var/lib/autoencoder/state/diagnostics-repo"))
 DIAG_CRED_FILE = pathlib.Path("/var/lib/autoencoder/state/git/credentials")
+DIAG_GIT_NAME = os.environ.get("DIAG_GIT_NAME", "Diagnostics Bot")
+DIAG_GIT_EMAIL = os.environ.get("DIAG_GIT_EMAIL", "diagnostics@example.com")
 
 HTML_PAGE_TEMPLATE = """
 <!doctype html>
@@ -1191,6 +1193,17 @@ def create_app(tracker, config_manager=None):
         if res.returncode != 0:
             logging.warning("Failed to set diagnostics origin: %s", res.stderr or res.stdout)
 
+    def _ensure_git_identity(repo_path: Path):
+        # Set user.name and user.email if missing
+        name = _run_git(["config", "--get", "user.name"], cwd=repo_path)
+        email = _run_git(["config", "--get", "user.email"], cwd=repo_path)
+        need_name = (name.returncode != 0) or not (name.stdout or "").strip()
+        need_email = (email.returncode != 0) or not (email.stdout or "").strip()
+        if need_name:
+            _run_git(["config", "--global", "user.name", DIAG_GIT_NAME], cwd=repo_path)
+        if need_email:
+            _run_git(["config", "--global", "user.email", DIAG_GIT_EMAIL], cwd=repo_path)
+
     def _ensure_diag_repo() -> Path:
         repo_path = DIAG_REPO_PATH
         try:
@@ -1208,6 +1221,7 @@ def create_app(tracker, config_manager=None):
         else:
             _set_origin(repo_path, remote_url)
             _run_git(["pull", "--ff-only"], cwd=repo_path)
+        _ensure_git_identity(repo_path)
         return repo_path
 
     def mount_smb(url: str, username: str = "", password: str = "", domain: str = "", vers: str = "") -> str:
