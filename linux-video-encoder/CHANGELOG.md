@@ -5,6 +5,11 @@
 - Settings UI shows the formatted disc summary (and raw log) when refreshing disc info.
 - Version bumped to 1.24.43.
 
+## 1.24.44 - 2025-12-12
+- MakeMKV “Refresh disc info” now persists fetched output (including errors) into status so the UI stops clearing to “No disc info.”
+- Added fallback text when makemkvcon returns no stdout/stderr to surface something in the panel.
+- Version bumped to 1.24.44.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.

@@ -390,6 +390,7 @@ HTML_PAGE_TEMPLATE = """
       const summary = (payload && payload.summary) || info.summary || null;
       const formatted = (payload && payload.formatted) || "";
       const raw = (payload && payload.raw) || info.raw || "";
+      const error = (payload && payload.error) || info.error || "";
       let summaryLine = "";
       if (!formatted && summary) {
         const parts = [];
@@ -399,8 +400,12 @@ HTML_PAGE_TEMPLATE = """
         if (summary.main_feature && summary.main_feature.duration) parts.push("Main: " + summary.main_feature.duration);
         summaryLine = parts.join(" | ");
       }
-      const combined = [formatted || summaryLine, raw].filter(Boolean).join("\\n\\n");
-      return combined || "";
+      const chunks = [];
+      if (formatted) chunks.push(formatted);
+      else if (summaryLine) chunks.push(summaryLine);
+      if (error) chunks.push("Error: " + error);
+      if (raw) chunks.push(raw);
+      return chunks.filter(Boolean).join("\\n\\n");
     }
 
     function renderMetrics(metrics) {
@@ -1830,7 +1835,11 @@ def create_app(tracker, config_manager=None):
                 check=False,
             )
             raw_output = result.stdout or result.stderr or ""
+            if not raw_output:
+                raw_output = "No output from makemkvcon (disc:0)."
             parsed = parse_makemkv_info_output(raw_output)
+            if not parsed.get("raw"):
+                parsed["raw"] = raw_output
             info_payload = {
                 "disc_index": 0,
                 "info": parsed,
@@ -1843,8 +1852,11 @@ def create_app(tracker, config_manager=None):
             if result.returncode == 0:
                 tracker.set_disc_info(info_payload)
                 return jsonify(info_payload)
+            info_payload["error"] = "info failed"
+            info_payload["rc"] = result.returncode
+            tracker.set_disc_info(info_payload)
             tracker.add_event(f"MakeMKV info failed (rc={result.returncode})", level="error")
-            return jsonify({"error": "info failed", "rc": result.returncode, "raw": raw_output}), 500
+            return jsonify(info_payload), 500
         except FileNotFoundError:
             tracker.add_event("MakeMKV not found when fetching disc info", level="error")
             return jsonify({"error": "makemkvcon not found"}), 500
