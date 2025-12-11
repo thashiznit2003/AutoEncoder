@@ -25,16 +25,22 @@ echo "Backed up compose to docker-compose.yml.bak.$ts"
 mkdir -p debug_uploads
 touch debug_uploads/.keep
 
+# Determine where the .git directory lives (current dir or parent)
+GIT_SRC="./.git"
+if [ ! -d "$GIT_SRC" ] && [ -d "../.git" ]; then
+  GIT_SRC="../.git"
+fi
+
 needs_git=1
 needs_dbg=1
-grep -q '\./\.git:/linux-video-encoder/.git' docker-compose.yml && needs_git=0
+grep -q "$GIT_SRC:/linux-video-encoder/.git" docker-compose.yml && needs_git=0
 grep -q '\./debug_uploads:/linux-video-encoder/debug_uploads' docker-compose.yml && needs_dbg=0
 
 if [ $needs_git -eq 1 ] || [ $needs_dbg -eq 1 ]; then
-  awk -v add_git=$needs_git -v add_dbg=$needs_dbg '
+  awk -v add_git=$needs_git -v add_dbg=$needs_dbg -v git_src="$GIT_SRC" '
     /^      - \.\/scripts:\/linux-video-encoder\/scripts/ && !inserted {
       print
-      if (add_git) print "      - ./.git:/linux-video-encoder/.git:ro"
+      if (add_git) print "      - " git_src ":/linux-video-encoder/.git:ro"
       if (add_dbg) print "      - ./debug_uploads:/linux-video-encoder/debug_uploads"
       inserted=1
       next
