@@ -21,6 +21,10 @@
 - Ripping is now tracked in Active Encodes with a "ripping" state, progress updates, and badges; when ripping finishes, HandBrake picks up the queued MKV as before.
 - Version bumped to 1.24.39.
 
+## 1.24.40 - 2025-12-11
+- MakeMKV “Refresh disc info” now invokes makemkvcon info, stores disc info in status, and returns the raw output so the UI panel can display it.
+- Version bumped to 1.24.40.
+
 ## 1.24.34 - 2025-12-08
 - Fixed audio offset flag to use HandBrakeCLI's supported `--audio-delay` so offsets apply correctly.
 - Version bumped to 1.24.34.

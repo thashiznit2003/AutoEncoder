@@ -1795,7 +1795,26 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/makemkv/info")
     @require_auth
     def makemkv_info():
-        return jsonify(tracker.disc_info() or {})
+        try:
+            result = subprocess.run(
+                ["makemkvcon", "-r", "--cache=1", "info", "disc:0"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            stdout = result.stdout or ""
+            info_payload = {"raw": stdout}
+            if result.returncode == 0:
+                tracker.set_disc_info(info_payload)
+                return jsonify(info_payload)
+            tracker.add_event(f"MakeMKV info failed (rc={result.returncode})", level="error")
+            return jsonify({"error": "info failed", "rc": result.returncode, "raw": stdout}), 500
+        except FileNotFoundError:
+            tracker.add_event("MakeMKV not found when fetching disc info", level="error")
+            return jsonify({"error": "makemkvcon not found"}), 500
+        except Exception as exc:
+            tracker.add_event(f"MakeMKV info error: {exc}", level="error")
+            return jsonify({"error": str(exc)}), 500
 
     @app.route("/api/makemkv/rip", methods=["POST"])
     @require_auth
