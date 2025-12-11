@@ -4,6 +4,10 @@
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.
 
+## 1.24.36 - 2025-12-11
+- Manual MakeMKV rip requests now run immediately even when no Blu-ray files are in the scan (detects disc, runs rip, and queues the output).
+- Version bumped to 1.24.36.
+
 ## 1.24.34 - 2025-12-08
 - Fixed audio offset flag to use HandBrakeCLI's supported `--audio-delay` so offsets apply correctly.
 - Version bumped to 1.24.34.

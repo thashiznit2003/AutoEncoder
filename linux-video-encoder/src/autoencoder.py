@@ -1463,6 +1463,31 @@ def main():
                     status_tracker.add_event(f"Detected new file: {f}")
             if not video_files:
                 logging.debug("No candidate video files found on this pass.")
+            # Handle manual rip requests even when no bluray files are present in the scan
+            if status_tracker and status_tracker.consume_disc_rip_request():
+                disc_num = get_disc_number()
+                if disc_num is None:
+                    status_tracker.add_event("Manual MakeMKV rip requested but no disc detected.", level="error")
+                else:
+                    mk_minlen = int(config.get("makemkv_minlength", 1800))
+                    mk_titles = config.get("makemkv_titles", [])
+                    mk_audio_langs = config.get("makemkv_audio_langs", []) or config.get("makemkv_preferred_audio_langs", [])
+                    mk_sub_langs = config.get("makemkv_subtitle_langs", []) or config.get("makemkv_preferred_subtitle_langs", [])
+                    rip_path, reused = rip_disc(
+                        disc_num,
+                        rip_dir,
+                        min_length=mk_minlen,
+                        status_tracker=status_tracker,
+                        titles=mk_titles,
+                        audio_langs=mk_audio_langs,
+                        subtitle_langs=mk_sub_langs,
+                    )
+                    if rip_path:
+                        video_files.append(str(rip_path))
+                        status_tracker.set_disc_info({"disc_index": disc_num, "info": {"raw": f"Manual rip started for disc:{disc_num}"}})
+                        status_tracker.add_event(f"Manual MakeMKV rip {'reused existing' if reused else 'produced'}: {rip_path}")
+                    else:
+                        status_tracker.add_event("Manual MakeMKV rip failed to produce output.", level="error")
             # Pre-register queued items so they appear in Active
             for f in video_files:
                 try:
