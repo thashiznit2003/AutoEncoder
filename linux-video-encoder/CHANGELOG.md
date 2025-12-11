@@ -24,6 +24,10 @@
 - Ignore leading MakeMKV errors in disc info output (e.g., “list index out of range”) while still surfacing them; parsing skips those lines to avoid noise.
 - Version bumped to 1.24.47.
 
+## 1.24.48 - 2025-12-12
+- Fix TINFO/SINFO parsing to capture durations/chapters/streams correctly and produce concise main-title summaries.
+- Version bumped to 1.24.48.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.

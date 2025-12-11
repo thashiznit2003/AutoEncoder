@@ -177,8 +177,6 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
     titles: Dict[int, Dict[str, Any]] = {}
     msg_titles: Dict[str, Dict[str, Any]] = {}
     summary: Dict[str, Any] = {}
-    tinfo_re = re.compile(r'^TINFO:(\d+),(\d+),(\d+),([^,]*),"(.*)"$')
-    sinfo_re = re.compile(r'^SINFO:(\d+),(\d+),(\d+),(\d+),"(.*)"$')
     drv_re = re.compile(r'^DRV:\d+,\d+,\d+,\d+,"([^"]*)"(?:,"([^"]*)")?')
     msg_title_re = re.compile(
         r"Title #(?P<playlist>\d+)[^\n]*length (?P<length>[0-9:]+)(?:[^\d]+(?P<chapters>\d+) chapters)?",
@@ -232,73 +230,89 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
             chapters_val = msg_match.group("chapters")
             if chapters_val and chapters_val.isdigit():
                 msg_entry["chapters"] = int(chapters_val)
-        tinfo_match = tinfo_re.match(ln)
-        if tinfo_match:
-            title_id = int(tinfo_match.group(1))
-            info_id = int(tinfo_match.group(2))
-            value = (tinfo_match.group(5) or "").strip()
-            lang = (tinfo_match.group(4) or "").strip()
-            entry = ensure_title(title_id)
-            entry["tinfo"].append(ln)
-            if info_id == 2 and value:
-                entry["source"] = value
-                pl_match = re.search(r"#(\d+)", value)
-                if pl_match:
-                    entry["playlist"] = pl_match.group(1).lstrip("0") or pl_match.group(1)
-            if info_id == 8:
-                # Often chapters or duration depending on drive; prefer numeric chapters first
-                if value.isdigit():
-                    entry["chapters"] = int(value)
-                else:
+        if ln.startswith("TINFO:"):
+            try:
+                import csv
+                rest = ln.split(":", 1)[1]
+                tokens = next(csv.reader([rest]))
+                if len(tokens) < 3:
+                    continue
+                title_id = int(tokens[0])
+                info_id = int(tokens[1])
+                value = (tokens[-1] or "").strip()
+                entry = ensure_title(title_id)
+                entry["tinfo"].append(ln)
+                if info_id == 2 and value:
+                    entry["source"] = value
+                    pl_match = re.search(r"#(\d+)", value)
+                    if pl_match:
+                        entry["playlist"] = pl_match.group(1).lstrip("0") or pl_match.group(1)
+                if info_id == 8:
+                    if value.isdigit():
+                        entry["chapters"] = int(value)
+                    else:
+                        dur = _parse_duration_to_seconds(value)
+                        if dur:
+                            entry["duration_seconds"] = dur
+                if info_id == 9:
                     dur = _parse_duration_to_seconds(value)
                     if dur:
                         entry["duration_seconds"] = dur
-            if info_id == 9:
-                dur = _parse_duration_to_seconds(value)
-                if dur:
-                    entry["duration_seconds"] = dur
-            if info_id == 10 and value:
-                entry["video"] = value
-            if info_id == 11 and value:
-                entry["audio_langs"].append(value)
-            if info_id == 12 and value:
-                entry["audio_tracks"].append(value)
-            if info_id == 13 and value:
-                entry["subtitle_langs"].append(value)
+                if info_id == 10 and value:
+                    entry["video"] = value
+                if info_id == 11 and value:
+                    entry["audio_langs"].append(value)
+                if info_id == 12 and value:
+                    entry["audio_tracks"].append(value)
+                if info_id == 13 and value:
+                    entry["subtitle_langs"].append(value)
+            except Exception:
+                continue
             continue
-        sinfo_match = sinfo_re.match(ln)
-        if sinfo_match:
-            title_id = int(sinfo_match.group(1))
-            stream_id = int(sinfo_match.group(2))
-            field_id = int(sinfo_match.group(3))
-            value = (sinfo_match.group(5) or "").strip()
-            entry = ensure_title(title_id)
-            entry["sinfo"].append(ln)
-            streams = entry.setdefault("streams", {})
-            stream = streams.setdefault(stream_id, {})
-            if field_id == 1:
-                stream["type"] = value
-            elif field_id == 3:
-                stream["lang_code"] = value
-            elif field_id == 4:
-                stream["lang_name"] = value
-            elif field_id in (5, 6, 7):
-                stream.setdefault("codec", value)
-            elif field_id == 14:
-                stream["channels"] = value
-            elif field_id == 19:
-                stream["resolution"] = value
-            elif field_id == 20:
-                stream["aspect"] = value
-            elif field_id == 21:
-                stream["framerate"] = value
-            lower = value.lower()
-            if lower.startswith("audio:"):
-                entry["audio_tracks"].append(value.split(":", 1)[1].strip() or value)
-            elif lower.startswith("subtitle"):
-                entry["subtitle_tracks"].append(value.split(":", 1)[1].strip() or value)
-            elif lower.startswith("video"):
-                entry.setdefault("video", value.split(":", 1)[1].strip() or value)
+        if ln.startswith("SINFO:"):
+            try:
+                import csv
+                rest = ln.split(":", 1)[1]
+                tokens = next(csv.reader([rest]))
+                if len(tokens) < 5:
+                    continue
+                title_id = int(tokens[0])
+                stream_id = int(tokens[1])
+                field_id = int(tokens[2])
+                value = (tokens[4] or "").strip()
+                entry = ensure_title(title_id)
+                entry["sinfo"].append(ln)
+                streams = entry.setdefault("streams", {})
+                stream = streams.setdefault(stream_id, {})
+                if field_id == 1:
+                    stream["type"] = value
+                elif field_id == 3:
+                    stream["lang_code"] = value
+                elif field_id == 4:
+                    stream["lang_name"] = value
+                elif field_id in (5, 6, 7):
+                    stream.setdefault("codec", value)
+                elif field_id == 14:
+                    stream["channels"] = value
+                elif field_id == 19:
+                    stream["resolution"] = value
+                elif field_id == 20:
+                    stream["aspect"] = value
+                elif field_id == 21:
+                    stream["framerate"] = value
+                lower = value.lower()
+                def _after_colon(val: str) -> str:
+                    if ":" in val:
+                        return val.split(":", 1)[1].strip() or val
+                    return val
+                if lower.startswith("audio:"):
+                    entry["audio_tracks"].append(_after_colon(value))
+                elif lower.startswith("subtitle"):
+                    entry["subtitle_tracks"].append(_after_colon(value))
+                elif lower.startswith("video"):
+                    entry.setdefault("video", _after_colon(value))
+            except Exception:
+                continue
 
     # Merge inferred data and clean up lists
     titles_out: List[Dict[str, Any]] = []
