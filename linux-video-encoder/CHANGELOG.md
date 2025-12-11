@@ -36,6 +36,10 @@
 - Disc detection now parses drive info even when makemkvcon returns a non-zero exit code, improving manual rip/detection reliability.
 - Version bumped to 1.24.50.
 
+## 1.24.51 - 2025-12-12
+- Disc info refresh now persists (and displays) even when makemkvcon returns an error, so the panel doesn’t clear after navigating away.
+- Version bumped to 1.24.51.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.

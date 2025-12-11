@@ -1852,14 +1852,14 @@ def create_app(tracker, config_manager=None):
                 info_payload["summary"] = parsed["summary"]
             if parsed.get("formatted"):
                 info_payload["formatted"] = parsed["formatted"]
-            if result.returncode == 0:
+            if result.returncode != 0:
+                info_payload["error"] = parsed.get("error") or "info failed"
+                info_payload["rc"] = result.returncode
                 tracker.set_disc_info(info_payload)
-                return jsonify(info_payload)
-            info_payload["error"] = "info failed"
-            info_payload["rc"] = result.returncode
+                tracker.add_event(f"MakeMKV info failed (rc={result.returncode})", level="error")
+                return jsonify(info_payload), 500
             tracker.set_disc_info(info_payload)
-            tracker.add_event(f"MakeMKV info failed (rc={result.returncode})", level="error")
-            return jsonify(info_payload), 500
+            return jsonify(info_payload)
         except FileNotFoundError:
             tracker.add_event("MakeMKV not found when fetching disc info", level="error")
             return jsonify({"error": "makemkvcon not found"}), 500

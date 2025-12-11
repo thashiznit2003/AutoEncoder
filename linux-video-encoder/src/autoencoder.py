@@ -477,6 +477,8 @@ def get_disc_number():
     output = (result.stdout or "").strip()
     if result.returncode != 0:
         print(f"makemkvcon info returned rc={result.returncode}; attempting to parse drive list anyway.")
+        if output:
+            print(output.splitlines()[0] if "\n" in output else output)
 
     # Regex matches lines like:
     # DRV:0,0,999,0,"BD-RE HL-DT-ST BD-RE  WH16NS40 1.05","/dev/sr0"
@@ -490,7 +492,11 @@ def get_disc_number():
         print(f"Found disc in drive '{drive_name}' ({device_path}) — disc:{disc_index}")
         return disc_index
 
-    print("No disc detected.")
+    if output:
+        print("No disc detected. makemkvcon output:")
+        print(output)
+    else:
+        print("No disc detected (empty makemkvcon output).")
     return None
 
 def safe_move(src: Path, dst: Path) -> bool:
