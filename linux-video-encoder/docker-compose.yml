@@ -25,6 +25,8 @@ services:
               capabilities: [gpu]
     volumes:
       # Bind config and media paths (host-relative to repo) into the container.
+      - ./.git:/linux-video-encoder/.git:ro
+      - ./debug_uploads:/linux-video-encoder/debug_uploads
       - ./config.json:/linux-video-encoder/config.json
       - ./src:/linux-video-encoder/src
       - ./scripts:/linux-video-encoder/scripts
