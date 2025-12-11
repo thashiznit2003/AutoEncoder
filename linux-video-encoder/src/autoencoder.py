@@ -371,6 +371,17 @@ def rip_disc(
         title_arg = ",".join(title_list)
     else:
         title_arg = "all"
+    # Normalize language selectors (currently only used for logging)
+    lang_list_audio = []
+    lang_list_subs = []
+    try:
+        if audio_langs:
+            lang_list_audio = [str(a).strip() for a in audio_langs if str(a).strip()]
+        if subtitle_langs:
+            lang_list_subs = [str(s).strip() for s in subtitle_langs if str(s).strip()]
+    except Exception:
+        lang_list_audio = []
+        lang_list_subs = []
     cmd = [
         "makemkvcon",
         "-r",

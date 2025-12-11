@@ -48,6 +48,10 @@
 - MakeMKV disc info API now always returns 200 and stores/persists the payload (including errors) so the UI keeps showing info after navigation.
 - Version bumped to 1.24.53.
 
+## 1.24.54 - 2025-12-12
+- Fix MakeMKV rip start logging to avoid a NameError that prevented manual rips from launching.
+- Version bumped to 1.24.54.
+
 ## 1.24.35 - 2025-12-08
 - Audio offset now applied via a pre-ffmpeg shift when a single file is queued (HandBrake then encodes the shifted temp); temporary file is cleaned up.
 - Version bumped to 1.24.35.
