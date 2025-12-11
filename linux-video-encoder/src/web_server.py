@@ -19,6 +19,7 @@ SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
 DIAG_REPO_URL = os.environ.get("DIAG_REPO_URL", "https://github.com/thashiznit2003/AutoEncoder-Diagnostics.git")
 DIAG_REPO_PATH = pathlib.Path(os.environ.get("DIAG_REPO_PATH", "/var/lib/autoencoder/state/diagnostics-repo"))
+DIAG_CRED_FILE = pathlib.Path("/var/lib/autoencoder/state/git/credentials")
 
 HTML_PAGE_TEMPLATE = """
 <!doctype html>
@@ -1168,6 +1169,28 @@ def create_app(tracker, config_manager=None):
     def _run_git(args, cwd: Path):
         return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=False)
 
+    def _diagnostic_remote_url():
+        """
+        Build a remote URL for the diagnostics repo using stored credentials if available.
+        Credentials file format: https://user:token@github.com
+        """
+        try:
+            if DIAG_CRED_FILE.exists():
+                raw = DIAG_CRED_FILE.read_text(encoding="utf-8").strip().splitlines()
+                if raw:
+                    base = raw[0].strip().rstrip("/")
+                    if base.startswith("https://"):
+                        suffix = DIAG_REPO_URL.split("github.com/", 1)[-1]
+                        return f"{base}/{suffix}"
+        except Exception:
+            logging.debug("Failed to build diagnostic remote URL from credentials", exc_info=True)
+        return DIAG_REPO_URL
+
+    def _set_origin(repo_path: Path, url: str):
+        res = _run_git(["remote", "set-url", "origin", url], cwd=repo_path)
+        if res.returncode != 0:
+            logging.warning("Failed to set diagnostics origin: %s", res.stderr or res.stdout)
+
     def _ensure_diag_repo() -> Path:
         repo_path = DIAG_REPO_PATH
         try:
@@ -1176,12 +1199,14 @@ def create_app(tracker, config_manager=None):
         except Exception:
             logging.error("Failed to create diagnostics repo path %s", repo_path)
             return None
+        remote_url = _diagnostic_remote_url()
         if not (repo_path / ".git").exists():
-            res = _run_git(["clone", DIAG_REPO_URL, str(repo_path)], cwd=repo_path.parent)
+            res = _run_git(["clone", remote_url, str(repo_path)], cwd=repo_path.parent)
             if res.returncode != 0:
                 logging.error("Diagnostics repo clone failed: %s", res.stderr or res.stdout)
                 return None
         else:
+            _set_origin(repo_path, remote_url)
             _run_git(["pull", "--ff-only"], cwd=repo_path)
         return repo_path
 
@@ -1445,6 +1470,7 @@ def create_app(tracker, config_manager=None):
         add = _run_git(["add", str(rel)], cwd=repo_path)
         if add.returncode != 0:
             return jsonify({"ok": False, "error": add.stderr or add.stdout or "git add failed"}), 500
+        _set_origin(repo_path, _diagnostic_remote_url())
         commit = _run_git(["commit", "-m", f"Diagnostics {ts}"], cwd=repo_path)
         if commit.returncode != 0:
             return jsonify({"ok": False, "error": commit.stderr or commit.stdout or "git commit failed"}), 500
