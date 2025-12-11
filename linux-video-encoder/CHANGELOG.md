@@ -16,6 +16,10 @@
 - Removed MakeMKV language selector flags (unsupported in this build) to prevent rip failures; rips now run without language switches.
 - Version bumped to 1.24.38.
 
+## 1.24.39 - 2025-12-11
+- MakeMKV rips now run in robot mode with progress streaming (`-r --progress=-same`) to avoid UI hangs/prompts and mirror the working CLI command.
+- Version bumped to 1.24.39.
+
 ## 1.24.34 - 2025-12-08
 - Fixed audio offset flag to use HandBrakeCLI's supported `--audio-delay` so offsets apply correctly.
 - Version bumped to 1.24.34.

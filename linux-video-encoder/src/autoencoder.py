@@ -364,8 +364,14 @@ def rip_disc(
     else:
         title_arg = "all"
     cmd = [
-        "makemkvcon", "mkv", f"disc:{disc_index}", title_arg, output_dir,
-        f"--minlength={min_length}", "--progress=-same"
+        "makemkvcon",
+        "-r",
+        "--progress=-same",
+        "mkv",
+        f"disc:{disc_index}",
+        title_arg,
+        output_dir,
+        f"--minlength={min_length}",
     ]
     # MakeMKV CLI doesn't accept audio/subtitle language selectors in this build; skip them to avoid errors.
 
