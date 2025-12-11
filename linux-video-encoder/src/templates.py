@@ -882,6 +882,12 @@ SETTINGS_PAGE_TEMPLATE = """
       </div>
     </div>
     <div class="panel">
+      <h2>🐞 Diagnostics</h2>
+      <div class="muted" style="margin-bottom:8px;">Push status, events, and log tail to the diagnostics repo using stored credentials.</div>
+      <button type="button" id="diag-push">Push Diagnostics to GitHub</button>
+      <div class="muted" id="diag-status" style="margin-top:6px;">Idle.</div>
+    </div>
+    <div class="panel">
       <h2>🔒 Authentication</h2>
       <div class="muted" style="margin-bottom:6px;">HTTP Basic auth for this UI/API.</div>
       <label>Username <input id="auth-user" placeholder="admin" /></label>
@@ -1275,6 +1281,22 @@ SETTINGS_PAGE_TEMPLATE = """
         alert("Rip requested. It will start on next scan if a disc is present.");
       } catch (e) {
         alert("Failed to request rip: " + e);
+      }
+    });
+
+    const diagStatus = document.getElementById("diag-status");
+    document.getElementById("diag-push").addEventListener("click", async () => {
+      if (diagStatus) diagStatus.textContent = "Pushing diagnostics...";
+      try {
+        const res = await fetch("/api/diagnostics/push", { method: "POST" });
+        const data = await res.json();
+        if (data.ok) {
+          diagStatus.textContent = "Pushed diagnostics" + (data.commit ? " (" + data.commit + ")" : "");
+        } else {
+          diagStatus.textContent = "Failed: " + (data.error || res.statusText);
+        }
+      } catch (e) {
+        diagStatus.textContent = "Failed: " + e;
       }
     });
 

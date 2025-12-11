@@ -17,6 +17,8 @@ from makemkv_parser import parse_makemkv_info_output
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
+DIAG_REPO_URL = os.environ.get("DIAG_REPO_URL", "https://github.com/thashiznit2003/AutoEncoder-Diagnostics.git")
+DIAG_REPO_PATH = pathlib.Path(os.environ.get("DIAG_REPO_PATH", "/var/lib/autoencoder/state/diagnostics-repo"))
 
 HTML_PAGE_TEMPLATE = """
 <!doctype html>
@@ -1154,6 +1156,35 @@ def create_app(tracker, config_manager=None):
             pass
         return base
 
+    def _sanitize_config(cfg: dict) -> dict:
+        try:
+            safe = json.loads(json.dumps(cfg))
+        except Exception:
+            return {}
+        safe.pop("auth_password", None)
+        safe.pop("auth_user", None)
+        return safe
+
+    def _run_git(args, cwd: Path):
+        return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=False)
+
+    def _ensure_diag_repo() -> Path:
+        repo_path = DIAG_REPO_PATH
+        try:
+            repo_path.parent.mkdir(parents=True, exist_ok=True)
+            repo_path.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            logging.error("Failed to create diagnostics repo path %s", repo_path)
+            return None
+        if not (repo_path / ".git").exists():
+            res = _run_git(["clone", DIAG_REPO_URL, str(repo_path)], cwd=repo_path.parent)
+            if res.returncode != 0:
+                logging.error("Diagnostics repo clone failed: %s", res.stderr or res.stdout)
+                return None
+        else:
+            _run_git(["pull", "--ff-only"], cwd=repo_path)
+        return repo_path
+
     def mount_smb(url: str, username: str = "", password: str = "", domain: str = "", vers: str = "") -> str:
         mid = uuid.uuid4().hex
         mnt = SMB_MOUNT_ROOT / mid
@@ -1383,6 +1414,46 @@ def create_app(tracker, config_manager=None):
     @require_auth
     def events():
         return jsonify(tracker.events())
+
+    @app.route("/api/diagnostics/push", methods=["POST"])
+    @require_auth
+    def push_diagnostics():
+        repo_path = _ensure_diag_repo()
+        if not repo_path:
+            return jsonify({"ok": False, "error": "Diagnostics repo unavailable"}), 500
+        ts = time.strftime("%Y%m%d-%H%M%S")
+        dest = repo_path / "diagnostics" / f"diag_{ts}"
+        try:
+            dest.mkdir(parents=True, exist_ok=True)
+        except Exception as exc:
+            return jsonify({"ok": False, "error": f"Failed to create diagnostics folder: {exc}"}), 500
+        try:
+            status = tracker.snapshot()
+            status["version"] = VERSION
+            if config_manager:
+                cfg = config_manager.read()
+                status["config"] = _sanitize_config(cfg)
+            (dest / "status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
+            events_data = tracker.events()
+            (dest / "events.json").write_text(json.dumps(events_data, indent=2), encoding="utf-8")
+            logs = tracker.tail_logs(lines=400)
+            (dest / "app_log_tail.txt").write_text("\n".join(logs), encoding="utf-8")
+        except Exception as exc:
+            logging.exception("Failed to write diagnostics")
+            return jsonify({"ok": False, "error": f"Failed to collect diagnostics: {exc}"}), 500
+        rel = dest.relative_to(repo_path)
+        add = _run_git(["add", str(rel)], cwd=repo_path)
+        if add.returncode != 0:
+            return jsonify({"ok": False, "error": add.stderr or add.stdout or "git add failed"}), 500
+        commit = _run_git(["commit", "-m", f"Diagnostics {ts}"], cwd=repo_path)
+        if commit.returncode != 0:
+            return jsonify({"ok": False, "error": commit.stderr or commit.stdout or "git commit failed"}), 500
+        push = _run_git(["push", "origin", "main"], cwd=repo_path)
+        if push.returncode != 0:
+            return jsonify({"ok": False, "error": push.stderr or push.stdout or "git push failed"}), 500
+        head = _run_git(["rev-parse", "HEAD"], cwd=repo_path)
+        sha = (head.stdout or "").strip()
+        return jsonify({"ok": True, "message": f"Diagnostics pushed at {ts}", "commit": sha})
 
     @app.route("/api/events", methods=["POST"])
     @require_auth
