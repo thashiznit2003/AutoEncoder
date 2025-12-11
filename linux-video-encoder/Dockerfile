@@ -2,9 +2,12 @@ FROM ubuntu:24.04
 
 ARG DOCKERFILE_REV=3
 ARG MAKEMKV_VERSION=1.18.2
-ARG MAKEMKV_BASE_URL=https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main
-ARG MAKEMKV_BIN_URL=${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz
-ARG MAKEMKV_OSS_URL=${MAKEMKV_BASE_URL}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz
+ARG MAKEMKV_PRIMARY_BASE=https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main
+ARG MAKEMKV_FALLBACK_BASE=https://www.makemkv.com/download
+ARG MAKEMKV_BIN_URL=${MAKEMKV_PRIMARY_BASE}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz
+ARG MAKEMKV_OSS_URL=${MAKEMKV_PRIMARY_BASE}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz
+ARG MAKEMKV_BIN_URL_FALLBACK=${MAKEMKV_FALLBACK_BASE}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz
+ARG MAKEMKV_OSS_URL_FALLBACK=${MAKEMKV_FALLBACK_BASE}/makemkv-oss-${MAKEMKV_VERSION}.tar.gz
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -81,17 +84,26 @@ RUN set -eux; \
     }; \
     validate_or_fetch() { \
       file="$1"; \
-      url="$2"; \
+      primary="$2"; \
+      fallback="$3"; \
+      if tar -tzf "$file" >/dev/null 2>&1; then \
+        return 0; \
+      fi; \
+      echo "Tarball $file invalid; re-downloading from $primary"; \
+      if ! download_and_verify "$primary" "$file"; then \
+        echo "Primary download failed; trying fallback $fallback"; \
+        download_and_verify "$fallback" "$file"; \
+      fi; \
       if ! tar -tzf "$file" >/dev/null 2>&1; then \
-        echo "Tarball $file invalid; re-downloading from $url"; \
-        download_and_verify "$url" "$file"; \
+        echo "Tarball $file still invalid after download; aborting" >&2; \
+        exit 1; \
       fi; \
     }; \
     # Use pre-staged tarballs if present; otherwise download
     if [ ! -s makemkv-oss.tar.gz ]; then download_and_verify "${MAKEMKV_OSS_URL}" makemkv-oss.tar.gz; fi; \
     if [ ! -s makemkv-bin.tar.gz ]; then download_and_verify "${MAKEMKV_BIN_URL}" makemkv-bin.tar.gz; fi; \
-    validate_or_fetch makemkv-oss.tar.gz "${MAKEMKV_OSS_URL}"; \
-    validate_or_fetch makemkv-bin.tar.gz "${MAKEMKV_BIN_URL}"; \
+    validate_or_fetch makemkv-oss.tar.gz "${MAKEMKV_OSS_URL}" "${MAKEMKV_OSS_URL_FALLBACK}"; \
+    validate_or_fetch makemkv-bin.tar.gz "${MAKEMKV_BIN_URL}" "${MAKEMKV_BIN_URL_FALLBACK}"; \
     tar -xzf makemkv-oss.tar.gz; \
     tar -xzf makemkv-bin.tar.gz; \
     cd makemkv-oss-"${MAKEMKV_VERSION}"; \
