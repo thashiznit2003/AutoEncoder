@@ -414,6 +414,8 @@ def rip_disc(
     result = None
     try:
         result = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        if status_tracker:
+            status_tracker.register_proc(job_key, result)
         # Iterate lines as they arrive and log them
         if result.stdout is not None:
             for line in result.stdout:
@@ -430,6 +432,8 @@ def rip_disc(
                     logger.debug("Failed to parse MakeMKV progress line: %s", line, exc_info=True)
         rc = result.wait()
         logger.debug("exited with code %s", rc)
+        if status_tracker and status_tracker.was_canceled(job_key):
+            return None, False
     except FileNotFoundError:
         print("❌ Error: makemkvcon not found. Is MakeMKV installed?")
         if status_tracker:

@@ -344,6 +344,7 @@ HTML_PAGE_TEMPLATE = """
         <div style="display:flex; gap:6px; margin:6px 0;">
           <button type="button" id="mk-refresh-info">Refresh disc info</button>
           <button type="button" id="mk-start-rip">Start rip</button>
+          <button type="button" id="mk-stop-rip">Stop rip</button>
         </div>
         <textarea id="mk-info" class="log" style="height:160px; margin-top:4px;" readonly placeholder="Disc info will appear here after detection."></textarea>
       </div>
@@ -489,8 +490,9 @@ HTML_PAGE_TEMPLATE = """
         }
         const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div><div class="muted">Progress: ' + progress + '%</div>' : "";
         let controls = "";
-        if (state === "running") {
-          controls = '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">Stop</button>';
+        if (state === "running" || state === "ripping") {
+          const stopLabel = state === "ripping" ? "Stop Rip" : "Stop";
+          controls = '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">' + stopLabel + '</button>';
         } else if (state === "confirm") {
           controls = '<button class="confirm-btn" data-action="proceed" data-src="' + encodeURIComponent(item.source || "") + '">Proceed</button> '
                    + '<button class="confirm-btn" data-action="cancel" data-src="' + encodeURIComponent(item.source || "") + '">Cancel</button>';
@@ -1067,6 +1069,20 @@ HTML_PAGE_TEMPLATE = """
         alert("Rip requested. It will start on next scan if a disc is present.");
       } catch (e) {
         alert("Failed to request rip: " + e);
+      }
+    });
+
+    document.getElementById("mk-stop-rip").addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/makemkv/stop", { method: "POST" });
+        const data = await res.json();
+        if (data.stopped) {
+          alert("MakeMKV rip stopped.");
+        } else {
+          alert("No active MakeMKV rip to stop.");
+        }
+      } catch (e) {
+        alert("Failed to stop rip: " + e);
       }
     });
 
@@ -1982,6 +1998,25 @@ def create_app(tracker, config_manager=None):
         tracker.request_disc_rip()
         tracker.add_event("Manual MakeMKV rip requested.")
         return jsonify({"requested": True})
+
+    @app.route("/api/makemkv/stop", methods=["POST"])
+    @require_auth
+    def makemkv_stop():
+        snap = tracker.snapshot()
+        stopped = 0
+        for item in snap.get("active", []):
+            src = (item.get("source") or "").strip()
+            state = (item.get("state") or "").strip().lower()
+            if src.startswith("disc:") or state == "ripping":
+                tracker.stop_proc(src)
+                stopped += 1
+        if stopped:
+            tracker.add_event(f"MakeMKV rip canceled ({stopped} task{'s' if stopped != 1 else ''}).")
+            try:
+                tracker.clear_disc_info()
+            except Exception:
+                pass
+        return jsonify({"stopped": stopped})
 
     @app.route("/api/makemkv/register", methods=["POST"])
     @require_auth
