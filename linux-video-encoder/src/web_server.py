@@ -1970,6 +1970,12 @@ def create_app(tracker, config_manager=None):
                 parsed = {"raw": raw_output, "error": str(exc)}
             if not parsed.get("raw"):
                 parsed["raw"] = raw_output
+            disc_type = ""
+            ro_low = raw_output.lower()
+            if "blu-ray disc" in ro_low or "bluray" in ro_low:
+                disc_type = "bluray"
+            elif "dvd" in ro_low:
+                disc_type = "dvd"
             info_payload = {
                 "disc_index": 0,
                 "info": parsed,
@@ -1979,6 +1985,8 @@ def create_app(tracker, config_manager=None):
                 info_payload["summary"] = parsed["summary"]
             if parsed.get("formatted"):
                 info_payload["formatted"] = parsed["formatted"]
+            if disc_type:
+                info_payload["disc_type"] = disc_type
             tracker.set_disc_info(info_payload)
             if result.returncode != 0:
                 info_payload["error"] = parsed.get("error") or "info failed"

@@ -354,10 +354,18 @@ def rip_disc(
     logger = logging.getLogger(__name__)
     output_dir = output_dir_path.as_posix()
     job_key = f"disc:{disc_index}"
+    disc_type = None
+    if status_tracker:
+        try:
+            di = status_tracker.disc_info()
+            if isinstance(di, dict):
+                disc_type = di.get("disc_type")
+        except Exception:
+            disc_type = None
     dest_hint = output_dir
     if status_tracker:
         if not status_tracker.has_active(job_key):
-            status_tracker.start(job_key, dest_hint, info=None, state="ripping")
+            status_tracker.start(job_key, dest_hint, info={"disc_type": disc_type} if disc_type else None, state="ripping")
         else:
             status_tracker.set_state(job_key, "ripping")
         status_tracker.set_message(job_key, f"Ripping disc {disc_index}")
@@ -465,7 +473,14 @@ def rip_disc(
         return None, False
 
     # Return the most recent or first MKV file path
-    first_file = str(mkv_files[-1].resolve())
+    first_file_path = mkv_files[-1].resolve()
+    if disc_type:
+        try:
+            marker = output_dir_path / ".disc_type"
+            marker.write_text(str(disc_type), encoding="utf-8")
+        except Exception:
+            logging.debug("Failed to write disc_type marker", exc_info=True)
+    first_file = str(first_file_path)
     print(f"🎬 Output file: {first_file}")
     if status_tracker:
         status_tracker.complete(job_key, True, first_file, "Rip complete")
@@ -705,12 +720,27 @@ def compute_output_path(video_file: str, config: Dict[str, Any], output_dir: Pat
     config_str = config.get("profile", "ffmpeg")
     is_dvd = False
     is_bluray = False
-    if any(s in video_file.lower() for s in ["bdmv", "bluray"]):
-        is_bluray = True
-        config_str = "handbrake_br"
-    elif any(s in video_file.lower() for s in ["video_ts"]):
-        is_dvd = True
-        config_str = "handbrake_dvd"
+    # Prefer explicit disc type marker if present
+    try:
+        marker = Path(video_file).parent / ".disc_type"
+        if marker.is_file():
+            disc_type_marker = marker.read_text(encoding="utf-8", errors="ignore").strip().lower()
+            if "bluray" in disc_type_marker:
+                is_bluray = True
+                config_str = "handbrake_br"
+            elif "dvd" in disc_type_marker:
+                is_dvd = True
+                config_str = "handbrake_dvd"
+    except Exception:
+        pass
+    # Fallback to path heuristics
+    if not is_bluray and not is_dvd:
+        if any(s in video_file.lower() for s in ["bdmv", "bluray"]):
+            is_bluray = True
+            config_str = "handbrake_br"
+        elif any(s in video_file.lower() for s in ["video_ts"]):
+            is_dvd = True
+            config_str = "handbrake_dvd"
 
     hb_opts = config.get(config_str, {})
     extension = hb_opts.get("extension", ".mkv")
@@ -849,7 +879,18 @@ def scan_disc_info(disc_index: int) -> Optional[dict]:
     raw = res.stdout or res.stderr or ""
     if res.returncode != 0 and not raw:
         return None
-    return parse_makemkv_info_output(raw)
+    parsed = parse_makemkv_info_output(raw)
+    # best-effort disc type detection
+    if parsed is not None:
+        disc_type = ""
+        ro_low = raw.lower()
+        if "blu-ray disc" in ro_low or "bluray" in ro_low:
+            disc_type = "bluray"
+        elif "dvd" in ro_low:
+            disc_type = "dvd"
+        if disc_type and isinstance(parsed, dict):
+            parsed["disc_type"] = disc_type
+    return parsed
 
 def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
     if hb_opts.get("video_bitrate_kbps"):
@@ -1145,12 +1186,27 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     # check if dvd, bluray, or video file    
     is_dvd = False
     is_bluray = False
-    if any(s in video_file.lower() for s in ["bdmv", "bluray"]):
-        is_bluray = True
-        config_str = "handbrake_br"
-    elif any(s in video_file.lower() for s in ["video_ts"]):
-        is_dvd = True 
-        config_str = "handbrake_dvd"
+    # Prefer explicit disc type marker if present
+    try:
+        marker = Path(video_file).parent / ".disc_type"
+        if marker.is_file():
+            disc_type_marker = marker.read_text(encoding="utf-8", errors="ignore").strip().lower()
+            if "bluray" in disc_type_marker:
+                is_bluray = True
+                config_str = "handbrake_br"
+            elif "dvd" in disc_type_marker:
+                is_dvd = True
+                config_str = "handbrake_dvd"
+    except Exception:
+        pass
+    # Fallback to path heuristics
+    if not is_bluray and not is_dvd:
+        if any(s in video_file.lower() for s in ["bdmv", "bluray"]):
+            is_bluray = True
+            config_str = "handbrake_br"
+        elif any(s in video_file.lower() for s in ["video_ts"]):
+            is_dvd = True 
+            config_str = "handbrake_dvd"
 
     hb_opts = dict(config.get(config_str, {}) or {})
     extension = hb_opts.get("extension", ".mkv")
