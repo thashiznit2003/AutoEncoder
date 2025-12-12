@@ -474,6 +474,29 @@ def rip_disc(
 
     # Return the most recent or first MKV file path
     first_file_path = mkv_files[-1].resolve()
+    # Apply rename target if provided
+    if status_tracker:
+        rename_to = status_tracker.get_rename(job_key)
+    else:
+        rename_to = None
+    if rename_to:
+        try:
+            base = Path(rename_to).name
+            if not base:
+                base = first_file_path.name
+            dest = first_file_path.with_name(base)
+            if dest.suffix.lower() != first_file_path.suffix.lower():
+                dest = dest.with_suffix(first_file_path.suffix)
+            idx = 1
+            while dest.exists() and dest != first_file_path:
+                dest = dest.with_name(f"{dest.stem}({idx}){dest.suffix}")
+                idx += 1
+            first_file_path.rename(dest)
+            first_file_path = dest.resolve()
+        except Exception:
+            logging.debug("Failed to apply rename_to for %s", job_key, exc_info=True)
+    if status_tracker:
+        status_tracker.clear_rename(job_key)
     if disc_type:
         try:
             marker = output_dir_path / ".disc_type"

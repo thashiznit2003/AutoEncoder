@@ -341,10 +341,12 @@ HTML_PAGE_TEMPLATE = """
       </form>
       <div style="margin-top:8px;">
         <div class="muted" id="mk-disc-status">Disc status: unknown</div>
-        <div style="display:flex; gap:6px; margin:6px 0;">
+        <div style="display:flex; gap:6px; align-items:center; margin:6px 0; flex-wrap:wrap;">
+          <span id="mk-disc-light" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;" aria-label="disc-present-indicator"></span>
           <button type="button" id="mk-refresh-info">Refresh disc info</button>
           <button type="button" id="mk-start-rip">Start rip</button>
           <button type="button" id="mk-stop-rip">Stop rip</button>
+          <button type="button" id="mk-eject">Eject</button>
         </div>
         <textarea id="mk-info" class="log" style="height:160px; margin-top:4px;" readonly placeholder="Disc info will appear here after detection."></textarea>
       </div>
@@ -465,6 +467,18 @@ HTML_PAGE_TEMPLATE = """
       return [h, m, s].map(v => String(v).padStart(2, "0")).join(":");
     }
 
+    async function renameRip(src) {
+      const newName = prompt("Enter new filename (no path; extension optional):");
+      if (!newName) return;
+      const res = await fetch("/api/makemkv/rename", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, name: newName }) });
+      const data = await res.json();
+      if (!data.ok) {
+        alert("Rename request failed: " + (data.error || "unknown error"));
+      } else {
+        alert("Will rename to: " + data.name);
+      }
+    }
+
     function renderList(container, items, empty) {
       if (!items || items.length === 0) {
         container.innerHTML = '<div class="muted">' + empty + '</div>';
@@ -493,11 +507,15 @@ HTML_PAGE_TEMPLATE = """
         if (state === "running" || state === "ripping") {
           const stopLabel = state === "ripping" ? "Stop Rip" : "Stop";
           controls = '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">' + stopLabel + '</button>';
+          if (state === "ripping") {
+            controls += ' <button class="rename-btn" data-src="' + encodeURIComponent(item.source || "") + '">Set Name</button>';
+          }
         } else if (state === "confirm") {
           controls = '<button class="confirm-btn" data-action="proceed" data-src="' + encodeURIComponent(item.source || "") + '">Proceed</button> '
                    + '<button class="confirm-btn" data-action="cancel" data-src="' + encodeURIComponent(item.source || "") + '">Cancel</button>';
         }
         const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
+        const renameLine = item.rename_to ? '<div class="muted">Will rename to: ' + item.rename_to + '</div>' : "";
         return [
           '<div class="item">',
           '  <div class="flex-between">',
@@ -507,6 +525,7 @@ HTML_PAGE_TEMPLATE = """
           '  <div class="muted">-> ' + (item.destination || "") + '</div>',
           '  <div class="muted">' + (item.message || "") + '</div>',
           infoLine,
+          renameLine,
           '  <div class="muted">' + (etaText || (duration ? "Encode elapsed: " + duration : "")) + '</div>',
           '  ' + progBar,
           '</div>'
@@ -547,9 +566,13 @@ HTML_PAGE_TEMPLATE = """
         const discPending = !!status.disc_pending;
         const discStatusEl = document.getElementById("mk-disc-status");
         const discInfoEl = document.getElementById("mk-info");
+        const discLight = document.getElementById("mk-disc-light");
         discStatusEl.textContent = discPending ? ("Disc present (index " + (discInfo.disc_index ?? "?") + ")") : "No disc detected.";
         const discText = buildDiscInfoText(discInfo) || (discPending ? "Disc detected; info not available yet." : "");
         discInfoEl.value = discText;
+        if (discLight) {
+          discLight.style.background = discPending ? "#22c55e" : "#ef4444";
+        }
         const startBtn = document.getElementById("mk-start-rip");
         const autoRipEnabled = document.getElementById("mk-auto-rip").checked;
         startBtn.disabled = !discPending || autoRipEnabled;
@@ -741,6 +764,11 @@ HTML_PAGE_TEMPLATE = """
           deleteSrc = true;
         }
         await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, delete_source: deleteSrc }) });
+        refresh();
+      }
+      if (e.target.classList.contains("rename-btn")) {
+        const src = decodeURIComponent(e.target.getAttribute("data-src"));
+        await renameRip(src);
         refresh();
       }
     });
@@ -1083,6 +1111,20 @@ HTML_PAGE_TEMPLATE = """
         }
       } catch (e) {
         alert("Failed to stop rip: " + e);
+      }
+    });
+
+    document.getElementById("mk-eject").addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/makemkv/eject", { method: "POST" });
+        const data = await res.json();
+        if (data.ok) {
+          alert("Disc ejected.");
+        } else {
+          alert("Eject failed: " + (data.error || "unknown error"));
+        }
+      } catch (e) {
+        alert("Failed to eject: " + e);
       }
     });
 
@@ -2025,6 +2067,49 @@ def create_app(tracker, config_manager=None):
             except Exception:
                 pass
         return jsonify({"stopped": stopped})
+
+    @app.route("/api/makemkv/rename", methods=["POST"])
+    @require_auth
+    def makemkv_rename():
+        payload = request.get_json(force=True) or {}
+        src = (payload.get("source") or "").strip() or "disc:0"
+        name = (payload.get("name") or "").strip()
+        if not name:
+            return jsonify({"ok": False, "error": "name required"}), 400
+        safe = Path(name).name.strip()
+        if not safe:
+            return jsonify({"ok": False, "error": "invalid name"}), 400
+        tracker.set_rename(src, safe)
+        tracker.add_event(f"Rip rename set for {src}: {safe}")
+        return jsonify({"ok": True, "name": safe})
+
+    @app.route("/api/makemkv/eject", methods=["POST"])
+    @require_auth
+    def makemkv_eject():
+        dev = request.json.get("device") if request.is_json else None
+        device = dev or "/dev/sr0"
+        try:
+            # Try eject if available
+            res = subprocess.run(["eject", device], capture_output=True, text=True, check=False)
+            if res.returncode == 0:
+                tracker.add_event(f"Ejected disc ({device}).")
+                tracker.clear_disc_info()
+                return jsonify({"ok": True})
+            # Fallback: sg_raw eject (works with sg3-utils)
+            res2 = subprocess.run(["sg_raw", device, "1b", "00", "00", "00", "02", "00"], capture_output=True, text=True, check=False)
+            if res2.returncode == 0:
+                tracker.add_event(f"Ejected disc via sg_raw ({device}).")
+                tracker.clear_disc_info()
+                return jsonify({"ok": True})
+            msg = res.stderr.strip() or res.stdout.strip() or res2.stderr.strip() or res2.stdout.strip() or "eject failed"
+            tracker.add_event(f"Eject failed: {msg}", level="error")
+            return jsonify({"ok": False, "error": msg}), 500
+        except FileNotFoundError as fe:
+            tracker.add_event(f"Eject tool missing: {fe}", level="error")
+            return jsonify({"ok": False, "error": "eject/sg_raw not found"}), 500
+        except Exception as exc:
+            tracker.add_event(f"Eject error: {exc}", level="error")
+            return jsonify({"ok": False, "error": str(exc)}), 500
 
     @app.route("/api/makemkv/register", methods=["POST"])
     @require_auth

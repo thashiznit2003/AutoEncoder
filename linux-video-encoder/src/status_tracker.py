@@ -18,6 +18,7 @@ class StatusTracker:
         self._log_path = Path(log_path)
         self._history_size = history_size
         self._etas = {}
+        self._rename = {}
         self._smb_mounts = {}
         self._manual_files = []
         self._canceled = set()
@@ -49,6 +50,24 @@ class StatusTracker:
     def register_proc(self, src: str, proc):
         with self._lock:
             self._procs[src] = proc
+
+    def set_rename(self, src: str, name: str):
+        with self._lock:
+            self._rename[src] = name
+            item = self._active.get(src)
+            if item:
+                item["rename_to"] = name
+
+    def get_rename(self, src: str):
+        with self._lock:
+            return self._rename.get(src)
+
+    def clear_rename(self, src: str):
+        with self._lock:
+            self._rename.pop(src, None)
+            item = self._active.get(src)
+            if item and "rename_to" in item:
+                item.pop("rename_to", None)
 
     def set_state(self, src: str, state: str):
         with self._lock:
@@ -144,6 +163,7 @@ class StatusTracker:
         with self._lock:
             start = self._active.pop(src, None)
             self._procs.pop(src, None)
+            self._rename.pop(src, None)
             self._confirm_required.discard(src)
             self._confirm_ok.discard(src)
             record = {
@@ -177,6 +197,7 @@ class StatusTracker:
                         **item,
                         "duration_sec": now - item.get("started_at", now),
                         "eta_sec": self._etas.get(key),
+                        "rename_to": self._rename.get(key),
                     }
                 )
             history = list(self._history)
