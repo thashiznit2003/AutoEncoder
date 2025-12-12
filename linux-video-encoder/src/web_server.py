@@ -98,7 +98,19 @@ HTML_PAGE_TEMPLATE = """
       <div class="panel">
         <h2>📊 System Metrics</h2>
         <div id="metrics" class="log"></div>
-        <div class="metric-grid" id="disc-card" style="margin-top:8px;"></div>
+        <div class="metric-grid" style="margin-top:8px;">
+          <div class="metric-card">
+            <div class="metric-icon">📀</div>
+            <div class="metric-text">
+              <div class="metric-value" style="display:flex; align-items:center; gap:6px;">
+                <span id="disc-card-light" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:#ef4444;"></span>
+                <span id="disc-card-label">Disc: unknown</span>
+              </div>
+              <div class="metric-label" id="disc-card-info" style="margin-top:4px;">No disc info.</div>
+              <button id="disc-card-eject" class="smb-btn" style="margin-top:6px;">Eject</button>
+            </div>
+          </div>
+        </div>
         <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
           <button id="usb-force-remount" type="button">Force Remount</button>
           <button id="usb-refresh" type="button">Refresh USB</button>
@@ -564,33 +576,32 @@ HTML_PAGE_TEMPLATE = """
       const discStatusEl = document.getElementById("mk-disc-status");
       const discInfoEl = document.getElementById("mk-info");
       const discLight = document.getElementById("mk-disc-light");
-      discStatusEl.textContent = discPending ? ("Disc present (index " + (discInfo.disc_index ?? "?") + ")") : "No disc detected.";
-      const discText = buildDiscInfoText(discInfo) || (discPending ? "Disc detected; info not available yet." : "");
-      discInfoEl.value = discText;
-      if (discLight) {
-        discLight.style.background = discPending ? "#22c55e" : "#ef4444";
+      const discCardLight = document.getElementById("disc-card-light");
+      const discCardLabel = document.getElementById("disc-card-label");
+      const discCardInfo = document.getElementById("disc-card-info");
+      const discText = buildDiscInfoText(discInfo) || (discPending ? "Disc detected; info not available yet." : "No disc info.");
+      const discColor = discPending ? "#22c55e" : "#ef4444";
+      if (discStatusEl) {
+        discStatusEl.textContent = discPending ? ("Disc present (index " + (discInfo.disc_index ?? "?") + ")") : "No disc detected.";
       }
-      const discCard = document.getElementById("disc-card");
-      if (discCard) {
-        const color = discPending ? "#22c55e" : "#ef4444";
-        const label = discPending ? "Disc present" : "No disc";
-        const infoLine = discText || "No disc info.";
-        discCard.innerHTML = `
-          <div class="metric-grid">
-            <div class="metric-card">
-              <div class="metric-label">Disc</div>
-              <div class="metric-value" style="display:flex;align-items:center;gap:6px;">
-                <span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block;"></span>
-                <span>${label}</span>
-              </div>
-              <div class="muted" style="margin-top:4px;">${infoLine.replace(/\\n/g,"<br>")}</div>
-              <button id="disc-eject" class="smb-btn" style="margin-top:6px;">Eject</button>
-            </div>
-          </div>`;
-        const discEjectBtn = discCard.querySelector("#disc-eject");
-        if (discEjectBtn) {
-          discEjectBtn.onclick = async () => { await ejectDisc(); refresh(); };
-        }
+      if (discInfoEl) {
+        discInfoEl.value = discText;
+      }
+      if (discLight) {
+        discLight.style.background = discColor;
+      }
+      if (discCardLight) {
+        discCardLight.style.background = discColor;
+      }
+      if (discCardLabel) {
+        discCardLabel.textContent = discPending ? "Disc present" : "No disc";
+      }
+      if (discCardInfo) {
+        discCardInfo.innerHTML = discText.replace(/\\n/g, "<br>");
+      }
+      const discCardEject = document.getElementById("disc-card-eject");
+      if (discCardEject) {
+        discCardEject.onclick = async () => { await ejectDisc(); refresh(); };
       }
       const startBtn = document.getElementById("mk-start-rip");
       const autoRipEnabled = document.getElementById("mk-auto-rip").checked;
