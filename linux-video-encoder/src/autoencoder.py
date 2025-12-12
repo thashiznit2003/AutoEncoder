@@ -1599,6 +1599,14 @@ def main():
                     logging.debug("Failed to pre-register queued file %s", f, exc_info=True)
             # Disc detection / info
             try:
+                if status_tracker and not status_tracker.disc_pending():
+                    disc_num = get_disc_number()
+                    if disc_num is not None:
+                        disc_info = scan_disc_info(disc_num)
+                        status_tracker.set_disc_info({"disc_index": disc_num, "info": disc_info})
+            except Exception:
+                logging.debug("Auto disc info refresh failed", exc_info=True)
+            try:
                 bluray_present = any("bdmv" in str(f).lower() or "bluray" in str(f).lower() for f in video_files)
             except Exception:
                 bluray_present = False
