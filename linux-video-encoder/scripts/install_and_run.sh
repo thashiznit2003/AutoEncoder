@@ -141,11 +141,22 @@ install_usb_host_helper() {
     log "USB host helper install exited non-zero (continuing)."
 }
 
+setup_ripped_smb_share() {
+  local script="$REPO_DIR/linux-video-encoder/scripts/share_ripped_smb.sh"
+  if [ ! -x "$script" ]; then
+    log "Ripped SMB share script missing; skipping."
+    return
+  fi
+  log "Configuring Samba share for Ripped..."
+  $SUDO "$script" || log "Ripped SMB share setup exited non-zero (continuing)."
+}
+
 build_and_run() {
   cd "$REPO_DIR/linux-video-encoder" || cd "$REPO_DIR"
   ensure_media_dirs
   setup_usb_automount
   install_usb_host_helper
+  setup_ripped_smb_share
   log "Stopping any existing stack (docker compose down)..."
   IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" down || true
   # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build

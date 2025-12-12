@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Share /mnt/ripped over SMB. Prompts for SMB username/password and
-# creates/updates a Samba share named [ripped].
+# Share /linux-video-encoder/AutoEncoder/linux-video-encoder/Ripped over SMB.
+# Prompts for SMB username/password and creates/updates a Samba share named [ripped].
 #
 # Usage: sudo ./share_ripped_smb.sh
 
 SHARE_NAME="ripped"
-SHARE_PATH="/mnt/ripped"
+SHARE_PATH="/linux-video-encoder/AutoEncoder/linux-video-encoder/Ripped"
 SMB_CONF="/etc/samba/smb.conf"
 BACKUP_SUFFIX="$(date +%Y%m%d-%H%M%S)"
 
