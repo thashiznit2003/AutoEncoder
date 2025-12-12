@@ -98,6 +98,7 @@ HTML_PAGE_TEMPLATE = """
       <div class="panel">
         <h2>📊 System Metrics</h2>
         <div id="metrics" class="log"></div>
+        <div class="metric-grid" id="disc-card" style="margin-top:8px;"></div>
         <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
           <button id="usb-force-remount" type="button">Force Remount</button>
           <button id="usb-refresh" type="button">Refresh USB</button>
@@ -118,10 +119,6 @@ HTML_PAGE_TEMPLATE = """
     <div class="panel">
       <h2>📣 Status Messages</h2>
       <div id="events" class="log"></div>
-    </div>
-    <div class="panel">
-      <h2>📊 System Metrics</h2>
-      <div id="metrics" class="log"></div>
     </div>
     <div class="panel">
       <h2>🌐 SMB Browser</h2>
@@ -562,20 +559,42 @@ HTML_PAGE_TEMPLATE = """
           " | BR RF=" + (hbBr.quality ?? 25) +
           " | Ext=" + hbExt +
           " | Audio=" + ((hb.audio_mode === "copy") ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
-        const discInfo = status.disc_info || {};
-        const discPending = !!status.disc_pending;
-        const discStatusEl = document.getElementById("mk-disc-status");
-        const discInfoEl = document.getElementById("mk-info");
-        const discLight = document.getElementById("mk-disc-light");
-        discStatusEl.textContent = discPending ? ("Disc present (index " + (discInfo.disc_index ?? "?") + ")") : "No disc detected.";
-        const discText = buildDiscInfoText(discInfo) || (discPending ? "Disc detected; info not available yet." : "");
-        discInfoEl.value = discText;
-        if (discLight) {
-          discLight.style.background = discPending ? "#22c55e" : "#ef4444";
+      const discInfo = status.disc_info || {};
+      const discPending = !!status.disc_pending;
+      const discStatusEl = document.getElementById("mk-disc-status");
+      const discInfoEl = document.getElementById("mk-info");
+      const discLight = document.getElementById("mk-disc-light");
+      discStatusEl.textContent = discPending ? ("Disc present (index " + (discInfo.disc_index ?? "?") + ")") : "No disc detected.";
+      const discText = buildDiscInfoText(discInfo) || (discPending ? "Disc detected; info not available yet." : "");
+      discInfoEl.value = discText;
+      if (discLight) {
+        discLight.style.background = discPending ? "#22c55e" : "#ef4444";
+      }
+      const discCard = document.getElementById("disc-card");
+      if (discCard) {
+        const color = discPending ? "#22c55e" : "#ef4444";
+        const label = discPending ? "Disc present" : "No disc";
+        const infoLine = discText || "No disc info.";
+        discCard.innerHTML = `
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="metric-label">Disc</div>
+              <div class="metric-value" style="display:flex;align-items:center;gap:6px;">
+                <span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block;"></span>
+                <span>${label}</span>
+              </div>
+              <div class="muted" style="margin-top:4px;">${infoLine.replace(/\\n/g,"<br>")}</div>
+              <button id="disc-eject" class="smb-btn" style="margin-top:6px;">Eject</button>
+            </div>
+          </div>`;
+        const discEjectBtn = discCard.querySelector("#disc-eject");
+        if (discEjectBtn) {
+          discEjectBtn.onclick = async () => { await ejectDisc(); refresh(); };
         }
-        const startBtn = document.getElementById("mk-start-rip");
-        const autoRipEnabled = document.getElementById("mk-auto-rip").checked;
-        startBtn.disabled = !discPending || autoRipEnabled;
+      }
+      const startBtn = document.getElementById("mk-start-rip");
+      const autoRipEnabled = document.getElementById("mk-auto-rip").checked;
+      startBtn.disabled = !discPending || autoRipEnabled;
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
@@ -1114,7 +1133,7 @@ HTML_PAGE_TEMPLATE = """
       }
     });
 
-    document.getElementById("mk-eject").addEventListener("click", async () => {
+    async function ejectDisc() {
       try {
         const res = await fetch("/api/makemkv/eject", { method: "POST" });
         const data = await res.json();
@@ -1126,7 +1145,9 @@ HTML_PAGE_TEMPLATE = """
       } catch (e) {
         alert("Failed to eject: " + e);
       }
-    });
+    }
+
+    document.getElementById("mk-eject").addEventListener("click", ejectDisc);
 
     document.getElementById("smb-up").addEventListener("click", async () => {
       if (!smbMountId || !smbPath || smbPath === "/") return;
