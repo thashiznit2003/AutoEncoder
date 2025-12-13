@@ -401,6 +401,17 @@ HTML_PAGE_TEMPLATE = """
       return res.json();
     }
 
+    async function fetchJSONWithTimeout(url, opts, ms = 6000) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), ms);
+      try {
+        const res = await fetch(url, { ...(opts || {}), signal: controller.signal });
+        return await res.json();
+      } finally {
+        clearTimeout(id);
+      }
+    }
+
     function buildDiscInfoText(info) {
       if (!info) return "";
       const payload = info.info ? info.info : info;
@@ -576,7 +587,7 @@ HTML_PAGE_TEMPLATE = """
       // If backend says a disc is present but no info payload arrived, try a direct fetch once.
       if (discPending && (!discInfo || !discInfo.info)) {
         try {
-          discInfo = await fetchJSON("/api/makemkv/info");
+          discInfo = await fetchJSONWithTimeout("/api/makemkv/info", {}, 6000);
         } catch (err) {
           console.warn("Fallback disc info fetch failed", err);
         }
