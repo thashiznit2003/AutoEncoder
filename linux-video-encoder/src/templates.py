@@ -97,6 +97,19 @@ MAIN_PAGE_TEMPLATE = """
     <div class="panel">
       <h2>📊 System Metrics</h2>
       <div id="metrics" class="log"></div>
+      <div class="metric-grid" style="margin-top:8px;">
+        <div class="metric-card">
+          <div class="metric-icon">📀</div>
+          <div class="metric-text">
+            <div class="metric-value" style="display:flex; align-items:center; gap:6px;">
+              <span id="disc-card-light" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:#ef4444;"></span>
+              <span id="disc-card-label">Disc: unknown</span>
+            </div>
+            <div class="metric-label" id="disc-card-info" style="margin-top:4px;">No disc info.</div>
+            <button id="disc-card-eject" class="smb-btn" style="margin-top:6px;">Eject</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="panel">
       <h2><span class="icon mario-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
