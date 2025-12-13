@@ -577,10 +577,11 @@ HTML_PAGE_TEMPLATE = """
         }
         const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div><div class="muted">Progress: ' + progress + '%</div>' : "";
         let controls = "";
-        if (state === "running" || state === "ripping") {
+        const isDisc = (item.source || "").startsWith("disc:");
+        if (state === "running" || state === "ripping" || isDisc) {
           const stopLabel = state === "ripping" ? "Stop Rip" : "Stop";
           controls = '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">' + stopLabel + '</button>';
-          if (state === "ripping") {
+          if (state === "ripping" || isDisc) {
             controls += ' <button class="rename-btn" data-src="' + encodeURIComponent(item.source || "") + '">Set Name</button>';
           }
         } else if (state === "confirm") {

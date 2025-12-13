@@ -362,6 +362,15 @@ def rip_disc(
                 disc_type = di.get("disc_type")
         except Exception:
             disc_type = None
+    # If we don't have disc info yet, try to capture it up front so UI shows label/type while ripping
+    if status_tracker:
+        try:
+            di = status_tracker.disc_info()
+            if not di or not di.get("info"):
+                scanned = scan_disc_info(disc_index)
+                status_tracker.set_disc_info({"disc_index": disc_index, "info": scanned})
+        except Exception:
+            logger.debug("Initial disc scan before rip failed", exc_info=True)
     dest_hint = output_dir
     if status_tracker:
         if not status_tracker.has_active(job_key):

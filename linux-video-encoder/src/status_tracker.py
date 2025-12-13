@@ -203,6 +203,12 @@ class StatusTracker:
             history = list(self._history)
             disc_info = self._disc_info
             disc_pending = self._disc_pending
+            # If a disc rip is active, force disc_pending so UI shows presence
+            if not disc_pending:
+                disc_pending = any(
+                    (a.get("source", "") or "").startswith("disc:") or a.get("state") == "ripping"
+                    for a in active
+                )
             usb_status = dict(self._usb_status)
         return {
             "active": active,
