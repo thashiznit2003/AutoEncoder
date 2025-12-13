@@ -1639,6 +1639,27 @@ def create_app(tracker, config_manager=None):
                     (dest / "timing.log").write_text(timing_src.read_text(encoding="utf-8", errors="ignore"), encoding="utf-8")
             except Exception:
                 pass
+            # Collect quick drive diagnostics to help debug unresponsive optical drive
+            try:
+                drive_diag = []
+                diag_cmds = [
+                    ("ls -l /dev/sr* /dev/sg*", ["sh", "-c", "ls -l /dev/sr* /dev/sg* 2>/dev/null"]),
+                    ("sg_map -i", ["sg_map", "-i"]),
+                    ("lsblk -nP", ["lsblk", "-nP", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE,TRAN"]),
+                    ("udevadm info /dev/sr0", ["udevadm", "info", "--query=all", "--name=/dev/sr0"]),
+                ]
+                for label, cmd in diag_cmds:
+                    try:
+                        res = subprocess.run(cmd, capture_output=True, text=True, timeout=8, check=False)
+                        out = (res.stdout or "") + (res.stderr or "")
+                        drive_diag.append(f"$ {label}\n{out.strip()}\n")
+                    except FileNotFoundError:
+                        drive_diag.append(f"$ {label}\n(command not found)\n")
+                    except subprocess.TimeoutExpired:
+                        drive_diag.append(f"$ {label}\n(timeout)\n")
+                (dest / "drive_diag.txt").write_text("\n".join(drive_diag), encoding="utf-8")
+            except Exception:
+                pass
         except Exception as exc:
             logging.exception("Failed to write diagnostics")
             return jsonify({"ok": False, "error": f"Failed to collect diagnostics: {exc}"}), 500
