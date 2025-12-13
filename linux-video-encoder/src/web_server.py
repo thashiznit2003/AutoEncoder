@@ -1633,6 +1633,12 @@ def create_app(tracker, config_manager=None):
             (dest / "events.json").write_text(json.dumps(events_data, indent=2), encoding="utf-8")
             logs = tracker.tail_logs(lines=400)
             (dest / "app_log_tail.txt").write_text("\n".join(logs), encoding="utf-8")
+            try:
+                timing_src = TIMING_PATH
+                if timing_src.exists():
+                    (dest / "timing.log").write_text(timing_src.read_text(encoding="utf-8", errors="ignore"), encoding="utf-8")
+            except Exception:
+                pass
         except Exception as exc:
             logging.exception("Failed to write diagnostics")
             return jsonify({"ok": False, "error": f"Failed to collect diagnostics: {exc}"}), 500
