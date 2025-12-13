@@ -1647,6 +1647,8 @@ def create_app(tracker, config_manager=None):
                     ("sg_map -i", ["sg_map", "-i"]),
                     ("lsblk -nP", ["lsblk", "-nP", "-o", "NAME,TYPE,RM,MOUNTPOINT,FSTYPE,TRAN"]),
                     ("udevadm info /dev/sr0", ["udevadm", "info", "--query=all", "--name=/dev/sr0"]),
+                    ("sg_inq /dev/sg1", ["sg_inq", "/dev/sg1"]),
+                    ("makemkvcon info disc:0", ["makemkvcon", "-r", "--cache=1", "info", "disc:0"]),
                 ]
                 for label, cmd in diag_cmds:
                     try:
