@@ -587,6 +587,8 @@ HTML_PAGE_TEMPLATE = """
         } else if (state === "confirm") {
           controls = '<button class="confirm-btn" data-action="proceed" data-src="' + encodeURIComponent(item.source || "") + '">Proceed</button> '
                    + '<button class="confirm-btn" data-action="cancel" data-src="' + encodeURIComponent(item.source || "") + '">Cancel</button>';
+        } else if (state === "canceled" || state === "error" || isDisc) {
+          controls = '<button class="retry-btn" data-src="' + encodeURIComponent(item.source || "") + '">Retry</button>';
         }
         const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
         const renameLine = item.rename_to ? '<div class="muted">Will rename to: ' + item.rename_to + '</div>' : "";
@@ -846,6 +848,25 @@ HTML_PAGE_TEMPLATE = """
       if (e.target.classList.contains("rename-btn")) {
         const src = decodeURIComponent(e.target.getAttribute("data-src"));
         await renameRip(src);
+        refresh();
+      }
+      if (e.target.classList.contains("retry-btn")) {
+        const src = decodeURIComponent(e.target.getAttribute("data-src"));
+        try {
+          const res = await fetch("/api/retry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ source: src }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            alert("Retry failed: " + (data.error || res.statusText));
+          } else {
+            alert("Retry queued.");
+          }
+        } catch (err) {
+          alert("Retry failed: " + err);
+        }
         refresh();
       }
     });
@@ -2175,6 +2196,28 @@ def create_app(tracker, config_manager=None):
             return jsonify({"error": str(exc)}), 500
         finally:
             log_timing("api/makemkv/info", t0)
+
+    @app.route("/api/retry", methods=["POST"])
+    @require_auth
+    def retry_job():
+        payload = request.get_json(force=True) or {}
+        src = (payload.get("source") or "").strip()
+        if not src:
+            return jsonify({"queued": False, "error": "source required"}), 400
+        try:
+            if src.startswith("disc:"):
+                tracker.request_disc_rip()
+                tracker.add_event(f"Retry requested for disc rip ({src})")
+                return jsonify({"queued": True, "type": "disc"})
+            p = Path(src)
+            if not p.exists():
+                return jsonify({"queued": False, "error": "source missing"}), 400
+            tracker.clear_canceled(src)
+            tracker.add_manual_file(src)
+            tracker.add_event(f"Retry queued: {src}")
+            return jsonify({"queued": True, "type": "file"})
+        except Exception as exc:
+            return jsonify({"queued": False, "error": str(exc)}), 500
 
     @app.route("/api/makemkv/rip", methods=["POST"])
     @require_auth
