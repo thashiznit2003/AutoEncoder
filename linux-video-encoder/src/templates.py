@@ -361,6 +361,18 @@ MAIN_PAGE_TEMPLATE = """
       }).join("");
     }
 
+    async function ejectDisc() {
+      try {
+        const res = await fetch("/api/makemkv/eject", { method: "POST" });
+        const data = await res.json();
+        if (!data.ok) {
+          alert("Eject failed: " + (data.error || "unknown error"));
+        }
+      } catch (e) {
+        alert("Failed to eject: " + e);
+      }
+    }
+
     async function refresh() {
       try {
         const status = await fetchJSON("/api/status");
@@ -395,6 +407,33 @@ MAIN_PAGE_TEMPLATE = """
           " | " + lbNote +
           " | Audio=" + audioModeLabel +
           " | Offset=" + audioOffsetLabel;
+        // Disc card update (main page)
+        let discInfo = status.disc_info || {};
+        let discPending = !!status.disc_pending;
+        if (!discInfo || !discInfo.info) {
+          try {
+            const info = await fetchJSON("/api/makemkv/info");
+            if (info) {
+              discInfo = info;
+              discPending = true;
+            }
+          } catch (e) {
+            // ignore fetch errors
+          }
+        }
+        const discText = buildDiscInfoText(discInfo) || (discPending ? "Disc detected; info not available yet." : "No disc info.");
+        const color = discPending ? "#22c55e" : "#ef4444";
+        const discLight = document.getElementById("disc-card-light");
+        const discLabel = document.getElementById("disc-card-label");
+        const discInfoEl = document.getElementById("disc-card-info");
+        if (discLight) discLight.style.background = color;
+        if (discLabel) discLabel.textContent = discPending ? "Disc present" : "No disc";
+        if (discInfoEl) discInfoEl.innerHTML = discText.replace(/\\n/g, "<br>");
+        const discBtn = document.getElementById("disc-card-eject");
+        if (discBtn && !discBtn._bound) {
+          discBtn.addEventListener("click", async () => { await ejectDisc(); refresh(); });
+          discBtn._bound = true;
+        }
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
