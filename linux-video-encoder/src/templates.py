@@ -106,7 +106,6 @@ MAIN_PAGE_TEMPLATE = """
               <span id="disc-card-label">Disc: unknown</span>
             </div>
             <div class="metric-label" id="disc-card-info" style="margin-top:4px;">No disc info.</div>
-            <button id="disc-card-eject" class="smb-btn" style="margin-top:6px;">Eject</button>
           </div>
         </div>
       </div>
@@ -361,18 +360,6 @@ MAIN_PAGE_TEMPLATE = """
       }).join("");
     }
 
-    async function ejectDisc() {
-      try {
-        const res = await fetch("/api/makemkv/eject", { method: "POST" });
-        const data = await res.json();
-        if (!data.ok) {
-          alert("Eject failed: " + (data.error || "unknown error"));
-        }
-      } catch (e) {
-        alert("Failed to eject: " + e);
-      }
-    }
-
     async function refresh() {
       try {
         const status = await fetchJSON("/api/status");
@@ -407,7 +394,7 @@ MAIN_PAGE_TEMPLATE = """
           " | " + lbNote +
           " | Audio=" + audioModeLabel +
           " | Offset=" + audioOffsetLabel;
-        // Disc card update (main page)
+        // Disc card update (main page, no eject)
         let discInfo = status.disc_info || {};
         let discPending = !!status.disc_pending;
         if (!discInfo || !discInfo.info) {
@@ -421,19 +408,17 @@ MAIN_PAGE_TEMPLATE = """
             // ignore fetch errors
           }
         }
-        const discText = buildDiscInfoText(discInfo) || (discPending ? "Disc detected; info not available yet." : "No disc info.");
+        const summary = (discInfo && discInfo.summary) || {};
+        const discLabelText = summary.disc_label || summary.label || "Disc: unknown";
+        const discTypeText = summary.disc_type || discInfo.disc_type || "unknown";
+        const discText = `Type: ${discTypeText} | Label: ${discLabelText}`;
         const color = discPending ? "#22c55e" : "#ef4444";
         const discLight = document.getElementById("disc-card-light");
         const discLabel = document.getElementById("disc-card-label");
         const discInfoEl = document.getElementById("disc-card-info");
         if (discLight) discLight.style.background = color;
-        if (discLabel) discLabel.textContent = discPending ? "Disc present" : "No disc";
-        if (discInfoEl) discInfoEl.innerHTML = discText.replace(/\\n/g, "<br>");
-        const discBtn = document.getElementById("disc-card-eject");
-        if (discBtn && !discBtn._bound) {
-          discBtn.addEventListener("click", async () => { await ejectDisc(); refresh(); });
-          discBtn._bound = true;
-        }
+        if (discLabel) discLabel.textContent = discLabelText;
+        if (discInfoEl) discInfoEl.textContent = discText;
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
