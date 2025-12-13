@@ -2121,19 +2121,28 @@ def create_app(tracker, config_manager=None):
         dev = request.json.get("device") if request.is_json else None
         device = dev or "/dev/sr0"
         try:
-            # Try eject if available
-            res = subprocess.run(["eject", device], capture_output=True, text=True, check=False)
-            if res.returncode == 0:
-                tracker.add_event(f"Ejected disc ({device}).")
-                tracker.clear_disc_info()
-                return jsonify({"ok": True})
-            # Fallback: sg_raw eject (works with sg3-utils)
-            res2 = subprocess.run(["sg_raw", device, "1b", "00", "00", "00", "02", "00"], capture_output=True, text=True, check=False)
-            if res2.returncode == 0:
-                tracker.add_event(f"Ejected disc via sg_raw ({device}).")
-                tracker.clear_disc_info()
-                return jsonify({"ok": True})
-            msg = res.stderr.strip() or res.stdout.strip() or res2.stderr.strip() or res2.stdout.strip() or "eject failed"
+            attempts = [
+                ["eject", "-i", "off", device],
+                ["sg_prevent", "--allow", device],
+                ["sg_start", "--stop", device],
+                ["eject", "-v", "-F", device],
+                ["eject", device],
+                ["sg_raw", device, "1b", "00", "00", "00", "02", "00"],
+            ]
+            errors = []
+            for cmd in attempts:
+                try:
+                    res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+                    if res.returncode == 0:
+                        tracker.add_event(f"Ejected disc ({device}) via {' '.join(cmd)}.")
+                        tracker.clear_disc_info()
+                        return jsonify({"ok": True})
+                    errors.append(res.stderr.strip() or res.stdout.strip() or f"{cmd} rc={res.returncode}")
+                except FileNotFoundError:
+                    errors.append(f"{cmd[0]} missing")
+                except Exception as exc:
+                    errors.append(f"{cmd}: {exc}")
+            msg = "; ".join([e for e in errors if e]) or "eject failed"
             tracker.add_event(f"Eject failed: {msg}", level="error")
             return jsonify({"ok": False, "error": msg}), 500
         except FileNotFoundError as fe:
