@@ -1622,6 +1622,20 @@ def main():
             queued_active = sum(
                 1 for a in active_snapshot.get("active", []) if a.get("state") in ("queued", "starting", "running")
             )
+            # Auto-rip trigger: if enabled and no rip already running/queued, request a rip when a disc is present
+            try:
+                if auto_rip and status_tracker:
+                    has_disc_task = any(
+                        (a.get("source", "") or "").startswith("disc:") or (a.get("state") in ("ripping", "starting"))
+                        for a in active_snapshot.get("active", [])
+                    )
+                    if not has_disc_task and not status_tracker.disc_rip_requested():
+                        disc_num = get_disc_number()
+                        if disc_num is not None:
+                            status_tracker.request_disc_rip()
+                            status_tracker.add_event(f"Auto-rip requested for disc:{disc_num}")
+            except Exception:
+                logging.debug("Auto-rip trigger failed", exc_info=True)
             single_job_mode = len(video_files) == 1 and queued_active == 1
             # Process sequentially (FIFO)
             for video_file in video_files:

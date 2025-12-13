@@ -571,8 +571,16 @@ HTML_PAGE_TEMPLATE = """
           " | BR RF=" + (hbBr.quality ?? 25) +
           " | Ext=" + hbExt +
           " | Audio=" + ((hb.audio_mode === "copy") ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
-      const discInfo = status.disc_info || {};
+      let discInfo = status.disc_info || {};
       const discPending = !!status.disc_pending;
+      // If backend says a disc is present but no info payload arrived, try a direct fetch once.
+      if (discPending && (!discInfo || !discInfo.info)) {
+        try {
+          discInfo = await fetchJSON("/api/makemkv/info");
+        } catch (err) {
+          console.warn("Fallback disc info fetch failed", err);
+        }
+      }
       const discStatusEl = document.getElementById("mk-disc-status");
       const discInfoEl = document.getElementById("mk-info");
       const discLight = document.getElementById("mk-disc-light");
@@ -581,6 +589,16 @@ HTML_PAGE_TEMPLATE = """
       const discCardInfo = document.getElementById("disc-card-info");
       const discText = buildDiscInfoText(discInfo) || (discPending ? "Disc detected; info not available yet." : "No disc info.");
       const discColor = discPending ? "#22c55e" : "#ef4444";
+      const discLabelText = (() => {
+        const payload = discInfo && (discInfo.info || discInfo);
+        const summary = payload && (payload.summary || discInfo.summary);
+        const label = summary && (summary.disc_label || summary.volume_label);
+        const dtype = discInfo.disc_type || (summary && summary.disc_type);
+        if (label && dtype) return `Disc: ${label} (${dtype})`;
+        if (label) return `Disc: ${label}`;
+        if (discPending) return "Disc present";
+        return "No disc";
+      })();
       if (discStatusEl) {
         discStatusEl.textContent = discPending ? ("Disc present (index " + (discInfo.disc_index ?? "?") + ")") : "No disc detected.";
       }
@@ -594,7 +612,7 @@ HTML_PAGE_TEMPLATE = """
         discCardLight.style.background = discColor;
       }
       if (discCardLabel) {
-        discCardLabel.textContent = discPending ? "Disc present" : "No disc";
+        discCardLabel.textContent = discLabelText;
       }
       if (discCardInfo) {
         discCardInfo.innerHTML = discText.replace(/\\n/g, "<br>");
