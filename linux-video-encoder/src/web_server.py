@@ -2120,15 +2120,34 @@ def create_app(tracker, config_manager=None):
     def makemkv_eject():
         dev = request.json.get("device") if request.is_json else None
         device = dev or "/dev/sr0"
+        # Build candidate device list: primary + inferred sg sibling + common fallbacks
+        candidates = [device]
         try:
-            attempts = [
-                ["eject", "-i", "off", device],
-                ["sg_prevent", "--allow", device],
-                ["sg_start", "--stop", device],
-                ["eject", "-v", "-F", device],
-                ["eject", device],
-                ["sg_raw", device, "1b", "00", "00", "00", "02", "00"],
-            ]
+            if device.startswith("/dev/sr"):
+                num = "".join(ch for ch in device if ch.isdigit())
+                if num:
+                    candidates.append(f"/dev/sg{num}")
+        except Exception:
+            pass
+        candidates.extend(["/dev/sr0", "/dev/sg1", "/dev/sg0"])
+        seen = []
+        dedup = []
+        for c in candidates:
+            if c and c not in seen:
+                dedup.append(c)
+                seen.append(c)
+        candidates = dedup
+        try:
+            attempts = []
+            for devnode in candidates:
+                attempts.extend([
+                    ["eject", "-i", "off", devnode],
+                    ["sg_prevent", "--allow", devnode],
+                    ["sg_start", "--stop", devnode],
+                    ["eject", "-v", "-F", devnode],
+                    ["eject", devnode],
+                    ["sg_raw", devnode, "1b", "00", "00", "00", "02", "00"],
+                ])
             errors = []
             for cmd in attempts:
                 try:

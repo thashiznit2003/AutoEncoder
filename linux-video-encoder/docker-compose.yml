@@ -40,6 +40,7 @@ services:
       # Map your optical drive and (optionally) generic SCSI device into the container.
       - /dev/sr0:/dev/sr0
       - /dev/sg0:/dev/sg0
+      - /dev/sg1:/dev/sg1
       # Pass USB bus for auto-mounting flash drives (requires host device access).
       - /dev/bus/usb:/dev/bus/usb
       # Uncomment if you want Intel QuickSync or another GPU exposed to ffmpeg/HandBrakeCLI.
