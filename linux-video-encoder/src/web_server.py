@@ -22,6 +22,20 @@ DIAG_REPO_PATH = pathlib.Path(os.environ.get("DIAG_REPO_PATH", "/var/lib/autoenc
 DIAG_CRED_FILE = pathlib.Path("/var/lib/autoencoder/state/git/credentials")
 DIAG_GIT_NAME = os.environ.get("DIAG_GIT_NAME", "Diagnostics Bot")
 DIAG_GIT_EMAIL = os.environ.get("DIAG_GIT_EMAIL", "diagnostics@example.com")
+STATE_ROOT = Path(os.environ.get("AE_STATE_DIR", "/var/lib/autoencoder/state"))
+TIMING_PATH = STATE_ROOT / "timing.log"
+
+def log_timing(label: str, started_at: float, extra: str = ""):
+    """Append simple timing entries for diagnostics, ignore failures."""
+    try:
+        dur = time.time() - started_at
+        TIMING_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with TIMING_PATH.open("a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {label} {dur:.3f}s {extra}\n")
+    except Exception:
+        pass
+STATE_ROOT = Path(os.environ.get("AE_STATE_DIR", "/var/lib/autoencoder/state"))
+TIMING_PATH = STATE_ROOT / "timing.log"
 
 HTML_PAGE_TEMPLATE = """
 <!doctype html>
@@ -1265,6 +1279,15 @@ def create_app(tracker, config_manager=None):
             return f(*args, **kwargs)
         return wrapper
 
+    def log_timing(label: str, started_at: float, extra: str = ""):
+        try:
+            dur = time.time() - started_at
+            TIMING_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with TIMING_PATH.open("a", encoding="utf-8") as f:
+                f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {label} {dur:.3f}s {extra}\n")
+        except Exception:
+            pass
+
     def normalize_smb_url(url: str) -> str:
         url = url.strip()
         if url.startswith("smb://"):
@@ -1552,6 +1575,7 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/status")
     @require_auth
     def status():
+        t0 = time.time()
         data = tracker.snapshot()
         data["version"] = VERSION
         if config_manager:
@@ -1564,17 +1588,27 @@ def create_app(tracker, config_manager=None):
                 "low_bitrate_auto_proceed": cfg.get("low_bitrate_auto_proceed", False),
                 "low_bitrate_auto_skip": cfg.get("low_bitrate_auto_skip", False),
             }
-        return jsonify(data)
+        resp = jsonify(data)
+        log_timing("api/status", t0)
+        return resp
 
     @app.route("/api/logs")
     @require_auth
     def logs():
-        return jsonify({"lines": tracker.tail_logs()})
+        t0 = time.time()
+        lines = tracker.tail_logs()
+        resp = jsonify({"lines": lines})
+        log_timing("api/logs", t0, f"lines={len(lines)}")
+        return resp
 
     @app.route("/api/events")
     @require_auth
     def events():
-        return jsonify(tracker.events())
+        t0 = time.time()
+        ev = tracker.events()
+        resp = jsonify(ev)
+        log_timing("api/events", t0, f"events={len(ev)}")
+        return resp
 
     @app.route("/api/diagnostics/push", methods=["POST"])
     @require_auth
@@ -1631,6 +1665,7 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/metrics")
     @require_auth
     def metrics():
+        t0 = time.time()
         import os
         load1, load5, load15 = os.getloadavg()
         cores = os.cpu_count() or 1
@@ -1644,7 +1679,9 @@ def create_app(tracker, config_manager=None):
             "fs": read_fs(),
             "ts": time.time(),
         }
-        return jsonify(data)
+        resp = jsonify(data)
+        log_timing("api/metrics", t0)
+        return resp
 
     helper_mountpoint = os.environ.get("USB_HELPER_MOUNTPOINT", "/linux-video-encoder/AutoEncoder/linux-video-encoder/USB")
     container_usb_mount = "/mnt/usb"
@@ -2060,6 +2097,7 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/makemkv/info")
     @require_auth
     def makemkv_info():
+        t0 = time.time()
         try:
             result = subprocess.run(
                 ["makemkvcon", "-r", "--cache=1", "info", "disc:0"],
@@ -2105,6 +2143,8 @@ def create_app(tracker, config_manager=None):
         except Exception as exc:
             tracker.add_event(f"MakeMKV info error: {exc}", level="error")
             return jsonify({"error": str(exc)}), 500
+        finally:
+            log_timing("api/makemkv/info", t0)
 
     @app.route("/api/makemkv/rip", methods=["POST"])
     @require_auth
