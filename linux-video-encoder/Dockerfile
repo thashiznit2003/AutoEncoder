@@ -66,7 +66,8 @@ RUN set -eux; \
       exfat-fuse \
       exfatprogs \
       sg3-utils \
-      udev; \
+      udev \
+      eject; \
     mkdir -p /tmp/makemkv; \
     cd /tmp/makemkv; \
     download_and_verify() { \
