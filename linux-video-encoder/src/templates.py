@@ -310,6 +310,22 @@ MAIN_PAGE_TEMPLATE = """
       return [h, m, s].map(v => String(v).padStart(2, "0")).join(":");
     }
 
+    async function renameRip(src) {
+      const newName = prompt("Enter new filename (no path; extension optional):");
+      if (!newName) return;
+      const res = await fetch("/api/makemkv/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: src, name: newName }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert("Rename request failed: " + (data.error || "unknown error"));
+      } else {
+        alert("Will rename to: " + data.name);
+      }
+    }
+
     function renderList(container, items, empty) {
       if (!items || items.length === 0) {
         container.innerHTML = '<div class="muted">' + empty + '</div>';
@@ -335,15 +351,23 @@ MAIN_PAGE_TEMPLATE = """
         }
         const progBar = progress !== null ? '<div class="progress"><div class="progress-bar" style="width:' + progress + '%"></div></div><div class="muted">Progress: ' + progress + '%</div>' : "";
         let controls = "";
-        if (state === "running") {
-          controls = '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">Stop</button>';
+        const isDisc = (item.source || "").startsWith("disc:");
+        if (state === "running" || state === "ripping" || isDisc) {
+          const stopLabel = state === "ripping" ? "Stop Rip" : "Stop";
+          controls = '<button class="stop-btn" data-src="' + encodeURIComponent(item.source || "") + '">' + stopLabel + '</button>';
+          if (state === "ripping" || isDisc) {
+            controls += ' <button class="rename-btn" data-src="' + encodeURIComponent(item.source || "") + '">Set Name</button>';
+          }
         } else if (state === "confirm") {
           controls = '<button class="confirm-btn" data-action="proceed" data-src="' + encodeURIComponent(item.source || "") + '">Proceed</button> '
                    + '<button class="confirm-btn" data-action="cancel" data-src="' + encodeURIComponent(item.source || "") + '">Cancel</button>';
         } else if (state === "queued") {
           controls = '<button class="remove-queued-btn" data-src="' + encodeURIComponent(item.source || "") + '">Remove</button>';
+        } else if (state === "canceled" || state === "error") {
+          controls = '<button class="retry-btn" data-src="' + encodeURIComponent(item.source || "") + '">Retry</button>';
         }
         const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
+        const renameLine = item.rename_to ? '<div class="muted">Will rename to: ' + item.rename_to + '</div>' : "";
         return [
           '<div class="item">',
           '  <div class="flex-between">',
@@ -353,6 +377,7 @@ MAIN_PAGE_TEMPLATE = """
           '  <div class="muted">-> ' + (item.destination || "") + '</div>',
           '  <div class="muted">' + (item.message || "") + '</div>',
           infoLine,
+          renameLine,
           '  <div class="muted">' + (etaText || (duration ? ((state === "queued") ? "Queued for: " + duration : "Encode elapsed: " + duration) : "")) + '</div>',
           '  ' + progBar,
           '</div>'
@@ -486,6 +511,30 @@ MAIN_PAGE_TEMPLATE = """
         const ok = confirm("Remove this queued item and delete the staged file?");
         if (!ok) return;
         await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, delete_source: true }) });
+        refresh();
+      }
+      if (e.target.classList.contains("rename-btn")) {
+        const src = decodeURIComponent(e.target.getAttribute("data-src"));
+        await renameRip(src);
+        refresh();
+      }
+      if (e.target.classList.contains("retry-btn")) {
+        const src = decodeURIComponent(e.target.getAttribute("data-src"));
+        try {
+          const res = await fetch("/api/retry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ source: src }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            alert("Retry failed: " + (data.error || res.statusText));
+          } else {
+            alert("Retry queued.");
+          }
+        } catch (err) {
+          alert("Retry failed: " + err);
+        }
         refresh();
       }
     });
