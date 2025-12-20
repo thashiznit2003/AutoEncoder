@@ -378,6 +378,8 @@ class StatusTracker:
 
     def request_disc_rip(self, mode: str = "manual"):
         with self._lock:
+            if mode == "auto" and self._disc_rip_requested and self._disc_rip_mode == "manual":
+                return
             self._disc_rip_requested = True
             self._disc_rip_mode = mode
             self._disc_pending = True
@@ -391,6 +393,10 @@ class StatusTracker:
             mode = self._disc_rip_mode
             self._disc_rip_mode = None
             return mode if req else None
+
+    def disc_rip_requested(self) -> bool:
+        with self._lock:
+            return bool(self._disc_rip_requested)
 
     def disc_rip_requested(self) -> bool:
         with self._lock:

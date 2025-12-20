@@ -1014,8 +1014,14 @@ def _build_title_summary(title_ids: list, disc_titles: list) -> Optional[str]:
         t = title_map.get(str(tid))
         if t:
             dur = t.get("duration") or _format_duration_seconds(t.get("duration_seconds"))
+            pl = t.get("playlist")
+            suffix = []
+            if pl:
+                suffix.append(f"pl {pl}")
             if dur:
-                parts.append(f"{tid} ({dur})")
+                suffix.append(dur)
+            if suffix:
+                parts.append(f"{tid} ({' | '.join(suffix)})")
             else:
                 parts.append(str(tid))
         else:
@@ -1850,7 +1856,7 @@ def main():
             )
             # Auto-rip trigger: if enabled and no rip already running/queued, request a rip when a disc is present
             try:
-                if auto_rip and status_tracker and not busy and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused() and present is not False:
+                if auto_rip and status_tracker and not busy and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused() and present is not False and not status_tracker.disc_rip_requested():
                     has_disc_task = any(
                         (a.get("source", "") or "").startswith("disc:") or (a.get("state") in ("ripping", "starting"))
                         for a in active_snapshot.get("active", [])
