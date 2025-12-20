@@ -431,6 +431,11 @@ MAIN_PAGE_TEMPLATE = """
         container.innerHTML = '<div class="muted">' + empty + '</div>';
         return;
       }
+      const formatItemValue = (val) => {
+        if (val === undefined || val === null) return "";
+        if (typeof val === "string") return val;
+        try { return JSON.stringify(val); } catch (e) { return String(val); }
+      };
       container.innerHTML = items.map(function(item) {
         const state = item.state || "";
         const badge = '<span class="badge ' + state + '">' + state.toUpperCase() + '</span>';
@@ -466,8 +471,10 @@ MAIN_PAGE_TEMPLATE = """
         } else if (state === "canceled" || state === "error") {
           controls = '<button class="retry-btn" data-src="' + encodeURIComponent(item.source || "") + '">Retry</button>';
         }
+        const messageText = formatItemValue(item.message || "");
         const encoderLine = item.encoder ? ('<div class="muted">Encoder: ' + item.encoder + '</div>') : "";
-        const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
+        const infoText = formatItemValue(item.info);
+        const infoLine = infoText ? '<div class="muted">' + infoText + '</div>' : "";
         const renameLine = item.rename_to ? '<div class="muted">Will rename to: ' + item.rename_to + '</div>' : "";
         return [
           '<div class="item">',
@@ -476,7 +483,7 @@ MAIN_PAGE_TEMPLATE = """
           '    <div>' + badge + ' ' + controls + '</div>',
           '  </div>',
           '  <div class="muted">-> ' + (item.destination || "") + '</div>',
-          '  <div class="muted">' + (item.message || "") + '</div>',
+          '  <div class="muted">' + messageText + '</div>',
           encoderLine,
           infoLine,
           renameLine,

@@ -378,7 +378,7 @@ def rip_disc(
     dest_hint = output_dir
     if status_tracker:
         if not status_tracker.has_active(job_key):
-            status_tracker.start(job_key, dest_hint, info={"disc_type": disc_type} if disc_type else None, state="ripping")
+            status_tracker.start(job_key, dest_hint, info=None, state="ripping")
         else:
             status_tracker.set_state(job_key, "ripping")
         status_tracker.set_message(job_key, f"Ripping disc {disc_index}")
@@ -392,6 +392,23 @@ def rip_disc(
         title_arg = ",".join(title_list)
     else:
         title_arg = "all"
+    if status_tracker:
+        disc_titles = []
+        try:
+            di = status_tracker.disc_info() or {}
+            parsed = di.get("info") if isinstance(di, dict) else di
+            disc_titles = (parsed or {}).get("titles") or []
+        except Exception:
+            disc_titles = []
+        info_parts = []
+        title_summary = _build_title_summary(title_list, disc_titles)
+        if title_summary:
+            info_parts.append(title_summary)
+        else:
+            info_parts.append("Titles: all")
+        if disc_type:
+            info_parts.append(f"Disc type: {disc_type}")
+        status_tracker.update_fields(job_key, {"info": " | ".join(info_parts)})
     # Normalize language selectors (currently only used for logging)
     lang_list_audio = []
     lang_list_subs = []
@@ -972,6 +989,38 @@ def scan_disc_info_with_timeout(disc_index: int, timeout_sec: int = 60) -> Optio
         if timed_out and isinstance(parsed, dict):
             parsed["scan_pending"] = True
     return parsed
+
+def _format_duration_seconds(seconds: Optional[int]) -> str:
+    try:
+        total = max(0, int(seconds or 0))
+    except Exception:
+        total = 0
+    h = total // 3600
+    m = (total % 3600) // 60
+    s = total % 60
+    return f"{h:02d}:{m:02d}:{s:02d}"
+
+def _build_title_summary(title_ids: list, disc_titles: list) -> Optional[str]:
+    if not title_ids:
+        return None
+    title_map = {}
+    for t in disc_titles or []:
+        tid = t.get("id")
+        if tid is None:
+            continue
+        title_map[str(tid)] = t
+    parts = []
+    for tid in title_ids:
+        t = title_map.get(str(tid))
+        if t:
+            dur = t.get("duration") or _format_duration_seconds(t.get("duration_seconds"))
+            if dur:
+                parts.append(f"{tid} ({dur})")
+            else:
+                parts.append(str(tid))
+        else:
+            parts.append(str(tid))
+    return "Titles: " + ", ".join(parts)
 
 def is_disc_present(devnode: str = "/dev/sr0") -> Optional[bool]:
     try:
