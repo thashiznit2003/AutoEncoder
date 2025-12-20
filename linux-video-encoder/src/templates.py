@@ -358,7 +358,18 @@ MAIN_PAGE_TEMPLATE = """
       const discLabelText = summary.disc_label || summary.label || "Disc: unknown";
       const discTypeText = summary.disc_type || discInfo.disc_type || "unknown";
       const discText = `Type: ${discTypeText} | Label: ${discLabelText}`;
-      const color = discPending ? "#22c55e" : "#ef4444";
+      let hasDisc = !!discPending;
+      const raw = (discInfo && (discInfo.raw || (discInfo.info && discInfo.info.raw) || "")) || "";
+      const rawLow = raw.toLowerCase();
+      if (!discLabelText || discLabelText === "Disc: unknown") {
+        if (rawLow.includes("failed to open disc") || rawLow.includes("can't find any usable optical drives")) {
+          hasDisc = false;
+        }
+      }
+      if (!raw && !summary.disc_label && !summary.label) {
+        hasDisc = false;
+      }
+      const color = hasDisc ? "#22c55e" : "#ef4444";
       const discLight = document.getElementById("disc-card-light");
       const discLabel = document.getElementById("disc-card-label");
       const discInfoEl = document.getElementById("disc-card-info");
