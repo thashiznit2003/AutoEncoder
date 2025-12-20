@@ -2221,7 +2221,7 @@ def create_app(tracker, config_manager=None):
             return jsonify({"queued": False, "error": "source required"}), 400
         try:
             if src.startswith("disc:"):
-                tracker.request_disc_rip()
+                tracker.request_disc_rip("manual")
                 tracker.add_event(f"Retry requested for disc rip ({src})")
                 return jsonify({"queued": True, "type": "disc"})
             p = Path(src)
@@ -2241,7 +2241,7 @@ def create_app(tracker, config_manager=None):
             tracker.allow_disc_rip()
         except Exception:
             pass
-        tracker.request_disc_rip()
+        tracker.request_disc_rip("manual")
         tracker.add_event("Manual MakeMKV rip requested.")
         return jsonify({"requested": True})
 

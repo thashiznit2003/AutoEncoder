@@ -27,7 +27,10 @@ class StatusTracker:
         self._disc_info = None
         self._disc_pending = False
         self._disc_rip_requested = False
+        self._disc_rip_mode = None
         self._disc_rip_blocked = False
+        self._disc_auto_queue = []
+        self._disc_auto_key = None
         self._smb_pending = []
         self._usb_status = {"state": "unknown", "message": "USB status unknown"}
 
@@ -200,7 +203,16 @@ class StatusTracker:
         with self._lock:
             item = self._active.get(src)
             if item:
-                item["progress"] = max(0.0, min(100.0, progress))
+                pct = max(0.0, min(100.0, progress))
+                item["progress"] = pct
+                started_at = item.get("started_at")
+                if started_at and pct > 0:
+                    try:
+                        elapsed = time.time() - started_at
+                        eta = (elapsed * (100.0 - pct) / pct)
+                        self._etas[src] = max(0.0, eta)
+                    except Exception:
+                        pass
 
     def snapshot(self):
         now = time.time()
@@ -334,6 +346,9 @@ class StatusTracker:
             self._disc_info = None
             self._disc_pending = False
             self._disc_rip_requested = False
+            self._disc_rip_mode = None
+            self._disc_auto_queue = []
+            self._disc_auto_key = None
 
     def disc_info(self):
         with self._lock:
@@ -343,21 +358,43 @@ class StatusTracker:
         with self._lock:
             return self._disc_pending
 
-    def request_disc_rip(self):
+    def request_disc_rip(self, mode: str = "manual"):
         with self._lock:
             self._disc_rip_requested = True
+            self._disc_rip_mode = mode
             self._disc_pending = True
             self._disc_rip_blocked = False
 
-    def consume_disc_rip_request(self) -> bool:
+    def consume_disc_rip_request(self):
         with self._lock:
             req = self._disc_rip_requested
             self._disc_rip_requested = False
-            return req
+            mode = self._disc_rip_mode
+            self._disc_rip_mode = None
+            return mode if req else None
 
     def disc_rip_requested(self) -> bool:
         with self._lock:
             return self._disc_rip_requested
+
+    def set_disc_auto_queue(self, key: str, titles: list):
+        with self._lock:
+            self._disc_auto_key = key
+            self._disc_auto_queue = list(titles or [])
+
+    def disc_auto_queue(self):
+        with self._lock:
+            return list(self._disc_auto_queue)
+
+    def disc_auto_key(self):
+        with self._lock:
+            return self._disc_auto_key
+
+    def pop_disc_auto_title(self):
+        with self._lock:
+            if not self._disc_auto_queue:
+                return None
+            return self._disc_auto_queue.pop(0)
 
     def block_disc_rip(self):
         with self._lock:

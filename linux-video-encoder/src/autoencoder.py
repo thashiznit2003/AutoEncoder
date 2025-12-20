@@ -930,6 +930,33 @@ def scan_disc_info(disc_index: int) -> Optional[dict]:
             parsed["disc_type"] = disc_type
     return parsed
 
+def _disc_key_from_info(info: dict, disc_index: int) -> str:
+    try:
+        summary = (info or {}).get("summary") or {}
+        label = summary.get("disc_label") or ""
+        drive = summary.get("drive") or ""
+        if label or drive:
+            return f"{label}|{drive}"
+    except Exception:
+        pass
+    return f"disc:{disc_index}"
+
+def _select_top_titles(info: dict, count: int, min_seconds: int) -> list:
+    titles = (info or {}).get("titles") or []
+    candidates = []
+    for t in titles:
+        try:
+            dur = t.get("duration_seconds") or 0
+            tid = t.get("id")
+            if tid is None:
+                continue
+            if dur >= min_seconds:
+                candidates.append((dur, tid))
+        except Exception:
+            continue
+    candidates.sort(reverse=True)
+    return [str(tid) for _, tid in candidates[:count]]
+
 def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
     if hb_opts.get("video_bitrate_kbps"):
         try:
@@ -1590,15 +1617,32 @@ def main():
             if not video_files:
                 logging.debug("No candidate video files found on this pass.")
             # Handle manual rip requests even when no bluray files are present in the scan
-            if status_tracker and status_tracker.consume_disc_rip_request():
+            mode = status_tracker.consume_disc_rip_request() if status_tracker else None
+            if status_tracker and mode:
                 disc_num = get_disc_number()
                 if disc_num is None:
-                    status_tracker.add_event("Manual MakeMKV rip requested but no disc detected.", level="error")
+                    label = "Auto" if mode == "auto" else "Manual"
+                    status_tracker.add_event(f"{label} MakeMKV rip requested but no disc detected.", level="error")
                 else:
                     mk_minlen = int(config.get("makemkv_minlength", 1800))
                     mk_titles = config.get("makemkv_titles", [])
                     mk_audio_langs = config.get("makemkv_audio_langs", []) or config.get("makemkv_preferred_audio_langs", [])
                     mk_sub_langs = config.get("makemkv_subtitle_langs", []) or config.get("makemkv_preferred_subtitle_langs", [])
+                    if mode == "auto":
+                        disc_info = scan_disc_info(disc_num) or {}
+                        disc_key = _disc_key_from_info(disc_info, disc_num)
+                        queue = status_tracker.disc_auto_queue()
+                        if status_tracker.disc_auto_key() != disc_key or not queue:
+                            auto_titles = _select_top_titles(disc_info, 2, mk_minlen)
+                            status_tracker.set_disc_auto_queue(disc_key, auto_titles)
+                            if auto_titles:
+                                status_tracker.add_event(f"Auto-rip selected titles: {', '.join(auto_titles)}")
+                            else:
+                                status_tracker.add_event("Auto-rip found no titles meeting minimum length.", level="error")
+                        next_title = status_tracker.pop_disc_auto_title()
+                        if not next_title:
+                            continue
+                        mk_titles = [next_title]
                     rip_path, reused = rip_disc(
                         disc_num,
                         rip_dir,
@@ -1611,7 +1655,15 @@ def main():
                     if rip_path:
                         video_files.append(str(rip_path))
                         status_tracker.set_disc_info({"disc_index": disc_num, "info": {"raw": f"Manual rip started for disc:{disc_num}"}})
-                        status_tracker.add_event(f"Manual MakeMKV rip {'reused existing' if reused else 'produced'}: {rip_path}")
+                        label = "Auto" if mode == "auto" else "Manual"
+                        status_tracker.add_event(f"{label} MakeMKV rip {'reused existing' if reused else 'produced'}: {rip_path}")
+                        if mode == "auto":
+                            remaining = status_tracker.disc_auto_queue()
+                            if remaining:
+                                status_tracker.request_disc_rip("auto")
+                                status_tracker.add_event(f"Auto-rip queued next title: {remaining[0]}")
+                            else:
+                                status_tracker.add_event("Auto-rip queue complete.")
                     else:
                         status_tracker.add_event("Manual MakeMKV rip failed to produce output.", level="error")
             # Pre-register queued items so they appear in Active
@@ -1657,7 +1709,7 @@ def main():
                     if not has_disc_task and not status_tracker.disc_rip_requested():
                         disc_num = get_disc_number()
                         if disc_num is not None:
-                            status_tracker.request_disc_rip()
+                            status_tracker.request_disc_rip("auto")
                             status_tracker.add_event(f"Auto-rip requested for disc:{disc_num}")
             except Exception:
                 logging.debug("Auto-rip trigger failed", exc_info=True)

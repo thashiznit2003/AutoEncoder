@@ -189,6 +189,38 @@ MAIN_PAGE_TEMPLATE = """
       }
     }
 
+    function formatSeconds(sec) {
+      const total = Math.max(0, Math.round(sec || 0));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    }
+
+    function renderTitleList(info) {
+      const el = document.getElementById("mk-titles-list");
+      if (!el) return;
+      const parsed = (info && (info.info || info)) || {};
+      const titles = parsed.titles || [];
+      if (!titles.length) {
+        el.textContent = "No titles found yet.";
+        return;
+      }
+      const rows = titles.map(t => {
+        const id = t.id !== undefined ? t.id : "?";
+        const dur = t.duration || (t.duration_seconds ? formatSeconds(t.duration_seconds) : "unknown");
+        const pl = t.playlist ? (" (pl " + t.playlist + ")") : "";
+        return (
+          '<label style="display:flex; gap:8px; align-items:center; margin:2px 0;">' +
+            '<input type="checkbox" class="mk-title-check" data-title="' + id + '"/>' +
+            '<span>Title ' + id + pl + '</span>' +
+            '<span class="muted" style="margin-left:auto;">' + dur + '</span>' +
+          '</label>'
+        );
+      }).join("");
+      el.innerHTML = rows;
+    }
+
     function renderMetrics(metrics) {
       const el = document.getElementById("metrics");
       if (!metrics) {
@@ -962,6 +994,13 @@ SETTINGS_PAGE_TEMPLATE = """
           <button type="button" id="mk-copy-info">Copy disc info</button>
         </div>
         <textarea id="mk-info" class="log" style="height:160px; margin-top:4px; width:100%; box-sizing:border-box;" readonly placeholder="Disc info will appear here after detection."></textarea>
+        <div style="margin-top:10px;">
+          <div class="muted" style="margin-bottom:6px;">Titles (select to set manual rip list)</div>
+          <div id="mk-titles-list" class="log" style="max-height:180px; overflow:auto; padding:8px;"></div>
+          <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" id="mk-titles-apply">Use selected titles</button>
+          </div>
+        </div>
       </div>
       <div style="margin-top:8px; display:grid; gap:6px;">
         <label>MakeMKV registration key (paste monthly key)
@@ -1115,6 +1154,7 @@ SETTINGS_PAGE_TEMPLATE = """
         if (ripStatus) {
           ripStatus.textContent = status.disc_rip_blocked ? "Rip status: paused" : "Rip status: active";
         }
+        renderTitleList(status.disc_info);
         if (!authDirty) {
           document.getElementById("auth-user").value = cfg.auth_user || "";
           document.getElementById("auth-pass").value = cfg.auth_password || "";
@@ -1292,6 +1332,7 @@ SETTINGS_PAGE_TEMPLATE = """
           const idx = (info && info.disc_index !== undefined) ? info.disc_index : null;
           discStatusEl.textContent = idx !== null ? ("Disc present (index " + idx + ")") : "Disc info refreshed.";
         }
+        renderTitleList(info);
       } catch (e) {
         alert("Failed to fetch disc info: " + e);
       }
@@ -1388,6 +1429,15 @@ SETTINGS_PAGE_TEMPLATE = """
       } catch (e) {
         alert("Failed to request rip: " + e);
       }
+    });
+
+    document.getElementById("mk-titles-apply").addEventListener("click", () => {
+      const checks = Array.from(document.querySelectorAll(".mk-title-check"))
+        .filter(el => el.checked)
+        .map(el => el.getAttribute("data-title"))
+        .filter(Boolean);
+      document.getElementById("mk-titles").value = checks.join(", ");
+      mkDirty = true;
     });
 
     document.getElementById("mk-stop-all").addEventListener("click", async () => {
