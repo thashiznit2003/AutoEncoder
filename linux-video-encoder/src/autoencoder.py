@@ -1701,6 +1701,9 @@ def main():
                                 status_tracker.add_event(f"Auto-rip queued next title: {remaining[0]}")
                             else:
                                 status_tracker.add_event("Auto-rip queue complete.")
+                                status_tracker.pause_disc_scan()
+                        else:
+                            status_tracker.pause_disc_scan()
                     else:
                         status_tracker.add_event("Manual MakeMKV rip failed to produce output.", level="error")
             # Pre-register queued items so they appear in Active
@@ -1728,7 +1731,7 @@ def main():
                     logging.debug("Disc removal detection failed", exc_info=True)
             # Disc detection / info
             try:
-                if status_tracker and not status_tracker.disc_pending():
+                if status_tracker and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused():
                     disc_num = get_disc_number()
                     if disc_num is not None:
                         disc_info = scan_disc_info_with_timeout(disc_num, 60)
@@ -1736,7 +1739,7 @@ def main():
             except Exception:
                 logging.debug("Auto disc info refresh failed", exc_info=True)
             try:
-                if status_tracker and status_tracker.disc_pending():
+                if status_tracker and status_tracker.disc_pending() and not status_tracker.disc_scan_paused():
                     di = status_tracker.disc_info() or {}
                     info = di.get("info") or {}
                     titles = info.get("titles") or []
@@ -1752,7 +1755,7 @@ def main():
             except Exception:
                 bluray_present = False
             auto_rip = bool(config.get("makemkv_auto_rip"))
-            if bluray_present and status_tracker and not status_tracker.disc_pending():
+            if bluray_present and status_tracker and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused():
                 disc_num = get_disc_number()
                 disc_info = scan_disc_info_with_timeout(disc_num, 60) if disc_num is not None else None
                 info_payload = {"disc_index": disc_num, "info": disc_info}
@@ -1765,7 +1768,7 @@ def main():
             )
             # Auto-rip trigger: if enabled and no rip already running/queued, request a rip when a disc is present
             try:
-                if auto_rip and status_tracker and not status_tracker.disc_rip_blocked():
+                if auto_rip and status_tracker and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused():
                     has_disc_task = any(
                         (a.get("source", "") or "").startswith("disc:") or (a.get("state") in ("ripping", "starting"))
                         for a in active_snapshot.get("active", [])

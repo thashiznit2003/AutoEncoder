@@ -518,14 +518,19 @@ MAIN_PAGE_TEMPLATE = """
         let discPending = !!status.disc_pending;
         if (!discInfo || !discInfo.info) {
           try {
-            const info = await fetchJSONWithTimeout("/api/makemkv/info", {}, 20000);
-            if (info) {
-              discInfo = info;
-              discPending = true;
+            if (!status.disc_scan_paused) {
+              const info = await fetchJSONWithTimeout("/api/makemkv/info?force=1", {}, 20000);
+              if (info) {
+                discInfo = info;
+                discPending = true;
+              }
             }
           } catch (e) {
             // ignore fetch errors
           }
+        }
+        if (status.disc_scan_paused) {
+          discPending = false;
         }
         window.__discInfo = discInfo;
         window.__discPending = discPending;
@@ -1364,7 +1369,7 @@ SETTINGS_PAGE_TEMPLATE = """
 
     document.getElementById("mk-refresh-info").addEventListener("click", async () => {
       try {
-        const info = await fetchJSON("/api/makemkv/info");
+        const info = await fetchJSON("/api/makemkv/info?force=1");
         const discInfoEl = document.getElementById("mk-info");
         const discStatusEl = document.getElementById("mk-disc-status");
         const discText = buildDiscInfoText(info) || "No disc info.";

@@ -2151,6 +2151,11 @@ def create_app(tracker, config_manager=None):
     def makemkv_info():
         t0 = time.time()
         try:
+            force = str(request.args.get("force", "")).lower() in ("1", "true", "yes")
+            if not force and tracker.disc_scan_paused():
+                cached = tracker.disc_info() or {}
+                cached["paused"] = True
+                return jsonify(cached)
             proc = subprocess.Popen(
                 ["makemkvcon", "-r", "--cache=1", "info", "disc:0"],
                 stdout=subprocess.PIPE,
@@ -2244,6 +2249,7 @@ def create_app(tracker, config_manager=None):
     def makemkv_rip():
         try:
             tracker.allow_disc_rip()
+            tracker.resume_disc_scan()
         except Exception:
             pass
         tracker.request_disc_rip("manual")
@@ -2282,6 +2288,7 @@ def create_app(tracker, config_manager=None):
                 stopped += 1
         try:
             tracker.block_disc_rip()
+            tracker.pause_disc_scan()
         except Exception:
             pass
         tracker.add_event("Stop All Ripping enabled; auto-rip paused.")

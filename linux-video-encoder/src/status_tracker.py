@@ -29,6 +29,7 @@ class StatusTracker:
         self._disc_rip_requested = False
         self._disc_rip_mode = None
         self._disc_rip_blocked = False
+        self._disc_scan_paused = False
         self._disc_auto_queue = []
         self._disc_auto_key = None
         self._smb_pending = []
@@ -243,6 +244,7 @@ class StatusTracker:
             disc_info = self._disc_info
             disc_pending = self._disc_pending
             disc_rip_blocked = self._disc_rip_blocked
+            disc_scan_paused = self._disc_scan_paused
             # If a disc rip is active, force disc_pending so UI shows presence
             if not disc_pending:
                 disc_pending = any(
@@ -257,6 +259,7 @@ class StatusTracker:
             "disc_info": disc_info,
             "disc_pending": disc_pending,
             "disc_rip_blocked": disc_rip_blocked,
+            "disc_scan_paused": disc_scan_paused,
             "usb_status": usb_status,
         }
 
@@ -376,6 +379,7 @@ class StatusTracker:
             self._disc_rip_mode = mode
             self._disc_pending = True
             self._disc_rip_blocked = False
+            self._disc_scan_paused = False
 
     def consume_disc_rip_request(self):
         with self._lock:
@@ -420,3 +424,15 @@ class StatusTracker:
     def disc_rip_blocked(self) -> bool:
         with self._lock:
             return self._disc_rip_blocked
+
+    def pause_disc_scan(self):
+        with self._lock:
+            self._disc_scan_paused = True
+
+    def resume_disc_scan(self):
+        with self._lock:
+            self._disc_scan_paused = False
+
+    def disc_scan_paused(self) -> bool:
+        with self._lock:
+            return self._disc_scan_paused
