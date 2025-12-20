@@ -39,9 +39,9 @@ MAIN_PAGE_TEMPLATE = """
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
     .field-display { position: relative; }
-    .field-id { position: absolute; top: 4px; right: 6px; font-size: 12px; opacity: 0.35; line-height: 1; }
-    .field-id-inline { font-size: 12px; opacity: 0.35; margin-left: 4px; vertical-align: super; }
-    .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 12px; opacity: 0.35; line-height: 1; }
+    .field-display::after { content: attr(data-field-id); position: absolute; top: -8px; right: -10px; font-size: 16px; opacity: 0.45; line-height: 1; pointer-events: none; }
+    label[data-field-id]::after { content: attr(data-field-id); font-size: 16px; opacity: 0.45; margin-left: 4px; vertical-align: super; }
+    .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 16px; opacity: 0.45; line-height: 1; }
     .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
     .metric-card { background: linear-gradient(145deg, #0f1b2e, #0c1626); border: 1px solid #1d2a40; border-radius: 12px; padding: 12px 14px; min-height: 78px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); }
     .metric-card.metric-standard { align-items: center; padding: 6px 8px; min-height: 44px; gap: 8px; }
@@ -507,20 +507,13 @@ MAIN_PAGE_TEMPLATE = """
     function numberPanels() {
       document.querySelectorAll(".panel").forEach(panel => {
         let n = 1;
+        panel.querySelectorAll("[data-field-id]").forEach(el => el.removeAttribute("data-field-id"));
         panel.querySelectorAll(".field-id, .field-id-inline").forEach(el => el.remove());
         panel.querySelectorAll("label").forEach(label => {
-          if (label.querySelector(".field-id-inline")) return;
-          const span = document.createElement("span");
-          span.className = "field-id-inline";
-          span.textContent = "#" + (n++);
-          label.appendChild(span);
+          label.setAttribute("data-field-id", "#" + (n++));
         });
         panel.querySelectorAll(".field-display").forEach(el => {
-          if (el.querySelector(":scope > .field-id")) return;
-          const span = document.createElement("span");
-          span.className = "field-id";
-          span.textContent = "#" + (n++);
-          el.appendChild(span);
+          el.setAttribute("data-field-id", "#" + (n++));
         });
       });
     }
@@ -865,8 +858,8 @@ SETTINGS_PAGE_TEMPLATE = """
     .muted { color: #94a3b8; }
     .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); word-break: break-word; overflow-wrap: anywhere; }
     .field-display { position: relative; }
-    .field-id { position: absolute; top: 4px; right: 6px; font-size: 4px; opacity: 0.35; line-height: 1; }
-    .field-id-inline { font-size: 4px; opacity: 0.35; margin-left: 4px; vertical-align: super; }
+    .field-display::after { content: attr(data-field-id); position: absolute; top: -8px; right: -10px; font-size: 16px; opacity: 0.45; line-height: 1; pointer-events: none; }
+    label[data-field-id]::after { content: attr(data-field-id); font-size: 16px; opacity: 0.45; margin-left: 4px; vertical-align: super; }
   </style>
 </head>
 <body>
@@ -1233,20 +1226,13 @@ SETTINGS_PAGE_TEMPLATE = """
     function numberPanels() {
       document.querySelectorAll(".panel").forEach(panel => {
         let n = 1;
+        panel.querySelectorAll("[data-field-id]").forEach(el => el.removeAttribute("data-field-id"));
         panel.querySelectorAll(".field-id, .field-id-inline").forEach(el => el.remove());
         panel.querySelectorAll("label").forEach(label => {
-          if (label.querySelector(".field-id-inline")) return;
-          const span = document.createElement("span");
-          span.className = "field-id-inline";
-          span.textContent = "#" + (n++);
-          label.appendChild(span);
+          label.setAttribute("data-field-id", "#" + (n++));
         });
         panel.querySelectorAll(".field-display").forEach(el => {
-          if (el.querySelector(":scope > .field-id")) return;
-          const span = document.createElement("span");
-          span.className = "field-id";
-          span.textContent = "#" + (n++);
-          el.appendChild(span);
+          el.setAttribute("data-field-id", "#" + (n++));
         });
       });
     }
