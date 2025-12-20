@@ -91,6 +91,12 @@ class StatusTracker:
             if item:
                 item["message"] = message
 
+    def update_destination(self, src: str, dest: str):
+        with self._lock:
+            item = self._active.get(src)
+            if item:
+                item["destination"] = dest
+
     def stop_proc(self, src: str):
         with self._lock:
             proc = self._procs.pop(src, None)

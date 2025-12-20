@@ -244,6 +244,10 @@ def load_config(path: Path):
                 merged[hb_key][num_key] = float(val) if val is not None else None
             except Exception:
                 merged[hb_key][num_key] = None
+    hb_default_encoder = merged.get("handbrake", {}).get("encoder") or "x264"
+    for hb_key in ["handbrake_dvd", "handbrake_br"]:
+        if not merged.get(hb_key, {}).get("encoder"):
+            merged[hb_key]["encoder"] = hb_default_encoder
     if "handbrake_presets" not in merged or not isinstance(merged.get("handbrake_presets"), list):
         merged["handbrake_presets"] = []
     if "makemkv_minlength" not in merged:
@@ -787,7 +791,9 @@ def compute_output_path(video_file: str, config: Dict[str, Any], output_dir: Pat
             idx += 1
         return candidate
 
-    if is_dvd:
+    if src.is_file():
+        base = src.stem
+    elif is_dvd:
         base = src.parent.name
     elif is_bluray:
         base = src.parent.parent.name
@@ -1253,7 +1259,9 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             idx += 1
         return candidate
 
-    if is_dvd:
+    if src.is_file():
+        base = src.stem
+    elif is_dvd:
         base = src.parent.name
     elif is_bluray:
         base = src.parent.parent.name
@@ -1322,6 +1330,12 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             return False
 
         video_file = rip_path  # use ripped path for encoding
+        new_out = compute_output_path(video_file, config, output_dir)
+        if str(new_out) != dest_str:
+            out_path = new_out
+            dest_str = str(out_path)
+            if status_tracker:
+                status_tracker.update_destination(str(src), dest_str)
     if video_file is None:
         if status_tracker:
             status_tracker.clear_disc_info()

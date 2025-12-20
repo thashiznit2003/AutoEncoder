@@ -1158,8 +1158,8 @@ SETTINGS_PAGE_TEMPLATE = """
           audio_all: audioAll,
           subtitle_mode: subtitleMode
         },
-        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass },
-        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass }
+        handbrake_dvd: { encoder: document.getElementById("hb-encoder").value, quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass },
+        handbrake_br: { encoder: document.getElementById("hb-encoder").value, quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode, video_bitrate_kbps: targetBitrate, two_pass: twoPass }
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       hbDirty = false;
@@ -1211,8 +1211,8 @@ SETTINGS_PAGE_TEMPLATE = """
           audio_all: audioAll,
           subtitle_mode: subtitleMode
         },
-        handbrake_dvd: { quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode },
-        handbrake_br: { quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode }
+        handbrake_dvd: { encoder: document.getElementById("hb-encoder").value, quality: qDvd, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode },
+        handbrake_br: { encoder: document.getElementById("hb-encoder").value, quality: qBr, extension: ext, audio_mode: audioMode, audio_bitrate_kbps: audioBitrate, audio_encoder: audioEncoder, audio_mixdown: audioMix, audio_samplerate: audioRate, audio_drc: audioDrc, audio_gain: audioGain, audio_offset_ms: audioOffset, audio_lang_list: audioLang, audio_track_list: audioTracks, audio_all: audioAll, subtitle_mode: subtitleMode }
       };
       await fetch("/api/presets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       await loadPresets();
