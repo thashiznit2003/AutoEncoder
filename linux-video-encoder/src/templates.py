@@ -33,11 +33,15 @@ MAIN_PAGE_TEMPLATE = """
     .badge.ripping { background: #38bdf8; color:#0b1220; }
     .progress { background: #1f2937; border-radius: 8px; height: 9px; overflow: hidden; margin-top: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
     .progress-bar { background: linear-gradient(90deg, #22c55e, #4ade80); height: 100%; transition: width 0.2s ease; }
-    .item { padding: 9px; border-bottom: 1px solid #1f2937; }
+    .item { padding: 9px; border-bottom: 1px solid #1f2937; position: relative; }
     .item:last-child { border-bottom: 0; }
     .muted { color: #94a3b8; }
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
+    .field-display { position: relative; }
+    .field-id { position: absolute; top: 4px; right: 6px; font-size: 4px; opacity: 0.35; line-height: 1; }
+    .field-id-inline { font-size: 4px; opacity: 0.35; margin-left: 4px; vertical-align: super; }
+    .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 4px; opacity: 0.35; line-height: 1; }
     .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
     .metric-card { background: linear-gradient(145deg, #0f1b2e, #0c1626); border: 1px solid #1d2a40; border-radius: 12px; padding: 12px 14px; min-height: 78px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); }
     .metric-card.metric-standard { align-items: center; padding: 6px 8px; min-height: 44px; gap: 8px; }
@@ -71,12 +75,12 @@ MAIN_PAGE_TEMPLATE = """
   <div class="grid">
     <div class="panel">
       <h2>🟢 Active Encodes</h2>
-      <div class="muted" id="hb-runtime"></div>
-      <div id="active"></div>
+      <div class="muted field-display" id="hb-runtime"></div>
+      <div id="active" class="field-display"></div>
     </div>
     <div class="panel">
       <h2>🕒 Recent Jobs</h2>
-      <div id="recent" style="max-height: 260px; overflow-y: auto;"></div>
+      <div id="recent" class="field-display" style="max-height: 260px; overflow-y: auto;"></div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
         <button data-clear="success" class="clear-btn">Clear Success</button>
         <button data-clear="error" class="clear-btn">Clear Error</button>
@@ -93,11 +97,11 @@ MAIN_PAGE_TEMPLATE = """
           <button id="copy-event-last10" class="smb-btn" style="padding:6px 8px;">Copy Last 10</button>
         </div>
       </div>
-      <div id="events" class="log"></div>
+      <div id="events" class="log field-display"></div>
     </div>
     <div class="panel">
       <h2>📊 System Metrics</h2>
-      <div id="metrics" class="log"></div>
+      <div id="metrics" class="log field-display"></div>
     </div>
     <div class="panel">
       <h2><span class="icon mario-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
@@ -120,23 +124,23 @@ MAIN_PAGE_TEMPLATE = """
         <rect x="0" y="15" width="1" height="1" fill="none"/><rect x="1" y="15" width="2" height="1" fill="#7c4a1d"/><rect x="3" y="15" width="2" height="1" fill="#2563eb"/><rect x="5" y="15" width="4" height="1" fill="none"/><rect x="9" y="15" width="2" height="1" fill="#2563eb"/><rect x="11" y="15" width="2" height="1" fill="#7c4a1d"/>
       </svg></span> SMB Browser</h2>
       <form id="smb-form" style="display:grid; gap:6px;">
-        <input id="smb-url" placeholder="smb://server/share[/path]" />
-        <input id="smb-user" placeholder="Username" />
-        <input id="smb-pass" placeholder="Password" type="password" />
+        <div class="field-display"><input id="smb-url" placeholder="smb://server/share[/path]" /></div>
+        <div class="field-display"><input id="smb-user" placeholder="Username" /></div>
+        <div class="field-display"><input id="smb-pass" placeholder="Password" type="password" /></div>
         <button type="button" id="smb-connect">Connect</button>
       </form>
       <div class="smb-grid" style="margin-top:8px;">
         <div>
           <div class="muted">Mounts (click to browse)</div>
-          <div id="smb-mounts" class="smb-list"></div>
+          <div id="smb-mounts" class="smb-list field-display"></div>
         </div>
         <div>
           <div class="muted">Browse</div>
-          <div id="smb-browse" class="smb-list"></div>
+          <div id="smb-browse" class="smb-list field-display"></div>
         </div>
       </div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
-        <input id="smb-current-path" readonly placeholder="Path" style="flex:1;"/>
+        <div class="field-display" style="flex:1;"><input id="smb-current-path" readonly placeholder="Path" style="width:100%;"/></div>
         <button class="smb-btn" id="smb-up">Up</button>
       </div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
@@ -149,7 +153,7 @@ MAIN_PAGE_TEMPLATE = """
         <h2 style="margin:0;">🧾 Logs</h2>
         <button id="copy-logs" style="padding:6px 10px; background:#2563eb; color:#fff; border:0; border-radius:6px; cursor:pointer;">Copy last 300</button>
       </div>
-      <div id="logs" class="log"></div>
+      <div id="logs" class="log field-display"></div>
     </div>
   </div>
   <script>
@@ -252,8 +256,9 @@ MAIN_PAGE_TEMPLATE = """
       const prevUsb = document.getElementById("usb-status") || {};
       const usbStatusText = prevUsb.textContent || "USB status: unknown";
       const usbStatusColor = prevUsb.style ? (prevUsb.style.color || "#94a3b8") : "#94a3b8";
-      const cardsHtml = cards.map(c => `
+      const cardsHtml = cards.map((c, idx) => `
         <div class="metric-card metric-standard">
+          <span class="field-id-item">#${idx + 1}</span>
           <div class="metric-icon">${c.icon}</div>
           <div class="metric-text">
             <div class="metric-value">${c.value}</div>
@@ -261,8 +266,11 @@ MAIN_PAGE_TEMPLATE = """
           </div>
         </div>
       `).join("");
+      const usbCardIndex = cards.length + 1;
+      const discCardIndex = cards.length + 2;
       const usbCard = `
         <div class="metric-card usb-card" style="grid-column: 1 / -1;">
+          <span class="field-id-item">#${usbCardIndex}</span>
           <div class="metric-icon">${icons.usb}</div>
           <div style="display:flex; flex-direction:column; flex:1; gap:4px;">
             <div class="metric-label" style="margin-bottom:2px;">USB Controls</div>
@@ -276,6 +284,7 @@ MAIN_PAGE_TEMPLATE = """
         </div>`;
       const discCard = `
         <div class="metric-card disc-card" style="grid-column: 1 / -1;">
+          <span class="field-id-item">#${discCardIndex}</span>
           <div class="metric-icon">📀</div>
           <div class="metric-text">
             <div class="metric-value" style="display:flex; align-items:center; gap:6px;">
@@ -436,7 +445,7 @@ MAIN_PAGE_TEMPLATE = """
         if (typeof val === "string") return val;
         try { return JSON.stringify(val); } catch (e) { return String(val); }
       };
-      container.innerHTML = items.map(function(item) {
+      container.innerHTML = items.map(function(item, idx) {
         const state = item.state || "";
         const badge = '<span class="badge ' + state + '">' + state.toUpperCase() + '</span>';
         const duration = item.duration_sec ? fmtDuration(item.duration_sec) : ((item.finished_at && item.started_at) ? fmtDuration(item.finished_at - (item.started_at || item.finished_at)) : "");
@@ -478,6 +487,7 @@ MAIN_PAGE_TEMPLATE = """
         const renameLine = item.rename_to ? '<div class="muted">Will rename to: ' + item.rename_to + '</div>' : "";
         return [
           '<div class="item">',
+          '  <span class="field-id-item">#' + (idx + 1) + '</span>',
           '  <div class="flex-between">',
           '    <div class="path">' + (item.source || "") + '</div>',
           '    <div>' + badge + ' ' + controls + '</div>',
@@ -492,6 +502,27 @@ MAIN_PAGE_TEMPLATE = """
           '</div>'
         ].join("");
       }).join("");
+    }
+
+    function numberPanels() {
+      document.querySelectorAll(".panel").forEach(panel => {
+        let n = 1;
+        panel.querySelectorAll(".field-id, .field-id-inline").forEach(el => el.remove());
+        panel.querySelectorAll("label").forEach(label => {
+          if (label.querySelector(".field-id-inline")) return;
+          const span = document.createElement("span");
+          span.className = "field-id-inline";
+          span.textContent = "#" + (n++);
+          label.appendChild(span);
+        });
+        panel.querySelectorAll(".field-display").forEach(el => {
+          if (el.querySelector(":scope > .field-id")) return;
+          const span = document.createElement("span");
+          span.className = "field-id";
+          span.textContent = "#" + (n++);
+          el.appendChild(span);
+        });
+      });
     }
 
     async function refresh() {
@@ -798,6 +829,7 @@ MAIN_PAGE_TEMPLATE = """
 
     smbRefreshMounts();
 
+    numberPanels();
     setInterval(refresh, 2000);
     setInterval(tickClock, 1000);
     refresh();
@@ -832,6 +864,9 @@ SETTINGS_PAGE_TEMPLATE = """
     button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,0.35); }
     .muted { color: #94a3b8; }
     .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); word-break: break-word; overflow-wrap: anywhere; }
+    .field-display { position: relative; }
+    .field-id { position: absolute; top: 4px; right: 6px; font-size: 4px; opacity: 0.35; line-height: 1; }
+    .field-id-inline { font-size: 4px; opacity: 0.35; margin-left: 4px; vertical-align: super; }
   </style>
 </head>
 <body>
@@ -844,7 +879,7 @@ SETTINGS_PAGE_TEMPLATE = """
   <div class="grid">
     <div class="panel">
       <h2>🎛️ HandBrake Settings</h2>
-      <div class="muted" id="hb-summary" style="margin-bottom:6px;"></div>
+      <div class="muted field-display" id="hb-summary" style="margin-bottom:6px;"></div>
       <form id="handbrake-form">
         <label>Default encoder
           <select id="hb-encoder" name="encoder">
@@ -1045,18 +1080,18 @@ SETTINGS_PAGE_TEMPLATE = """
       </form>
       <div style="margin-top:8px;">
         <h3 style="margin:0 0 6px 0; color:#cbd5e1; font-size:13px;">Disc Info</h3>
-        <div class="muted" id="mk-disc-status">Disc status: unknown</div>
-        <div class="muted" id="mk-rip-status">Rip status: active</div>
+        <div class="muted field-display" id="mk-disc-status">Disc status: unknown</div>
+        <div class="muted field-display" id="mk-rip-status">Rip status: active</div>
         <div style="display:flex; gap:6px; margin:6px 0; flex-wrap:wrap;">
           <button type="button" id="mk-refresh-info">Refresh disc info</button>
           <button type="button" id="mk-start-rip">Start rip</button>
           <button type="button" id="mk-stop-all">Stop all ripping</button>
           <button type="button" id="mk-copy-info">Copy disc info</button>
         </div>
-        <textarea id="mk-info" class="log" style="height:160px; margin-top:4px; width:100%; box-sizing:border-box;" readonly placeholder="Disc info will appear here after detection."></textarea>
+        <textarea id="mk-info" class="log field-display" style="height:160px; margin-top:4px; width:100%; box-sizing:border-box;" readonly placeholder="Disc info will appear here after detection."></textarea>
         <div style="margin-top:10px;">
           <div class="muted" style="margin-bottom:6px;">Titles (select to set manual rip list)</div>
-          <div id="mk-titles-list" class="log" style="max-height:180px; overflow:auto; padding:8px;"></div>
+          <div id="mk-titles-list" class="log field-display" style="max-height:180px; overflow:auto; padding:8px;"></div>
           <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" id="mk-titles-apply">Use selected titles</button>
           </div>
@@ -1069,9 +1104,9 @@ SETTINGS_PAGE_TEMPLATE = """
         <button type="button" id="mk-register">Register MakeMKV</button>
         <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
           <button type="button" id="mk-update-check">Check for MakeMKV update</button>
-          <span class="muted" id="mk-update-status">Update status: unknown</span>
+          <span class="muted field-display" id="mk-update-status">Update status: unknown</span>
         </div>
-        <div class="muted">Installed MakeMKV: <span id="mk-installed">unknown</span></div>
+        <div class="muted">Installed MakeMKV: <span id="mk-installed" class="field-display">unknown</span></div>
         <label>Latest MakeMKV version (from makemkv.com)
           <input id="mk-latest" placeholder="e.g., 1.18.3" />
         </label>
@@ -1085,7 +1120,7 @@ SETTINGS_PAGE_TEMPLATE = """
       <h2>🐞 Diagnostics</h2>
       <div class="muted" style="margin-bottom:8px;">Push status, events, and log tail to the diagnostics repo using stored credentials.</div>
       <button type="button" id="diag-push">Push Diagnostics to GitHub</button>
-      <div class="muted" id="diag-status" style="margin-top:6px;">Idle.</div>
+      <div class="muted field-display" id="diag-status" style="margin-top:6px;">Idle.</div>
     </div>
     <div class="panel">
       <h2>🔒 Authentication</h2>
@@ -1193,6 +1228,27 @@ SETTINGS_PAGE_TEMPLATE = """
           discStatusEl.textContent = "Disc status: unknown";
         }
       }
+    }
+
+    function numberPanels() {
+      document.querySelectorAll(".panel").forEach(panel => {
+        let n = 1;
+        panel.querySelectorAll(".field-id, .field-id-inline").forEach(el => el.remove());
+        panel.querySelectorAll("label").forEach(label => {
+          if (label.querySelector(".field-id-inline")) return;
+          const span = document.createElement("span");
+          span.className = "field-id-inline";
+          span.textContent = "#" + (n++);
+          label.appendChild(span);
+        });
+        panel.querySelectorAll(".field-display").forEach(el => {
+          if (el.querySelector(":scope > .field-id")) return;
+          const span = document.createElement("span");
+          span.className = "field-id";
+          span.textContent = "#" + (n++);
+          el.appendChild(span);
+        });
+      });
     }
 
     function setSelectValue(sel, value, fallback) {
@@ -1629,6 +1685,7 @@ SETTINGS_PAGE_TEMPLATE = """
       }
     }
 
+    numberPanels();
     loadPresets();
     refreshSettings();
   </script>
