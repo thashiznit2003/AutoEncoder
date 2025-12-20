@@ -184,17 +184,29 @@ class StatusTracker:
             self._rename.pop(src, None)
             self._confirm_required.discard(src)
             self._confirm_ok.discard(src)
+            now = time.time()
             record = {
                 "source": src,
                 "destination": dest,
                 "state": "success" if success else "error",
-                "finished_at": time.time(),
+                "finished_at": now,
                 "started_at": start.get("started_at") if start else None,
                 "message": message,
                 "info": start.get("info") if start else None,
                 "eta_sec": self._etas.pop(src, None),
                 "progress": 100.0 if success else start.get("progress") if start else None,
             }
+            if self._history:
+                last = self._history[-1]
+                same = (
+                    last.get("source") == record["source"]
+                    and last.get("destination") == record["destination"]
+                    and last.get("state") == record["state"]
+                    and last.get("message") == record["message"]
+                    and abs(last.get("finished_at", 0) - now) < 2
+                )
+                if same:
+                    return
             self._history.append(record)
             if len(self._history) > self._history_size:
                 self._history = self._history[-self._history_size :]
