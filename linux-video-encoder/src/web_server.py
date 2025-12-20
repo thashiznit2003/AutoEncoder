@@ -2237,6 +2237,10 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/makemkv/rip", methods=["POST"])
     @require_auth
     def makemkv_rip():
+        try:
+            tracker.allow_disc_rip()
+        except Exception:
+            pass
         tracker.request_disc_rip()
         tracker.add_event("Manual MakeMKV rip requested.")
         return jsonify({"requested": True})
@@ -2259,6 +2263,24 @@ def create_app(tracker, config_manager=None):
             except Exception:
                 pass
         return jsonify({"stopped": stopped})
+
+    @app.route("/api/makemkv/stop_all", methods=["POST"])
+    @require_auth
+    def makemkv_stop_all():
+        snap = tracker.snapshot()
+        stopped = 0
+        for item in snap.get("active", []):
+            src = (item.get("source") or "").strip()
+            state = (item.get("state") or "").strip().lower()
+            if src.startswith("disc:") or state == "ripping":
+                tracker.stop_proc(src)
+                stopped += 1
+        try:
+            tracker.block_disc_rip()
+        except Exception:
+            pass
+        tracker.add_event("Stop All Ripping enabled; auto-rip paused.")
+        return jsonify({"stopped": stopped, "blocked": True})
 
     @app.route("/api/makemkv/rename", methods=["POST"])
     @require_auth

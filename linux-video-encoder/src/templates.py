@@ -954,9 +954,11 @@ SETTINGS_PAGE_TEMPLATE = """
       <div style="margin-top:8px;">
         <h3 style="margin:0 0 6px 0; color:#cbd5e1; font-size:13px;">Disc Info</h3>
         <div class="muted" id="mk-disc-status">Disc status: unknown</div>
+        <div class="muted" id="mk-rip-status">Rip status: active</div>
         <div style="display:flex; gap:6px; margin:6px 0; flex-wrap:wrap;">
           <button type="button" id="mk-refresh-info">Refresh disc info</button>
           <button type="button" id="mk-start-rip">Start rip</button>
+          <button type="button" id="mk-stop-all">Stop all ripping</button>
           <button type="button" id="mk-copy-info">Copy disc info</button>
         </div>
         <textarea id="mk-info" class="log" style="height:160px; margin-top:4px; width:100%; box-sizing:border-box;" readonly placeholder="Disc info will appear here after detection."></textarea>
@@ -1076,6 +1078,7 @@ SETTINGS_PAGE_TEMPLATE = """
     async function refreshSettings() {
       try {
         const cfg = await fetchJSON("/api/config");
+        const status = await fetchJSON("/api/status");
         if (!hbDirty) {
           populateHandbrakeForm(cfg);
         }
@@ -1108,6 +1111,10 @@ SETTINGS_PAGE_TEMPLATE = """
           + " | Offset: " + audioOffsetLabel;
         document.getElementById("lb-auto-proceed").checked = !!cfg.low_bitrate_auto_proceed;
         document.getElementById("lb-auto-skip").checked = !!cfg.low_bitrate_auto_skip;
+        const ripStatus = document.getElementById("mk-rip-status");
+        if (ripStatus) {
+          ripStatus.textContent = status.disc_rip_blocked ? "Rip status: paused" : "Rip status: active";
+        }
         if (!authDirty) {
           document.getElementById("auth-user").value = cfg.auth_user || "";
           document.getElementById("auth-pass").value = cfg.auth_password || "";
@@ -1380,6 +1387,21 @@ SETTINGS_PAGE_TEMPLATE = """
         alert("Rip requested. It will start on next scan if a disc is present.");
       } catch (e) {
         alert("Failed to request rip: " + e);
+      }
+    });
+
+    document.getElementById("mk-stop-all").addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/makemkv/stop_all", { method: "POST" });
+        const data = await res.json();
+        if (data.blocked) {
+          alert("All ripping stopped. Auto-rip is now paused.");
+        } else {
+          alert("Stop all ripping request failed.");
+        }
+        refreshSettings();
+      } catch (e) {
+        alert("Failed to stop ripping: " + e);
       }
     });
 

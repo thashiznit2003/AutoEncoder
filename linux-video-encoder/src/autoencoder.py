@@ -1649,7 +1649,7 @@ def main():
             )
             # Auto-rip trigger: if enabled and no rip already running/queued, request a rip when a disc is present
             try:
-                if auto_rip and status_tracker:
+                if auto_rip and status_tracker and not status_tracker.disc_rip_blocked():
                     has_disc_task = any(
                         (a.get("source", "") or "").startswith("disc:") or (a.get("state") in ("ripping", "starting"))
                         for a in active_snapshot.get("active", [])
@@ -1669,6 +1669,9 @@ def main():
                 is_dvd = any(s in video_file.lower() for s in ["video_ts"])
                 is_bluray = any(s in video_file.lower() for s in ["bdmv", "bluray"])
                 if is_bluray:
+                    if status_tracker and status_tracker.disc_rip_blocked():
+                        status_tracker.add_event("Disc rip is paused (Stop All Ripping enabled).")
+                        continue
                     if status_tracker and not auto_rip and not status_tracker.consume_disc_rip_request():
                         # Wait for manual rip trigger
                         status_tracker.add_event("Disc present; waiting for manual rip start.")

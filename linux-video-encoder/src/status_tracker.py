@@ -27,6 +27,7 @@ class StatusTracker:
         self._disc_info = None
         self._disc_pending = False
         self._disc_rip_requested = False
+        self._disc_rip_blocked = False
         self._smb_pending = []
         self._usb_status = {"state": "unknown", "message": "USB status unknown"}
 
@@ -217,6 +218,7 @@ class StatusTracker:
             history = list(self._history)
             disc_info = self._disc_info
             disc_pending = self._disc_pending
+            disc_rip_blocked = self._disc_rip_blocked
             # If a disc rip is active, force disc_pending so UI shows presence
             if not disc_pending:
                 disc_pending = any(
@@ -230,6 +232,7 @@ class StatusTracker:
             "timestamp": now,
             "disc_info": disc_info,
             "disc_pending": disc_pending,
+            "disc_rip_blocked": disc_rip_blocked,
             "usb_status": usb_status,
         }
 
@@ -344,6 +347,7 @@ class StatusTracker:
         with self._lock:
             self._disc_rip_requested = True
             self._disc_pending = True
+            self._disc_rip_blocked = False
 
     def consume_disc_rip_request(self) -> bool:
         with self._lock:
@@ -354,3 +358,16 @@ class StatusTracker:
     def disc_rip_requested(self) -> bool:
         with self._lock:
             return self._disc_rip_requested
+
+    def block_disc_rip(self):
+        with self._lock:
+            self._disc_rip_blocked = True
+            self._disc_rip_requested = False
+
+    def allow_disc_rip(self):
+        with self._lock:
+            self._disc_rip_blocked = False
+
+    def disc_rip_blocked(self) -> bool:
+        with self._lock:
+            return self._disc_rip_blocked
