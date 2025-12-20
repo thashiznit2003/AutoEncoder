@@ -1099,6 +1099,14 @@ SETTINGS_PAGE_TEMPLATE = """
       return res.json();
     }
 
+    function formatSeconds(sec) {
+      const total = Math.max(0, Math.round(sec || 0));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    }
+
     function buildDiscInfoText(info) {
       if (!info) return "";
       const payload = info.info ? info.info : info;
@@ -1121,6 +1129,30 @@ SETTINGS_PAGE_TEMPLATE = """
       if (error) chunks.push("Error: " + error);
       if (raw && !formatted) chunks.push(raw);
       return chunks.filter(Boolean).join("\\n\\n");
+    }
+
+    function renderTitleList(info) {
+      const el = document.getElementById("mk-titles-list");
+      if (!el) return;
+      const parsed = (info && (info.info || info)) || {};
+      const titles = parsed.titles || [];
+      if (!titles.length) {
+        el.textContent = "No titles found yet.";
+        return;
+      }
+      const rows = titles.map(t => {
+        const id = t.id !== undefined ? t.id : "?";
+        const dur = t.duration || (t.duration_seconds ? formatSeconds(t.duration_seconds) : "unknown");
+        const pl = t.playlist ? (" (pl " + t.playlist + ")") : "";
+        return (
+          '<label style="display:flex; gap:8px; align-items:center; margin:2px 0;">' +
+            '<input type="checkbox" class="mk-title-check" data-title="' + id + '"/>' +
+            '<span>Title ' + id + pl + '</span>' +
+            '<span class="muted" style="margin-left:auto;">' + dur + '</span>' +
+          '</label>'
+        );
+      }).join("");
+      el.innerHTML = rows;
     }
 
     function updateDiscInfoPanel(status) {
