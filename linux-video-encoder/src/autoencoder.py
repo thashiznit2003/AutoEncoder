@@ -1674,6 +1674,21 @@ def main():
                         status_tracker.start(str(f), str(dest_hint), info=None, state="queued")
                 except Exception:
                     logging.debug("Failed to pre-register queued file %s", f, exc_info=True)
+            # Disc removal detection
+            if status_tracker:
+                try:
+                    snap = status_tracker.snapshot()
+                    has_disc_task = any(
+                        (a.get("source", "") or "").startswith("disc:") or a.get("state") == "ripping"
+                        for a in snap.get("active", [])
+                    )
+                    if status_tracker.disc_pending() and not has_disc_task:
+                        disc_num = get_disc_number()
+                        if disc_num is None:
+                            status_tracker.clear_disc_info()
+                            status_tracker.add_event("Disc removed; status cleared.")
+                except Exception:
+                    logging.debug("Disc removal detection failed", exc_info=True)
             # Disc detection / info
             try:
                 if status_tracker and not status_tracker.disc_pending():
