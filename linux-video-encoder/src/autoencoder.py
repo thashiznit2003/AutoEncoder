@@ -973,6 +973,19 @@ def scan_disc_info_with_timeout(disc_index: int, timeout_sec: int = 60) -> Optio
             parsed["scan_pending"] = True
     return parsed
 
+def is_disc_present(devnode: str = "/dev/sr0") -> Optional[bool]:
+    try:
+        if not os.path.exists(devnode):
+            return False
+        size_path = f"/sys/class/block/{Path(devnode).name}/size"
+        if os.path.isfile(size_path):
+            with open(size_path, "r", encoding="utf-8") as f:
+                size = int(f.read().strip() or "0")
+            return size > 0
+        return True
+    except Exception:
+        return None
+
 def _disc_key_from_info(info: dict, disc_index: int) -> str:
     try:
         summary = (info or {}).get("summary") or {}
@@ -1725,32 +1738,37 @@ def main():
                         status_tracker.start(str(f), str(dest_hint), info=None, state="queued")
                 except Exception:
                     logging.debug("Failed to pre-register queued file %s", f, exc_info=True)
-            # Disc removal detection
+            # Disc insert/remove detection without MakeMKV polling
+            present = None
             if status_tracker:
                 try:
-                    snap = status_tracker.snapshot()
-                    has_disc_task = any(
-                        (a.get("source", "") or "").startswith("disc:") or a.get("state") == "ripping"
-                        for a in snap.get("active", [])
-                    )
-                    if status_tracker.disc_pending() and not has_disc_task:
-                        disc_num = get_disc_number()
-                        if disc_num is None:
-                            status_tracker.clear_disc_info()
-                            status_tracker.add_event("Disc removed; status cleared.")
+                    present = is_disc_present()
+                    prev = status_tracker.disc_present()
+                    if present is False and prev is not False:
+                        status_tracker.clear_disc_info()
+                        status_tracker.resume_disc_scan()
+                        status_tracker.add_event("Disc removed; status cleared.")
+                    if present is True and prev is not True:
+                        status_tracker.resume_disc_scan()
+                        status_tracker.add_event("Disc inserted.")
+                    if present is not None:
+                        status_tracker.set_disc_present(present)
                 except Exception:
-                    logging.debug("Disc removal detection failed", exc_info=True)
+                    logging.debug("Disc presence detection failed", exc_info=True)
+            busy = bool(status_tracker and status_tracker.has_active_nonqueued())
             # Disc detection / info
             try:
-                if status_tracker and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused():
+                if status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
                     disc_num = get_disc_number()
                     if disc_num is not None:
                         disc_info = scan_disc_info_with_timeout(disc_num, 60)
                         status_tracker.set_disc_info({"disc_index": disc_num, "info": disc_info})
+                        if not auto_rip:
+                            status_tracker.pause_disc_scan()
             except Exception:
                 logging.debug("Auto disc info refresh failed", exc_info=True)
             try:
-                if status_tracker and status_tracker.disc_pending() and not status_tracker.disc_scan_paused():
+                if status_tracker and not busy and status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
                     di = status_tracker.disc_info() or {}
                     info = di.get("info") or {}
                     titles = info.get("titles") or []
@@ -1759,6 +1777,8 @@ def main():
                         refreshed = scan_disc_info_with_timeout(disc_num, 60)
                         if refreshed:
                             status_tracker.set_disc_info({"disc_index": disc_num, "info": refreshed})
+                            if not auto_rip:
+                                status_tracker.pause_disc_scan()
             except Exception:
                 logging.debug("Disc info refresh while pending failed", exc_info=True)
             try:
@@ -1766,12 +1786,14 @@ def main():
             except Exception:
                 bluray_present = False
             auto_rip = bool(config.get("makemkv_auto_rip"))
-            if bluray_present and status_tracker and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused():
+            if bluray_present and status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
                 disc_num = get_disc_number()
                 disc_info = scan_disc_info_with_timeout(disc_num, 60) if disc_num is not None else None
                 info_payload = {"disc_index": disc_num, "info": disc_info}
                 status_tracker.set_disc_info(info_payload)
                 status_tracker.add_event(f"Disc detected (index={disc_num}); auto-rip={'on' if auto_rip else 'off'}")
+                if not auto_rip:
+                    status_tracker.pause_disc_scan()
 
             active_snapshot = status_tracker.snapshot() if status_tracker else {"active": []}
             queued_active = sum(
@@ -1779,7 +1801,7 @@ def main():
             )
             # Auto-rip trigger: if enabled and no rip already running/queued, request a rip when a disc is present
             try:
-                if auto_rip and status_tracker and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused():
+                if auto_rip and status_tracker and not busy and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused() and present is not False:
                     has_disc_task = any(
                         (a.get("source", "") or "").startswith("disc:") or (a.get("state") in ("ripping", "starting"))
                         for a in active_snapshot.get("active", [])

@@ -156,6 +156,7 @@ MAIN_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     let authDirty = false;
+    let lastMkInfoText = "";
     let eventsCache = [];
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
@@ -356,21 +357,28 @@ MAIN_PAGE_TEMPLATE = """
       return [h, m, s].map(v => String(v).padStart(2, "0")).join(":");
     }
 
-    function updateDiscCard(discInfo, discPending) {
+    function updateDiscCard(discInfo, discPending, discPresent) {
       const summary = (discInfo && discInfo.summary) || {};
       const discLabelText = summary.disc_label || summary.label || "Disc: unknown";
       const discTypeText = summary.disc_type || discInfo.disc_type || "unknown";
       const discText = `Type: ${discTypeText} | Label: ${discLabelText}`;
       let hasDisc = !!discPending;
+      if (discPresent === true) {
+        hasDisc = true;
+      } else if (discPresent === false) {
+        hasDisc = false;
+      }
       const raw = (discInfo && (discInfo.raw || (discInfo.info && discInfo.info.raw) || "")) || "";
       const rawLow = raw.toLowerCase();
-      if (!discLabelText || discLabelText === "Disc: unknown") {
-        if (rawLow.includes("failed to open disc") || rawLow.includes("can't find any usable optical drives")) {
+      if (discPresent === null || discPresent === undefined) {
+        if (!discLabelText || discLabelText === "Disc: unknown") {
+          if (rawLow.includes("failed to open disc") || rawLow.includes("can't find any usable optical drives")) {
+            hasDisc = false;
+          }
+        }
+        if (!raw && !summary.disc_label && !summary.label) {
           hasDisc = false;
         }
-      }
-      if (!raw && !summary.disc_label && !summary.label) {
-        hasDisc = false;
       }
       if (hasDisc && discLabelText !== "Disc: unknown") {
         lastDiscLabel = discLabelText;
@@ -387,7 +395,7 @@ MAIN_PAGE_TEMPLATE = """
         } else if (discLabelText === "Disc: unknown" && lastDiscLabel) {
           discLabel.textContent = lastDiscLabel;
         } else {
-          discLabel.textContent = discLabelText;
+          discLabel.textContent = discLabelText === "Disc: unknown" ? "Disc present" : discLabelText;
         }
       }
       if (discInfoEl) {
@@ -516,7 +524,8 @@ MAIN_PAGE_TEMPLATE = """
         // Disc card update (main page, no eject)
         let discInfo = status.disc_info || {};
         let discPending = !!status.disc_pending;
-        if (!discInfo || !discInfo.info) {
+        const discPresent = (status.disc_present === true) ? true : ((status.disc_present === false) ? false : null);
+        if ((!discInfo || !discInfo.info) && discPresent !== false) {
           try {
             if (!status.disc_scan_paused) {
               const info = await fetchJSONWithTimeout("/api/makemkv/info?force=1", {}, 20000);
@@ -529,11 +538,9 @@ MAIN_PAGE_TEMPLATE = """
             // ignore fetch errors
           }
         }
-        if (status.disc_scan_paused) {
-          discPending = false;
-        }
         window.__discInfo = discInfo;
         window.__discPending = discPending;
+        window.__discPresent = discPresent;
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
@@ -563,7 +570,7 @@ MAIN_PAGE_TEMPLATE = """
       try {
         const metrics = await fetchJSON("/api/metrics");
         renderMetrics(metrics);
-        updateDiscCard(window.__discInfo || {}, !!window.__discPending);
+      updateDiscCard(window.__discInfo || {}, !!window.__discPending, window.__discPresent);
       } catch (e) {
         document.getElementById("metrics").textContent = "Metrics unavailable.";
       }
@@ -1116,6 +1123,39 @@ SETTINGS_PAGE_TEMPLATE = """
       return chunks.filter(Boolean).join("\\n\\n");
     }
 
+    function updateDiscInfoPanel(status) {
+      const discInfoEl = document.getElementById("mk-info");
+      const discStatusEl = document.getElementById("mk-disc-status");
+      if (!discInfoEl) return;
+      const discPresent = (status && status.disc_present === true) ? true
+        : ((status && status.disc_present === false) ? false : null);
+      const info = (status && status.disc_info) || {};
+      const summary = info.summary || (info.info && info.info.summary) || {};
+      const label = summary.disc_label || summary.label || "";
+      const text = buildDiscInfoText(info);
+      if (discPresent === false) {
+        discInfoEl.value = "";
+        lastMkInfoText = "";
+        if (discStatusEl) {
+          discStatusEl.textContent = "Disc status: no disc";
+        }
+        return;
+      }
+      if (text) {
+        discInfoEl.value = text;
+        lastMkInfoText = text;
+      } else if (lastMkInfoText) {
+        discInfoEl.value = lastMkInfoText;
+      }
+      if (discStatusEl) {
+        if (discPresent === true) {
+          discStatusEl.textContent = label ? ("Disc status: " + label) : "Disc status: present";
+        } else {
+          discStatusEl.textContent = "Disc status: unknown";
+        }
+      }
+    }
+
     function setSelectValue(sel, value, fallback) {
       if (!sel) return;
       const val = (value === undefined || value === null) ? fallback : value;
@@ -1201,6 +1241,7 @@ SETTINGS_PAGE_TEMPLATE = """
           ripStatus.textContent = status.disc_rip_blocked ? "Rip status: paused" : "Rip status: active";
         }
         renderTitleList(status.disc_info);
+        updateDiscInfoPanel(status);
         if (!authDirty) {
           document.getElementById("auth-user").value = cfg.auth_user || "";
           document.getElementById("auth-pass").value = cfg.auth_password || "";
@@ -1374,6 +1415,7 @@ SETTINGS_PAGE_TEMPLATE = """
         const discStatusEl = document.getElementById("mk-disc-status");
         const discText = buildDiscInfoText(info) || "No disc info.";
         discInfoEl.value = discText;
+        lastMkInfoText = discText;
         if (discStatusEl) {
           const idx = (info && info.disc_index !== undefined) ? info.disc_index : null;
           discStatusEl.textContent = idx !== null ? ("Disc present (index " + idx + ")") : "Disc info refreshed.";
