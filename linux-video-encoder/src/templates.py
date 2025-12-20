@@ -39,9 +39,9 @@ MAIN_PAGE_TEMPLATE = """
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
     .field-display { position: relative; }
-    .field-id { position: absolute; top: 4px; right: 6px; font-size: 4px; opacity: 0.35; line-height: 1; }
-    .field-id-inline { font-size: 4px; opacity: 0.35; margin-left: 4px; vertical-align: super; }
-    .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 4px; opacity: 0.35; line-height: 1; }
+    .field-id { position: absolute; top: 4px; right: 6px; font-size: 12px; opacity: 0.35; line-height: 1; }
+    .field-id-inline { font-size: 12px; opacity: 0.35; margin-left: 4px; vertical-align: super; }
+    .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 12px; opacity: 0.35; line-height: 1; }
     .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
     .metric-card { background: linear-gradient(145deg, #0f1b2e, #0c1626); border: 1px solid #1d2a40; border-radius: 12px; padding: 12px 14px; min-height: 78px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); }
     .metric-card.metric-standard { align-items: center; padding: 6px 8px; min-height: 44px; gap: 8px; }
