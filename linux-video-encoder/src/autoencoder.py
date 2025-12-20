@@ -1425,7 +1425,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                     logging.info("Moved encoded file to final directory: %s", final_path)
             except Exception:
                 logging.debug("Failed to move encoded file to final directory: %s", final_dir, exc_info=True)
-        if is_bluray and not keep_ripped and not reused_rip:
+        if is_bluray and not keep_ripped:
             try:
                 # delete ripped file to save space
                 rip_fp = Path(video_file)
@@ -1433,7 +1433,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                 logging.info("Deleted ripped Blu-ray file: %s", rip_fp)
             except Exception:
                 logging.debug("Failed to delete ripped Blu-ray file: %s", video_file, exc_info=True)
-        elif is_bluray and (keep_ripped or reused_rip):
+        elif is_bluray and keep_ripped:
             logging.info("Keeping ripped Blu-ray file per config: %s", video_file)
         # Remove source file after a successful encode to avoid re-encoding
         if not is_dvd and not is_bluray:
