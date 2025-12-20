@@ -178,6 +178,17 @@ MAIN_PAGE_TEMPLATE = """
       return res.json();
     }
 
+    async function fetchJSONWithTimeout(url, opts, timeoutMs) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs || 20000);
+      try {
+        const res = await fetch(url, { ...(opts || {}), signal: controller.signal });
+        return res.json();
+      } finally {
+        clearTimeout(id);
+      }
+    }
+
     function renderMetrics(metrics) {
       const el = document.getElementById("metrics");
       if (!metrics) {
@@ -426,7 +437,7 @@ MAIN_PAGE_TEMPLATE = """
         let discPending = !!status.disc_pending;
         if (!discInfo || !discInfo.info) {
           try {
-            const info = await fetchJSON("/api/makemkv/info");
+            const info = await fetchJSONWithTimeout("/api/makemkv/info", {}, 20000);
             if (info) {
               discInfo = info;
               discPending = true;

@@ -644,7 +644,7 @@ HTML_PAGE_TEMPLATE = """
       applyDiscInfo(discInfoRaw, discPending);
       // Non-blocking fallback: fetch detailed info with timeout, then update card
       if (discPending && (!discInfoRaw || !discInfoRaw.info)) {
-        fetchJSONWithTimeout("/api/makemkv/info", {}, 6000)
+        fetchJSONWithTimeout("/api/makemkv/info", {}, 20000)
           .then((di) => applyDiscInfo(di || discInfoRaw, discPending))
           .catch((err) => console.warn("Fallback disc info fetch failed", err));
       }
@@ -2150,13 +2150,23 @@ def create_app(tracker, config_manager=None):
     def makemkv_info():
         t0 = time.time()
         try:
-            result = subprocess.run(
+            proc = subprocess.Popen(
                 ["makemkvcon", "-r", "--cache=1", "info", "disc:0"],
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
-                check=False,
             )
-            raw_output = result.stdout or result.stderr or ""
+            try:
+                raw_output, _ = proc.communicate(timeout=20)
+                timed_out = False
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+                raw_output, _ = proc.communicate()
+            raw_output = raw_output or ""
             if not raw_output:
                 raw_output = "No output from makemkvcon (disc:0)."
             try:
@@ -2182,11 +2192,16 @@ def create_app(tracker, config_manager=None):
                 info_payload["formatted"] = parsed["formatted"]
             if disc_type:
                 info_payload["disc_type"] = disc_type
+            if timed_out:
+                info_payload["pending"] = True
+                info_payload["note"] = "MakeMKV scan still in progress"
+                tracker.add_event("MakeMKV info scan timed out; returning partial output")
             tracker.set_disc_info(info_payload)
-            if result.returncode != 0:
+            rc = proc.returncode if not timed_out else 124
+            if rc and rc != 0 and not timed_out:
                 info_payload["error"] = parsed.get("error") or "info failed"
-                info_payload["rc"] = result.returncode
-                tracker.add_event(f"MakeMKV info failed (rc={result.returncode})", level="error")
+                info_payload["rc"] = rc
+                tracker.add_event(f"MakeMKV info failed (rc={rc})", level="error")
             return jsonify(info_payload)
         except FileNotFoundError:
             tracker.add_event("MakeMKV not found when fetching disc info", level="error")
