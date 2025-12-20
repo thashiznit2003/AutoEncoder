@@ -930,6 +930,43 @@ def scan_disc_info(disc_index: int) -> Optional[dict]:
             parsed["disc_type"] = disc_type
     return parsed
 
+def scan_disc_info_with_timeout(disc_index: int, timeout_sec: int = 60) -> Optional[dict]:
+    try:
+        proc = subprocess.Popen(
+            ["makemkvcon", "-r", "info", f"disc:{disc_index}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+    except FileNotFoundError:
+        return None
+    timed_out = False
+    try:
+        raw, _ = proc.communicate(timeout=timeout_sec)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        raw, _ = proc.communicate()
+    raw = raw or ""
+    if proc.returncode != 0 and not raw:
+        return None
+    parsed = parse_makemkv_info_output(raw)
+    if parsed is not None:
+        disc_type = ""
+        ro_low = raw.lower()
+        if "blu-ray disc" in ro_low or "bluray" in ro_low:
+            disc_type = "bluray"
+        elif "dvd" in ro_low:
+            disc_type = "dvd"
+        if disc_type and isinstance(parsed, dict):
+            parsed["disc_type"] = disc_type
+        if timed_out and isinstance(parsed, dict):
+            parsed["scan_pending"] = True
+    return parsed
+
 def _disc_key_from_info(info: dict, disc_index: int) -> str:
     try:
         summary = (info or {}).get("summary") or {}
@@ -1629,7 +1666,7 @@ def main():
                     mk_audio_langs = config.get("makemkv_audio_langs", []) or config.get("makemkv_preferred_audio_langs", [])
                     mk_sub_langs = config.get("makemkv_subtitle_langs", []) or config.get("makemkv_preferred_subtitle_langs", [])
                     if mode == "auto":
-                        disc_info = scan_disc_info(disc_num) or {}
+                        disc_info = scan_disc_info_with_timeout(disc_num, 90) or {}
                         disc_key = _disc_key_from_info(disc_info, disc_num)
                         queue = status_tracker.disc_auto_queue()
                         if status_tracker.disc_auto_key() != disc_key or not queue:
@@ -1694,10 +1731,22 @@ def main():
                 if status_tracker and not status_tracker.disc_pending():
                     disc_num = get_disc_number()
                     if disc_num is not None:
-                        disc_info = scan_disc_info(disc_num)
+                        disc_info = scan_disc_info_with_timeout(disc_num, 60)
                         status_tracker.set_disc_info({"disc_index": disc_num, "info": disc_info})
             except Exception:
                 logging.debug("Auto disc info refresh failed", exc_info=True)
+            try:
+                if status_tracker and status_tracker.disc_pending():
+                    di = status_tracker.disc_info() or {}
+                    info = di.get("info") or {}
+                    titles = info.get("titles") or []
+                    disc_num = di.get("disc_index")
+                    if disc_num is not None and not titles:
+                        refreshed = scan_disc_info_with_timeout(disc_num, 60)
+                        if refreshed:
+                            status_tracker.set_disc_info({"disc_index": disc_num, "info": refreshed})
+            except Exception:
+                logging.debug("Disc info refresh while pending failed", exc_info=True)
             try:
                 bluray_present = any("bdmv" in str(f).lower() or "bluray" in str(f).lower() for f in video_files)
             except Exception:
@@ -1705,7 +1754,7 @@ def main():
             auto_rip = bool(config.get("makemkv_auto_rip"))
             if bluray_present and status_tracker and not status_tracker.disc_pending():
                 disc_num = get_disc_number()
-                disc_info = scan_disc_info(disc_num) if disc_num is not None else None
+                disc_info = scan_disc_info_with_timeout(disc_num, 60) if disc_num is not None else None
                 info_payload = {"disc_index": disc_num, "info": disc_info}
                 status_tracker.set_disc_info(info_payload)
                 status_tracker.add_event(f"Disc detected (index={disc_num}); auto-rip={'on' if auto_rip else 'off'}")
