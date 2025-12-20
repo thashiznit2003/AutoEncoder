@@ -178,6 +178,9 @@ MAIN_PAGE_TEMPLATE = """
       }
     }
 
+    let lastDiscLabel = null;
+    let lastDiscType = null;
+
     function formatSeconds(sec) {
       const total = Math.max(0, Math.round(sec || 0));
       const h = Math.floor(total / 3600);
@@ -369,13 +372,34 @@ MAIN_PAGE_TEMPLATE = """
       if (!raw && !summary.disc_label && !summary.label) {
         hasDisc = false;
       }
+      if (hasDisc && discLabelText !== "Disc: unknown") {
+        lastDiscLabel = discLabelText;
+        lastDiscType = discTypeText !== "unknown" ? discTypeText : lastDiscType;
+      }
       const color = hasDisc ? "#22c55e" : "#ef4444";
       const discLight = document.getElementById("disc-card-light");
       const discLabel = document.getElementById("disc-card-label");
       const discInfoEl = document.getElementById("disc-card-info");
       if (discLight) discLight.style.background = color;
-      if (discLabel) discLabel.textContent = hasDisc ? discLabelText : "No Disc";
-      if (discInfoEl) discInfoEl.textContent = hasDisc ? discText : "No disc detected.";
+      if (discLabel) {
+        if (!hasDisc) {
+          discLabel.textContent = "No Disc";
+        } else if (discLabelText === "Disc: unknown" && lastDiscLabel) {
+          discLabel.textContent = lastDiscLabel;
+        } else {
+          discLabel.textContent = discLabelText;
+        }
+      }
+      if (discInfoEl) {
+        if (!hasDisc) {
+          discInfoEl.textContent = "No disc detected.";
+        } else if (discLabelText === "Disc: unknown" && lastDiscLabel) {
+          const typeLabel = lastDiscType || "unknown";
+          discInfoEl.textContent = `Type: ${typeLabel} | Label: ${lastDiscLabel}`;
+        } else {
+          discInfoEl.textContent = discText;
+        }
+      }
     }
 
     async function renameRip(src) {
