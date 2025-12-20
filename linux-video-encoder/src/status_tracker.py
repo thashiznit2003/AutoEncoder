@@ -30,6 +30,7 @@ class StatusTracker:
         self._disc_rip_mode = None
         self._disc_rip_blocked = False
         self._disc_scan_paused = False
+        self._disc_preserve_info = False
         self._disc_present = None
         self._disc_auto_queue = []
         self._disc_auto_key = None
@@ -356,6 +357,8 @@ class StatusTracker:
     # Disc info/pending management
     def set_disc_info(self, info: dict):
         with self._lock:
+            if self._disc_preserve_info and self._disc_info:
+                return
             self._disc_info = info
             self._disc_pending = True
 
@@ -367,6 +370,7 @@ class StatusTracker:
             self._disc_rip_mode = None
             self._disc_auto_queue = []
             self._disc_auto_key = None
+            self._disc_preserve_info = False
 
     def disc_info(self):
         with self._lock:
@@ -385,6 +389,8 @@ class StatusTracker:
             self._disc_pending = True
             self._disc_rip_blocked = False
             self._disc_scan_paused = False
+            if mode == "manual":
+                self._disc_preserve_info = True
 
     def consume_disc_rip_request(self):
         with self._lock:
@@ -397,6 +403,10 @@ class StatusTracker:
     def disc_rip_requested(self) -> bool:
         with self._lock:
             return bool(self._disc_rip_requested)
+
+    def set_disc_preserve(self, value: bool):
+        with self._lock:
+            self._disc_preserve_info = bool(value)
 
     def disc_rip_requested(self) -> bool:
         with self._lock:

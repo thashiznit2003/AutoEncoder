@@ -2207,6 +2207,11 @@ def create_app(tracker, config_manager=None):
                     tracker.add_event("MakeMKV info scan timed out; returning partial output")
                     MAKEMKV_TIMEOUT_EVENT_TS = now
             tracker.set_disc_info(info_payload)
+            if force:
+                try:
+                    tracker.set_disc_preserve(True)
+                except Exception:
+                    pass
             rc = proc.returncode if not timed_out else 124
             if rc and rc != 0 and not timed_out:
                 info_payload["error"] = parsed.get("error") or "info failed"

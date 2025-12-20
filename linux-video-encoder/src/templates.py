@@ -864,6 +864,9 @@ SETTINGS_PAGE_TEMPLATE = """
     .muted { color: #94a3b8; }
     .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); word-break: break-word; overflow-wrap: anywhere; }
     .field-display { position: relative; display:flex; flex-direction:column; gap:2px; margin-bottom:6px; }
+    .field-display.inline { flex-direction: row; align-items: center; gap: 6px; margin-bottom: 0; }
+    .field-display.inline .field-id { margin: 0; }
+    .field-id { display:block; font-size: 11px; opacity: 0.45; line-height: 1; margin: 0; }
     .field-id { display:block; font-size: 11px; opacity: 0.45; line-height: 1; margin: 0; }
   </style>
 </head>
