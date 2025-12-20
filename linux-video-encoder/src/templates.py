@@ -38,10 +38,11 @@ MAIN_PAGE_TEMPLATE = """
     .muted { color: #94a3b8; }
     .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
     .path { word-break: break-all; }
-    .field-display { position: relative; }
-    .field-display::after { content: attr(data-field-id); position: absolute; top: -8px; right: -10px; font-size: 16px; opacity: 0.45; line-height: 1; pointer-events: none; }
-    label[data-field-id]::after { content: attr(data-field-id); font-size: 16px; opacity: 0.45; margin-left: 4px; vertical-align: super; }
-    .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 16px; opacity: 0.45; line-height: 1; }
+    .field-display { position: relative; padding-top: 10px; }
+    .field-display::before { content: attr(data-field-id); position: absolute; top: 0; left: 0; font-size: 11px; opacity: 0.45; line-height: 1; pointer-events: none; }
+    label[data-field-id] { position: relative; padding-top: 10px; }
+    label[data-field-id]::before { content: attr(data-field-id); position: absolute; top: 0; left: 0; font-size: 11px; opacity: 0.45; line-height: 1; pointer-events: none; }
+    .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 11px; opacity: 0.45; line-height: 1; }
     .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
     .metric-card { background: linear-gradient(145deg, #0f1b2e, #0c1626); border: 1px solid #1d2a40; border-radius: 12px; padding: 12px 14px; min-height: 78px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); }
     .metric-card.metric-standard { align-items: center; padding: 6px 8px; min-height: 44px; gap: 8px; }
@@ -857,9 +858,10 @@ SETTINGS_PAGE_TEMPLATE = """
     button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,0.35); }
     .muted { color: #94a3b8; }
     .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); word-break: break-word; overflow-wrap: anywhere; }
-    .field-display { position: relative; }
-    .field-display::after { content: attr(data-field-id); position: absolute; top: -8px; right: -10px; font-size: 16px; opacity: 0.45; line-height: 1; pointer-events: none; }
-    label[data-field-id]::after { content: attr(data-field-id); font-size: 16px; opacity: 0.45; margin-left: 4px; vertical-align: super; }
+    .field-display { position: relative; padding-top: 10px; }
+    .field-display::before { content: attr(data-field-id); position: absolute; top: 0; left: 0; font-size: 11px; opacity: 0.45; line-height: 1; pointer-events: none; }
+    label[data-field-id] { position: relative; padding-top: 10px; }
+    label[data-field-id]::before { content: attr(data-field-id); position: absolute; top: 0; left: 0; font-size: 11px; opacity: 0.45; line-height: 1; pointer-events: none; }
   </style>
 </head>
 <body>
