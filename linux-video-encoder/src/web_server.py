@@ -24,6 +24,7 @@ DIAG_GIT_NAME = os.environ.get("DIAG_GIT_NAME", "Diagnostics Bot")
 DIAG_GIT_EMAIL = os.environ.get("DIAG_GIT_EMAIL", "diagnostics@example.com")
 STATE_ROOT = Path(os.environ.get("AE_STATE_DIR", "/var/lib/autoencoder/state"))
 TIMING_PATH = STATE_ROOT / "timing.log"
+MAKEMKV_TIMEOUT_EVENT_TS = 0.0
 
 def log_timing(label: str, started_at: float, extra: str = ""):
     """Append simple timing entries for diagnostics, ignore failures."""
@@ -2195,7 +2196,11 @@ def create_app(tracker, config_manager=None):
             if timed_out:
                 info_payload["pending"] = True
                 info_payload["note"] = "MakeMKV scan still in progress"
-                tracker.add_event("MakeMKV info scan timed out; returning partial output")
+                global MAKEMKV_TIMEOUT_EVENT_TS
+                now = time.time()
+                if now - MAKEMKV_TIMEOUT_EVENT_TS > 30:
+                    tracker.add_event("MakeMKV info scan timed out; returning partial output")
+                    MAKEMKV_TIMEOUT_EVENT_TS = now
             tracker.set_disc_info(info_payload)
             rc = proc.returncode if not timed_out else 124
             if rc and rc != 0 and not timed_out:
