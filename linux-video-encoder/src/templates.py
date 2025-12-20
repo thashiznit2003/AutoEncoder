@@ -97,18 +97,6 @@ MAIN_PAGE_TEMPLATE = """
     <div class="panel">
       <h2>📊 System Metrics</h2>
       <div id="metrics" class="log"></div>
-      <div class="metric-grid" style="margin-top:8px;">
-        <div class="metric-card">
-          <div class="metric-icon">📀</div>
-          <div class="metric-text">
-            <div class="metric-value" style="display:flex; align-items:center; gap:6px;">
-              <span id="disc-card-light" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:#ef4444;"></span>
-              <span id="disc-card-label">Disc: unknown</span>
-            </div>
-            <div class="metric-label" id="disc-card-info" style="margin-top:4px;">No disc info.</div>
-          </div>
-        </div>
-      </div>
     </div>
     <div class="panel">
       <h2><span class="icon mario-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
@@ -281,7 +269,18 @@ MAIN_PAGE_TEMPLATE = """
             <div id="usb-status" class="muted" style="min-height:14px; color:${usbStatusColor};">${usbStatusText}</div>
           </div>
         </div>`;
-      el.innerHTML = '<div class="metric-grid">' + cardsHtml + usbCard + '</div>';
+      const discCard = `
+        <div class="metric-card disc-card" style="grid-column: 1 / -1;">
+          <div class="metric-icon">📀</div>
+          <div class="metric-text">
+            <div class="metric-value" style="display:flex; align-items:center; gap:6px;">
+              <span id="disc-card-light" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:#ef4444;"></span>
+              <span id="disc-card-label">Disc: unknown</span>
+            </div>
+            <div class="metric-label" id="disc-card-info" style="margin-top:4px;">No disc info.</div>
+          </div>
+        </div>`;
+      el.innerHTML = '<div class="metric-grid">' + cardsHtml + usbCard + discCard + '</div>';
       bindUsbButtons();
     }
 
@@ -351,6 +350,20 @@ MAIN_PAGE_TEMPLATE = """
       const m = Math.floor(sec / 60) % 60;
       const h = Math.floor(sec / 3600);
       return [h, m, s].map(v => String(v).padStart(2, "0")).join(":");
+    }
+
+    function updateDiscCard(discInfo, discPending) {
+      const summary = (discInfo && discInfo.summary) || {};
+      const discLabelText = summary.disc_label || summary.label || "Disc: unknown";
+      const discTypeText = summary.disc_type || discInfo.disc_type || "unknown";
+      const discText = `Type: ${discTypeText} | Label: ${discLabelText}`;
+      const color = discPending ? "#22c55e" : "#ef4444";
+      const discLight = document.getElementById("disc-card-light");
+      const discLabel = document.getElementById("disc-card-label");
+      const discInfoEl = document.getElementById("disc-card-info");
+      if (discLight) discLight.style.background = color;
+      if (discLabel) discLabel.textContent = discLabelText;
+      if (discInfoEl) discInfoEl.textContent = discText;
     }
 
     async function renameRip(src) {
@@ -478,17 +491,8 @@ MAIN_PAGE_TEMPLATE = """
             // ignore fetch errors
           }
         }
-        const summary = (discInfo && discInfo.summary) || {};
-        const discLabelText = summary.disc_label || summary.label || "Disc: unknown";
-        const discTypeText = summary.disc_type || discInfo.disc_type || "unknown";
-        const discText = `Type: ${discTypeText} | Label: ${discLabelText}`;
-        const color = discPending ? "#22c55e" : "#ef4444";
-        const discLight = document.getElementById("disc-card-light");
-        const discLabel = document.getElementById("disc-card-label");
-        const discInfoEl = document.getElementById("disc-card-info");
-        if (discLight) discLight.style.background = color;
-        if (discLabel) discLabel.textContent = discLabelText;
-        if (discInfoEl) discInfoEl.textContent = discText;
+        window.__discInfo = discInfo;
+        window.__discPending = discPending;
       } catch (e) {
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
@@ -518,6 +522,7 @@ MAIN_PAGE_TEMPLATE = """
       try {
         const metrics = await fetchJSON("/api/metrics");
         renderMetrics(metrics);
+        updateDiscCard(window.__discInfo || {}, !!window.__discPending);
       } catch (e) {
         document.getElementById("metrics").textContent = "Metrics unavailable.";
       }
