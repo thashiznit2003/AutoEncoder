@@ -1276,6 +1276,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     if status_tracker and not status_tracker.has_active(str(src)):
         status_tracker.add_event(f"Queued for encode: {src}")
         status_tracker.start(str(src), dest_str, info=source_info, state="queued")
+    if status_tracker:
+        status_tracker.update_fields(str(src), {"encoder": hb_opts.get("encoder"), "profile": config_str})
 
     # skip if output already exists
     if out_path.exists():

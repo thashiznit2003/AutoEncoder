@@ -97,6 +97,14 @@ class StatusTracker:
             if item:
                 item["destination"] = dest
 
+    def update_fields(self, src: str, fields: dict):
+        if not fields:
+            return
+        with self._lock:
+            item = self._active.get(src)
+            if item:
+                item.update(fields)
+
     def stop_proc(self, src: str):
         with self._lock:
             proc = self._procs.pop(src, None)

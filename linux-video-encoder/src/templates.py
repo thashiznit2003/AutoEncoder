@@ -366,6 +366,7 @@ MAIN_PAGE_TEMPLATE = """
         } else if (state === "canceled" || state === "error") {
           controls = '<button class="retry-btn" data-src="' + encodeURIComponent(item.source || "") + '">Retry</button>';
         }
+        const encoderLine = item.encoder ? ('<div class="muted">Encoder: ' + item.encoder + '</div>') : "";
         const infoLine = item.info ? '<div class="muted">' + item.info + '</div>' : "";
         const renameLine = item.rename_to ? '<div class="muted">Will rename to: ' + item.rename_to + '</div>' : "";
         return [
@@ -376,6 +377,7 @@ MAIN_PAGE_TEMPLATE = """
           '  </div>',
           '  <div class="muted">-> ' + (item.destination || "") + '</div>',
           '  <div class="muted">' + (item.message || "") + '</div>',
+          encoderLine,
           infoLine,
           renameLine,
           '  <div class="muted">' + (etaText || (duration ? ((state === "queued") ? "Queued for: " + duration : "Encode elapsed: " + duration) : "")) + '</div>',
