@@ -415,8 +415,11 @@ def rip_disc(
     ]
     # MakeMKV CLI doesn't accept audio/subtitle language selectors in this build; skip them to avoid errors.
 
-    # Check for existing MKVs; reuse newest if present
-    existing_mkvs = sorted(output_dir_path.glob("*.mkv"), key=os.path.getmtime)
+    # Check for existing MKVs; reuse newest if present (ignore AppleDouble ._ files)
+    existing_mkvs = sorted(
+        [p for p in output_dir_path.glob("*.mkv") if not p.name.startswith("._")],
+        key=os.path.getmtime,
+    )
     if existing_mkvs:
         latest = existing_mkvs[-1].resolve()
         msg_existing = f"⚠️  Found existing MKV file: {latest}\nReusing existing rip."
@@ -477,7 +480,10 @@ def rip_disc(
         return None, False
 
     # Look for any .mkv files in the output directory
-    mkv_files = sorted(output_dir_path.glob("*.mkv"), key=os.path.getmtime)
+    mkv_files = sorted(
+        [p for p in output_dir_path.glob("*.mkv") if not p.name.startswith("._")],
+        key=os.path.getmtime,
+    )
 
     if not mkv_files:
         print("⚠️  No MKV files found in output directory.")
@@ -1314,6 +1320,11 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     extension = hb_opts.get("extension", ".mkv")
 
     src = Path(video_file)
+    if src.name.startswith("._"):
+        logging.info("Skipping AppleDouble sidecar file: %s", src)
+        if status_tracker:
+            status_tracker.complete(str(src), True, str(src), "Skipped AppleDouble sidecar")
+        return False
     src_mtime = src.stat().st_mtime
     def unique_name(base_dir: Path, base: str, ext: str) -> Path:
         candidate = base_dir / f"{base}{ext}"
