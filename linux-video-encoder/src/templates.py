@@ -374,8 +374,8 @@ MAIN_PAGE_TEMPLATE = """
       const discLabel = document.getElementById("disc-card-label");
       const discInfoEl = document.getElementById("disc-card-info");
       if (discLight) discLight.style.background = color;
-      if (discLabel) discLabel.textContent = discLabelText;
-      if (discInfoEl) discInfoEl.textContent = discText;
+      if (discLabel) discLabel.textContent = hasDisc ? discLabelText : "No Disc";
+      if (discInfoEl) discInfoEl.textContent = hasDisc ? discText : "No disc detected.";
     }
 
     async function renameRip(src) {
