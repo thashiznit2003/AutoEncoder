@@ -1845,6 +1845,15 @@ def main():
             except Exception:
                 logging.debug("Disc info refresh while pending failed", exc_info=True)
             try:
+                if status_tracker and not busy and present is not False and status_tracker.disc_pending():
+                    di = status_tracker.disc_info() or {}
+                    info = di.get("info") or {}
+                    titles = info.get("titles") or []
+                    if not titles and status_tracker.disc_scan_paused():
+                        status_tracker.resume_disc_scan()
+            except Exception:
+                logging.debug("Disc scan resume check failed", exc_info=True)
+            try:
                 bluray_present = any("bdmv" in str(f).lower() or "bluray" in str(f).lower() for f in video_files)
             except Exception:
                 bluray_present = False

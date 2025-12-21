@@ -829,3 +829,7 @@
 ## 1.25.105 - 2025-12-21
 - Fix playlist detection to avoid mismatching title durations with title ids.
 - Version bumped to 1.25.105.
+
+## 1.25.106 - 2025-12-21
+- Allow forced disc info scans more time and resume scan when titles are missing.
+- Version bumped to 1.25.106.
