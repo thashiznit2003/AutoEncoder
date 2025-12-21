@@ -821,3 +821,7 @@
 ## 1.25.103 - 2025-12-21
 - Extend MakeMKV info scan timeout to 15 seconds.
 - Version bumped to 1.25.103.
+
+## 1.25.104 - 2025-12-21
+- Keep disc scanning until titles are populated before pausing in manual mode.
+- Version bumped to 1.25.104.

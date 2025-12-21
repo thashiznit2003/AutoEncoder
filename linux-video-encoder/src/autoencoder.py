@@ -990,6 +990,14 @@ def scan_disc_info_with_timeout(disc_index: int, timeout_sec: int = 60) -> Optio
             parsed["scan_pending"] = True
     return parsed
 
+def _disc_scan_complete(info: Optional[dict]) -> bool:
+    if not isinstance(info, dict):
+        return False
+    if info.get("scan_pending"):
+        return False
+    titles = info.get("titles") or []
+    return bool(titles)
+
 def _format_duration_seconds(seconds: Optional[int]) -> str:
     try:
         total = max(0, int(seconds or 0))
@@ -1818,7 +1826,7 @@ def main():
                     if disc_num is not None:
                         disc_info = scan_disc_info_with_timeout(disc_num, 60)
                         status_tracker.set_disc_info({"disc_index": disc_num, "info": disc_info})
-                        if not auto_rip:
+                        if not auto_rip and _disc_scan_complete(disc_info or {}):
                             status_tracker.pause_disc_scan()
             except Exception:
                 logging.debug("Auto disc info refresh failed", exc_info=True)
@@ -1832,7 +1840,7 @@ def main():
                         refreshed = scan_disc_info_with_timeout(disc_num, 60)
                         if refreshed:
                             status_tracker.set_disc_info({"disc_index": disc_num, "info": refreshed})
-                            if not auto_rip:
+                            if not auto_rip and _disc_scan_complete(refreshed or {}):
                                 status_tracker.pause_disc_scan()
             except Exception:
                 logging.debug("Disc info refresh while pending failed", exc_info=True)
@@ -1847,7 +1855,7 @@ def main():
                 info_payload = {"disc_index": disc_num, "info": disc_info}
                 status_tracker.set_disc_info(info_payload)
                 status_tracker.add_event(f"Disc detected (index={disc_num}); auto-rip={'on' if auto_rip else 'off'}")
-                if not auto_rip:
+                if not auto_rip and _disc_scan_complete(disc_info or {}):
                     status_tracker.pause_disc_scan()
 
             active_snapshot = status_tracker.snapshot() if status_tracker else {"active": []}
