@@ -1,6 +1,7 @@
 AutoEncoder / linux-video-encoder – Chat Summary (Dec 2025)
 
 Repo: https://github.com/thashiznit2003/AutoEncoder (branch: main)
+Diagnostics repo: https://github.com/thashiznit2003/AutoEncoder-Diagnostics (regular pushes from app)
 Host path: /linux-video-encoder/AutoEncoder/linux-video-encoder
 Update one-liner (Ubuntu host):
   cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate
