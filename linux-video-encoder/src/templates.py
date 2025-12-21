@@ -1639,11 +1639,19 @@ SETTINGS_PAGE_TEMPLATE = """
       if (diagStatus) diagStatus.textContent = "Pushing diagnostics...";
       try {
         const res = await fetch("/api/diagnostics/push", { method: "POST" });
-        const data = await res.json();
-        if (data.ok) {
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (parseErr) {
+          const text = await res.text();
+          const trimmed = (text || "").replace(/\s+/g, " ").slice(0, 180);
+          diagStatus.textContent = "Failed: " + (trimmed || res.statusText || "Invalid response");
+          return;
+        }
+        if (data && data.ok) {
           diagStatus.textContent = "Pushed diagnostics" + (data.commit ? " (" + data.commit + ")" : "");
         } else {
-          diagStatus.textContent = "Failed: " + (data.error || res.statusText);
+          diagStatus.textContent = "Failed: " + ((data && data.error) || res.statusText || "Unknown error");
         }
       } catch (e) {
         diagStatus.textContent = "Failed: " + e;
