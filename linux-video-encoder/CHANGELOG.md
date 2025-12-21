@@ -817,3 +817,7 @@
 ## 1.25.102 - 2025-12-20
 - Preserve disc info after refresh and restore settings label styling.
 - Version bumped to 1.25.102.
+
+## 1.25.103 - 2025-12-21
+- Extend MakeMKV info scan timeout to 15 seconds.
+- Version bumped to 1.25.103.

@@ -2163,7 +2163,7 @@ def create_app(tracker, config_manager=None):
                 text=True,
             )
             try:
-                raw_output, _ = proc.communicate(timeout=20)
+                raw_output, _ = proc.communicate(timeout=15)
                 timed_out = False
             except subprocess.TimeoutExpired:
                 timed_out = True
