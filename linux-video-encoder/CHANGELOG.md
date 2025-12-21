@@ -825,3 +825,7 @@
 ## 1.25.104 - 2025-12-21
 - Keep disc scanning until titles are populated before pausing in manual mode.
 - Version bumped to 1.25.104.
+
+## 1.25.105 - 2025-12-21
+- Fix playlist detection to avoid mismatching title durations with title ids.
+- Version bumped to 1.25.105.

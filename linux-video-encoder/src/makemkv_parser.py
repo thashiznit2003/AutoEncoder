@@ -244,7 +244,9 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
                 entry["tinfo"].append(ln)
                 if info_id == 2 and value:
                     entry["source"] = value
-                    pl_match = re.search(r"#(\d+)", value)
+                    pl_match = re.search(r"(\\d{1,5})\\.mpls", value, re.IGNORECASE)
+                    if not pl_match:
+                        pl_match = re.search(r"mpls[^0-9]*(\\d{1,5})", value, re.IGNORECASE)
                     if pl_match:
                         entry["playlist"] = pl_match.group(1).lstrip("0") or pl_match.group(1)
                 if info_id == 8:
@@ -320,9 +322,11 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
         entry = titles[idx]
         playlist = entry.get("playlist")
         if not playlist and entry.get("source"):
-            pl_match = re.search(r"#?0*([0-9]{1,5})", entry["source"])
+            pl_match = re.search(r"(\\d{1,5})\\.mpls", entry["source"], re.IGNORECASE)
+            if not pl_match:
+                pl_match = re.search(r"mpls[^0-9]*(\\d{1,5})", entry["source"], re.IGNORECASE)
             if pl_match:
-                entry["playlist"] = pl_match.group(1)
+                entry["playlist"] = pl_match.group(1).lstrip("0") or pl_match.group(1)
                 playlist = entry["playlist"]
         msg_entry = None
         if playlist:
