@@ -57,7 +57,18 @@ for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}
   }
 
   validate_tarball() {
-    tar -tzf "$f" >/dev/null 2>&1
+    tar --ignore-zeros -tzf "$f" >/dev/null 2>&1
+  }
+
+  force_extract_test() {
+    local tmp_extract
+    tmp_extract="$(mktemp -d)"
+    if tar --ignore-zeros -xzf "$f" -C "$tmp_extract" >/dev/null 2>&1; then
+      rm -rf "$tmp_extract"
+      return 0
+    fi
+    rm -rf "$tmp_extract"
+    return 1
   }
 
   if [ -s "$f" ] && validate_tarball; then
@@ -65,11 +76,14 @@ for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}
   else
     rm -f "$f"
     download_tarball || { log "Failed to download $f"; exit 1; }
-    if ! validate_tarball; then
+    if ! validate_tarball || ! force_extract_test; then
       log "$f invalid after download; retrying..."
       rm -f "$f"
       download_tarball || { log "Failed to download $f"; exit 1; }
-      validate_tarball || { log "$f still invalid; aborting."; exit 1; }
+      if ! validate_tarball || ! force_extract_test; then
+        log "$f still invalid; aborting."
+        exit 1
+      fi
     fi
   fi
   $SUDO chmod 644 "$f" || true

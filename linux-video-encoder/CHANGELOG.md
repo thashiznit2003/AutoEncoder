@@ -890,3 +890,7 @@
 ## 1.25.119 - 2025-12-22
 - MakeMKV add-on build script now validates tarballs and retries downloads to avoid corrupted archives.
 - Version bumped to 1.25.119.
+
+## 1.25.120 - 2025-12-22
+- MakeMKV add-on build path now forces tar extraction with --ignore-zeros.
+- Version bumped to 1.25.120.
