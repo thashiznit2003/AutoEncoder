@@ -918,3 +918,7 @@
 ## 1.25.126 - 2025-12-22
 - Docker Hub update script now derives VERSION_TAG after pulling and without Python.
 - Version bumped to 1.25.126.
+
+## 1.25.127 - 2025-12-22
+- Docker Hub update script now checks for version.py and has a more robust VERSION_TAG fallback.
+- Version bumped to 1.25.127.

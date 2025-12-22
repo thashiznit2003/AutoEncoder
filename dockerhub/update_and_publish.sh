@@ -22,8 +22,21 @@ cd "$REPO_DIR"
 $SUDO git pull --ff-only
 
 if [ -z "$VERSION_TAG" ]; then
-  if [ -f "$REPO_DIR/linux-video-encoder/src/version.py" ]; then
-    VERSION_TAG="$(grep -E 'VERSION\s*=' "$REPO_DIR/linux-video-encoder/src/version.py" | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')"
+  version_file="$REPO_DIR/linux-video-encoder/src/version.py"
+  if [ ! -f "$version_file" ]; then
+    log "version.py not found at $version_file"
+    exit 1
+  fi
+  VERSION_TAG="$(awk -F '\"' '/VERSION/{print $2; exit}' "$version_file" || true)"
+  if [ -z "$VERSION_TAG" ] && command -v python3 >/dev/null 2>&1; then
+    VERSION_TAG="$(python3 - <<PY
+import re
+path="${version_file}"
+with open(path, "r", encoding="utf-8") as f:
+    m=re.search(r'VERSION\\s*=\\s*\\"([^\\"]+)\\"', f.read())
+print(m.group(1) if m else "")
+PY
+)"
   fi
 fi
 
