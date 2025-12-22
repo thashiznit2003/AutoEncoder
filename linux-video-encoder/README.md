@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.25.116)
+# Linux Video Encoder (v1.25.117)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -31,6 +31,11 @@ There are two supported install paths:
 2. **Docker Hub (public image, no MakeMKV)**  
    - Public beta image that excludes MakeMKV.  
    - See `dockerhub/README.md`.
+
+Why two paths?  
+MakeMKV has a proprietary license that does **not** allow redistribution. A public Docker Hub image that includes MakeMKV could violate that license. To keep things legal and still support ripping:
+- The **public Docker Hub image** excludes MakeMKV (safe to distribute).
+- Users who want MakeMKV must **download it themselves** and build locally (legal).
 
 ### Portainer Host Setup (Local/MakeMKV)
 

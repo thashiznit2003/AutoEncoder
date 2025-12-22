@@ -878,3 +878,7 @@
 ## 1.25.116 - 2025-12-22
 - Added MakeMKV add-on build script and Dockerfile for users of the Docker Hub image.
 - Version bumped to 1.25.116.
+
+## 1.25.117 - 2025-12-22
+- Added plain-English explanation for the two install paths and MakeMKV licensing constraint.
+- Version bumped to 1.25.117.
