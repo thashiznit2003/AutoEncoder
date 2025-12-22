@@ -852,3 +852,8 @@
 ## 1.25.110 - 2025-12-22
 - Installer now always downloads the repo as a GitHub tarball and no longer uses git.
 - Version bumped to 1.25.110.
+
+## 1.25.111 - 2025-12-22
+- Added `host_setup_portainer.sh` to configure host prerequisites for Portainer deployments (USB automount, USB helper, Samba shares, optional NVIDIA toolkit).
+- USB automount script now accepts a `TARGET` override.
+- Version bumped to 1.25.111.

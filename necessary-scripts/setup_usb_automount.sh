@@ -5,7 +5,7 @@ set -euo pipefail
 # This mounts any USB partition to /linux-video-encoder/AutoEncoder/linux-video-encoder/USB
 # so the container (bind-mounted to /mnt/usb with rslave) can see files without restarts.
 
-TARGET="/linux-video-encoder/AutoEncoder/linux-video-encoder/USB"
+TARGET="${TARGET:-/linux-video-encoder/AutoEncoder/linux-video-encoder/USB}"
 RULE_FILE="/etc/udev/rules.d/99-autoencoder-usb.rules"
 HELPER="/usr/local/bin/autoencoder_usb_mount.sh"
 
@@ -19,11 +19,11 @@ apt-get update -y >/dev/null 2>&1 || true
 apt-get install -y exfatprogs >/dev/null 2>&1 || true
 mkdir -p "$TARGET"
 
-cat > "$HELPER" <<'EOF'
+cat > "$HELPER" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 SRC="/dev/$1"
-TARGET="/linux-video-encoder/AutoEncoder/linux-video-encoder/USB"
+TARGET="${TARGET}"
 LOG_TAG="autoencoder-usb"
 
 mkdir -p "$TARGET"
@@ -81,12 +81,12 @@ EOF
 chmod +x "$HELPER"
 
 echo "[usb-auto] Writing udev rules..."
-cat > "$RULE_FILE" <<'EOF'
+cat > "$RULE_FILE" <<EOF
 # AutoEncoder USB automount
 ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_BUS}=="usb", RUN+="/usr/local/bin/autoencoder_usb_mount.sh %k"
 ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ATTR{removable}=="1", RUN+="/usr/local/bin/autoencoder_usb_mount.sh %k"
-ACTION=="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_BUS}=="usb", RUN+="/bin/umount -l /linux-video-encoder/AutoEncoder/linux-video-encoder/USB"
-ACTION=="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ATTR{removable}=="1", RUN+="/bin/umount -l /linux-video-encoder/AutoEncoder/linux-video-encoder/USB"
+ACTION=="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_BUS}=="usb", RUN+="/bin/umount -l ${TARGET}"
+ACTION=="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ATTR{removable}=="1", RUN+="/bin/umount -l ${TARGET}"
 EOF
 
 echo "[usb-auto] Reloading udev rules..."

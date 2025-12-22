@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.25.110)
+# Linux Video Encoder (v1.25.111)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -18,6 +18,18 @@ pip install -r ../txt/requirements.txt
 
 **MakeMKV tarballs required for Docker build**  
 The Dockerfile expects `makemkv-oss-1.18.2.tar.gz` and `makemkv-bin-1.18.2.tar.gz` to be present at the repo root (same level as `necessary-scripts`) when building from a clean checkout. If they are missing, the build will fail during the `COPY makemkv-*.tar.gz` steps. Place both tarballs there before running `docker compose build`, or let `necessary-scripts/install_and_run.sh` download them automatically.
+
+### Portainer Host Setup
+
+If you want to deploy the stack via Portainer, run the host setup script first to configure the Docker host (USB automount helper, USB host helper service, Samba shares, optional NVIDIA toolkit). This script downloads all required helpers directly from GitHub.
+
+```
+curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/host_setup_portainer.sh -o /tmp/host_setup_portainer.sh && \
+chmod +x /tmp/host_setup_portainer.sh && \
+sudo /tmp/host_setup_portainer.sh
+```
+
+After that completes, paste the `docker-compose.yml` into a Portainer Stack and deploy it. The compose file expects the host directories to exist under `/linux-video-encoder/AutoEncoder/linux-video-encoder` (created by the script above).
 
 If you are working with blurays you'll need 'makemkv'. Depending on your OS you will have different [installation methods](https://makemkv.com/downloads)
 
