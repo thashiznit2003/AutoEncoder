@@ -45,48 +45,9 @@ log "Downloading MakeMKV tarballs..."
 cd "$REPO_DIR"
 for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
   url="${MAKEMKV_BASE_URL}/${f}"
-  download_tarball() {
-    log "Downloading $f from $url"
-    curl -fsSL --retry 3 --retry-delay 2 "$url" -o "$f"
-    mime="$(file -b --mime-type "$f" || true)"
-    case "$mime" in application/gzip|application/x-gzip) ;; *)
-      log "Downloaded $f has unexpected MIME type: ${mime:-unknown}"
-      return 1
-    esac
-    return 0
-  }
-
-  validate_tarball() {
-    tar --ignore-zeros -tzf "$f" >/dev/null 2>&1
-  }
-
-  force_extract_test() {
-    local tmp_extract
-    tmp_extract="$(mktemp -d)"
-    if tar --ignore-zeros -xzf "$f" -C "$tmp_extract" >/dev/null 2>&1; then
-      rm -rf "$tmp_extract"
-      return 0
-    fi
-    rm -rf "$tmp_extract"
-    return 1
-  }
-
-  if [ -s "$f" ] && validate_tarball && force_extract_test; then
-    log "$f already present and valid; reusing."
-  else
-    log "$f missing or invalid; re-downloading..."
-    rm -f "$f"
-    download_tarball || { log "Failed to download $f"; exit 1; }
-    if ! validate_tarball || ! force_extract_test; then
-      log "$f invalid after download; retrying..."
-      rm -f "$f"
-      download_tarball || { log "Failed to download $f"; exit 1; }
-      if ! validate_tarball || ! force_extract_test; then
-        log "$f still invalid; aborting."
-        exit 1
-      fi
-    fi
-  fi
+  log "Downloading $f from $url"
+  rm -f "$f"
+  curl -fsSL --retry 3 --retry-delay 2 "$url" -o "$f"
   $SUDO chmod 644 "$f" || true
 done
 

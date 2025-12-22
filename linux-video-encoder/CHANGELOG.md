@@ -898,3 +898,7 @@
 ## 1.25.121 - 2025-12-22
 - MakeMKV add-on build script now revalidates and re-downloads tarballs even if already present.
 - Version bumped to 1.25.121.
+
+## 1.25.122 - 2025-12-22
+- MakeMKV add-on build script now always re-downloads tarballs and skips validation.
+- Version bumped to 1.25.122.
