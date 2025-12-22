@@ -838,3 +838,9 @@
 - Reorganized scripts into `necessary-scripts` and `one-off scripts`; moved txt files into `txt/`.
 - Updated Docker build context, compose mounts, and docs to match the new layout.
 - Version bumped to 1.25.107.
+
+## 1.25.108 - 2025-12-22
+- Installer now always provisions all Samba shares (input/output/ripped/smbstaging/usbstaging) during setup and prompts once for credentials.
+- Samba shares are writable, created directly in the main installer, and the installer prints host SMB paths at the end.
+- Installer build/run now uses the repo root Docker context and explicit compose file path.
+- Version bumped to 1.25.108.

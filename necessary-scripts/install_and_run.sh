@@ -54,6 +54,17 @@ fi
 
 log() { printf '[installer] %s\n' "$*"; }
 
+detect_host_ip() {
+  local host_ip=""
+  if command -v hostname >/dev/null 2>&1; then
+    host_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+  fi
+  if [ -z "$host_ip" ] && command -v ip >/dev/null 2>&1; then
+    host_ip=$(ip -4 route show default 2>/dev/null | awk '{print $3}')
+  fi
+  printf '%s' "$host_ip"
+}
+
 ensure_base_tools() {
   if ! command -v curl >/dev/null 2>&1 || ! command -v tar >/dev/null 2>&1 || ! command -v file >/dev/null 2>&1; then
     log "Installing curl, tar, and file..."
@@ -141,26 +152,16 @@ install_usb_host_helper() {
     log "USB host helper install exited non-zero (continuing)."
 }
 
-setup_ripped_smb_share() {
-  local script="$REPO_DIR/necessary-scripts/share_ripped_smb.sh"
-  if [ ! -x "$script" ]; then
-    log "Ripped SMB share script missing; skipping."
-    return
-  fi
-  log "Configuring Samba share for Ripped..."
-  $SUDO "$script" || log "Ripped SMB share setup exited non-zero (continuing)."
-}
-
 build_and_run() {
-  cd "$REPO_DIR/linux-video-encoder" || cd "$REPO_DIR"
   ensure_media_dirs
   setup_usb_automount
   install_usb_host_helper
-  setup_ripped_smb_share
+  setup_samba_shares
   log "Stopping any existing stack (docker compose down)..."
   IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" down || true
   # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build
   log "Ensuring MakeMKV tarballs are present (version ${MAKEMKV_VERSION})..."
+  cd "$REPO_DIR"
   for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
     url="$MAKEMKV_BIN_URL"
     if echo "$f" | grep -q "oss"; then
@@ -237,22 +238,17 @@ build_and_run() {
   if ! $SUDO docker build \
     --build-arg MAKEMKV_VERSION="$MAKEMKV_VERSION" \
     --build-arg MAKEMKV_BASE_URL="$MAKEMKV_BASE_URL" \
-    -t "$IMAGE_TAG" . 2>&1 | tee "$build_log"; then
+    -f "$REPO_DIR/linux-video-encoder/Dockerfile" \
+    -t "$IMAGE_TAG" "$REPO_DIR" 2>&1 | tee "$build_log"; then
     log "Docker build failed. Showing tail of $build_log"
     tail -n 200 "$build_log" || true
     exit 1
   fi
   log "Starting stack with docker compose..."
-  IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose up -d
+  IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" up -d --no-build
   log "Stack is running. Web UI: http://<host>:5959"
   # Best-effort to show host IP
-  host_ip=""
-  if command -v hostname >/dev/null 2>&1; then
-    host_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-  fi
-  if [ -z "$host_ip" ] && command -v ip >/dev/null 2>&1; then
-    host_ip=$(ip -4 route show default 2>/dev/null | awk '{print $3}')
-  fi
+  host_ip="$(detect_host_ip)"
   if [ -n "$host_ip" ]; then
     log "Access the UI at: http://${host_ip}:5959"
   fi
@@ -275,8 +271,7 @@ maybe_install_nvidia_toolkit() {
       log "Installing NVIDIA Container Toolkit via bundled helper..."
       $SUDO bash "$helper"
       log "NVIDIA toolkit installed; restarting stack to ensure runtime picks up changes..."
-      cd "$REPO_DIR/linux-video-encoder" || cd "$REPO_DIR"
-      IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose up -d
+      IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" up -d --no-build
       ;;
     *)
       log "Skipping NVIDIA toolkit install."
@@ -284,37 +279,28 @@ maybe_install_nvidia_toolkit() {
   esac
 }
 
-maybe_setup_samba_shares() {
+setup_samba_shares() {
   local base="$REPO_DIR/linux-video-encoder"
   local file_share_path="$base/File"
   local output_share_path="$base/Output"
   local smb_staging_path="$base/SMBStaging"
   local usb_staging_path="$base/USBStaging"
-  printf "Create Samba shares for input and output? [y/N]: "
-  local ans
-  if ! read -r ans; then
-    log "No input detected; skipping Samba setup."
-    return
-  fi
-  case "$ans" in
-    [yY]|[yY][eE][sS]) ;;
-    *) log "Skipping Samba setup."; return ;;
-  esac
+  local ripped_share_path="$base/Ripped"
 
-  printf "Enter Samba username (will be created if missing): "
+  printf "Enter Samba username for share access (will be created if missing): "
   local smb_user
-  read -r smb_user
+  read -r smb_user || true
   if [ -z "${smb_user:-}" ]; then
-    log "No Samba user provided; skipping Samba setup."
-    return
+    log "No Samba user provided; cannot configure shares."
+    exit 1
   fi
   printf "Enter Samba password for %s: " "$smb_user"
   local smb_pass
-  read -rs smb_pass
+  read -rs smb_pass || true
   printf "\n"
   if [ -z "${smb_pass:-}" ]; then
-    log "No Samba password provided; skipping Samba setup."
-    return
+    log "No Samba password provided; cannot configure shares."
+    exit 1
   fi
 
   log "Installing Samba if needed..."
@@ -330,9 +316,9 @@ maybe_setup_samba_shares() {
   printf "%s\n%s\n" "$smb_pass" "$smb_pass" | $SUDO smbpasswd -a "$smb_user" -s
 
   log "Preparing share directories..."
-  $SUDO mkdir -p "$file_share_path" "$output_share_path" "$smb_staging_path" "$usb_staging_path"
-  $SUDO chown -R "$smb_user":"$smb_user" "$file_share_path" "$output_share_path" "$smb_staging_path" "$usb_staging_path"
-  $SUDO chmod -R 775 "$file_share_path" "$output_share_path" "$smb_staging_path" "$usb_staging_path"
+  $SUDO mkdir -p "$file_share_path" "$output_share_path" "$smb_staging_path" "$usb_staging_path" "$ripped_share_path"
+  $SUDO chown -R "$smb_user":"$smb_user" "$file_share_path" "$output_share_path" "$smb_staging_path" "$usb_staging_path" "$ripped_share_path"
+  $SUDO chmod -R 775 "$file_share_path" "$output_share_path" "$smb_staging_path" "$usb_staging_path" "$ripped_share_path"
 
   log "Backing up /etc/samba/smb.conf to /etc/samba/smb.conf.bak (once)..."
   if [ ! -f /etc/samba/smb.conf.bak ]; then
@@ -340,7 +326,7 @@ maybe_setup_samba_shares() {
   fi
 
   # Remove existing share blocks if present, then append fresh ones.
-  for share in lv_file input output smbstaging usbstaging; do
+  for share in lv_file input output smbstaging usbstaging ripped; do
     $SUDO sed -i "/^\[$share\]/,/^\[/d" /etc/samba/smb.conf
   done
 
@@ -385,11 +371,31 @@ maybe_setup_samba_shares() {
    force user = $smb_user
    create mask = 0664
    directory mask = 0775
+
+[ripped]
+   path = $ripped_share_path
+   browseable = yes
+   read only = no
+   guest ok = no
+   valid users = $smb_user
+   force user = $smb_user
+   create mask = 0664
+   directory mask = 0775
 CONFIG
 
   log "Restarting Samba services..."
   $SUDO systemctl restart smbd nmbd || $SUDO systemctl restart smbd || true
-  log "Samba shares configured. Access smb://<host>/input and smb://<host>/output with user '$smb_user'."
+  local host_ip
+  host_ip="$(detect_host_ip)"
+  if [ -z "$host_ip" ]; then
+    host_ip="<host>"
+  fi
+  log "Samba shares configured for user '$smb_user':"
+  log "  smb://${host_ip}/input"
+  log "  smb://${host_ip}/output"
+  log "  smb://${host_ip}/ripped"
+  log "  smb://${host_ip}/smbstaging"
+  log "  smb://${host_ip}/usbstaging"
 }
 
 main() {
@@ -397,7 +403,6 @@ main() {
   install_docker
   fetch_repo
   build_and_run
-  maybe_setup_samba_shares
   maybe_install_nvidia_toolkit
 }
 
