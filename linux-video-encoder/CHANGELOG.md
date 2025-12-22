@@ -882,3 +882,7 @@
 ## 1.25.117 - 2025-12-22
 - Added plain-English explanation for the two install paths and MakeMKV licensing constraint.
 - Version bumped to 1.25.117.
+
+## 1.25.118 - 2025-12-22
+- Documented that the application was Vibe-Coded with ChatGPT Codex.
+- Version bumped to 1.25.118.
