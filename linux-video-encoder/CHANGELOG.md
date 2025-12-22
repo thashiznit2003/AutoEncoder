@@ -906,3 +906,7 @@
 ## 1.25.123 - 2025-12-22
 - Portainer compose now sets `pull_policy: never` for local images.
 - Version bumped to 1.25.123.
+
+## 1.25.124 - 2025-12-22
+- MakeMKV add-on script now reuses existing tarballs by default; set `FORCE_MAKEMKV_DOWNLOAD=1` to refresh.
+- Version bumped to 1.25.124.

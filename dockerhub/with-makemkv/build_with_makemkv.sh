@@ -45,9 +45,16 @@ log "Downloading MakeMKV tarballs..."
 cd "$REPO_DIR"
 for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
   url="${MAKEMKV_BASE_URL}/${f}"
-  log "Downloading $f from $url"
-  rm -f "$f"
-  curl -fsSL --retry 3 --retry-delay 2 "$url" -o "$f"
+  if [ "${FORCE_MAKEMKV_DOWNLOAD:-0}" = "1" ]; then
+    log "Forcing download of $f from $url"
+    rm -f "$f"
+  fi
+  if [ -s "$f" ]; then
+    log "$f already present; reusing."
+  else
+    log "Downloading $f from $url"
+    curl -fsSL --retry 3 --retry-delay 2 "$url" -o "$f"
+  fi
   $SUDO chmod 644 "$f" || true
 done
 
