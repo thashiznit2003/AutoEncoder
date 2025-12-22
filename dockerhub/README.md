@@ -17,6 +17,18 @@ docker push thashiznit2003/autoencoder:beta
 docker push thashiznit2003/autoencoder:1.25.115
 ```
 
+## MakeMKV Add-on (Users)
+
+If you want MakeMKV, build a local image that layers MakeMKV on top of the Docker Hub image:
+
+```
+curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/dockerhub/with-makemkv/build_with_makemkv.sh -o /tmp/build_with_makemkv.sh && \
+chmod +x /tmp/build_with_makemkv.sh && \
+sudo /tmp/build_with_makemkv.sh
+```
+
+Then deploy with the Portainer compose from `portainer/docker-compose.yml` (it uses the local `linux-video-encoder:latest` image).
+
 ## Run (Users)
 
 Use `dockerhub/docker-compose.yml`:

@@ -874,3 +874,7 @@
 - Added Docker Hub publish artifacts and Portainer folder separation.
 - Updated licensing and third-party notices.
 - Version bumped to 1.25.115.
+
+## 1.25.116 - 2025-12-22
+- Added MakeMKV add-on build script and Dockerfile for users of the Docker Hub image.
+- Version bumped to 1.25.116.
