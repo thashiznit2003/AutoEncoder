@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.25.125)
+# Linux Video Encoder (v1.25.126)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 

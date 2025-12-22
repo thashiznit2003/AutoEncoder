@@ -17,16 +17,13 @@ FORCE_MAKEMKV_DOWNLOAD="${FORCE_MAKEMKV_DOWNLOAD:-0}"
 
 log() { printf '[dockerhub-update] %s\n' "$*"; }
 
+log "Updating repo..."
+cd "$REPO_DIR"
+$SUDO git pull --ff-only
+
 if [ -z "$VERSION_TAG" ]; then
   if [ -f "$REPO_DIR/linux-video-encoder/src/version.py" ]; then
-    VERSION_TAG="$($SUDO python3 - <<'PY'
-import re
-path="/linux-video-encoder/AutoEncoder/linux-video-encoder/src/version.py"
-with open(path, "r", encoding="utf-8") as f:
-    m=re.search(r'VERSION\\s*=\\s*\\"([^\\"]+)\\"', f.read())
-print(m.group(1) if m else "")
-PY
-)"
+    VERSION_TAG="$(grep -E 'VERSION\s*=' "$REPO_DIR/linux-video-encoder/src/version.py" | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')"
   fi
 fi
 
@@ -34,10 +31,6 @@ if [ -z "$VERSION_TAG" ]; then
   log "Could not determine VERSION_TAG. Set VERSION_TAG explicitly."
   exit 1
 fi
-
-log "Updating repo..."
-cd "$REPO_DIR"
-$SUDO git pull --ff-only
 
 log "Building Docker Hub image..."
 $SUDO docker build -f "$REPO_DIR/dockerhub/Dockerfile" -t "${IMAGE_TAG}:beta" -t "${IMAGE_TAG}:${VERSION_TAG}" "$REPO_DIR"
