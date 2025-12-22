@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install NVIDIA Container Toolkit via NVIDIA APT repo (pinned to ubuntu22.04 packages, which work on 24.04).
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_nvidia_toolkit.sh -o /tmp/install_nvidia_toolkit.sh
+#   curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/install_nvidia_toolkit.sh -o /tmp/install_nvidia_toolkit.sh
 #   sudo bash /tmp/install_nvidia_toolkit.sh
 #
 # Tunables:

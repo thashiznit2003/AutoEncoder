@@ -10,9 +10,9 @@ Update one-liner (Ubuntu host):
 Example one-liners:
 - For code/config/UI changes (bind mounts in place, no rebuild): cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate
 - If a rebuild is needed (e.g., dependencies/base image changes): cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose build --no-cache && docker compose up -d
-- Run quick checks (no rebuild): cd /linux-video-encoder/AutoEncoder/linux-video-encoder && bash scripts/quick_pull.sh
-- GPU toolkit install (Ubuntu host): curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_nvidia_toolkit.sh -o /tmp/install_nvidia_toolkit.sh && sudo bash /tmp/install_nvidia_toolkit.sh
-- Sync/check UI/logs: curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/sync_and_check_ui.sh -o /tmp/sync_and_check_ui.sh && bash /tmp/sync_and_check_ui.sh
+- Run quick checks (no rebuild): cd /linux-video-encoder/AutoEncoder/linux-video-encoder && bash necessary-scripts/quick_pull.sh
+- GPU toolkit install (Ubuntu host): curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/install_nvidia_toolkit.sh -o /tmp/install_nvidia_toolkit.sh && sudo bash /tmp/install_nvidia_toolkit.sh
+- Sync/check UI/logs: curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/one-off%20scripts/sync_and_check_ui.sh -o /tmp/sync_and_check_ui.sh && bash /tmp/sync_and_check_ui.sh
 
 Key app behaviors/config:
 - Docker compose binds ./src and ./scripts plus media dirs and config.json; privileged with NVIDIA runtime for GPU; port 5959 UI.
@@ -26,7 +26,7 @@ Key app behaviors/config:
   - install_nvidia_toolkit.sh: installs toolkit via NVIDIA apt repo pinned to ubuntu22.04; configures Docker runtime.
   - update_stack.sh: pulls latest main, rebuilds, restarts (used before bind-mount change).
   - quick_pull.sh: git pull + restart without rebuild (with bind mounts).
-  - debug_copy_button.sh and sync_and_check_ui.sh for UI/log checks.
+  - debug_copy_button.sh and sync_and_check_ui.sh for UI/log checks (one-off scripts).
 
 Recent UI additions:
 - Copy last 300 logs button; logs auto-scroll when at bottom.

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Ensure Samba shares are writable for the specified user.
-# Usage: curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/fix_samba_write_access.sh -o /tmp/fix_samba_write_access.sh && sudo bash /tmp/fix_samba_write_access.sh
+# Usage: curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/fix_samba_write_access.sh -o /tmp/fix_samba_write_access.sh && sudo bash /tmp/fix_samba_write_access.sh
 
 SUDO=""
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then

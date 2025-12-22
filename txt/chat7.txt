@@ -6,7 +6,7 @@ Project summary
 - USB staging: USB files copy to /mnt/usb_staging (bind to USBStaging) before encode; originals remain on the stick. Staged sources delete after successful encode. Already-encoded USB files are skipped based on state tracking.
 
 USB host helper
-- Installed on host via scripts/install_usb_host_helper.sh; runs systemd service autoencoder-usb-helper listening (default 0.0.0.0:8765) with target mountpoint ./USB.
+- Installed on host via necessary-scripts/install_usb_host_helper.sh; runs systemd service autoencoder-usb-helper listening (default 0.0.0.0:8765) with target mountpoint ./USB.
 - Endpoints: /usb/refresh (find/mount best USB partition; skips empty/no files; returns video_count), /usb/force_remount (unmounts target+/mnt/usb, iterates candidates until files exist), /usb/eject (clean unmount), /usb/status (lsblk snapshot).
 - Logs: helper mount/lsblk summaries go to Logs panel; Status Messages only for state. Host helper unmounts stacked mounts and marks mountpoint shared to avoid r/w issues.
 - UI USB controls live inside System Metrics card (full-width); buttons Refresh/Force Remount/Eject. Status colored by ready/missing/error and should not flash.

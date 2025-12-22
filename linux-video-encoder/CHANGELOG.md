@@ -21,7 +21,7 @@
 
 ## 1.0.5 - 2025-12-04
 - Renamed Samba share to `input` (from `lv_file`) across installer/scripts; optional Samba setup now provisions `input` and `output`.
-- Added `scripts/update_samba_shares.sh` to migrate existing hosts (removes legacy `lv_file`, prompts for SMB user/password).
+- Added `necessary-scripts/update_samba_shares.sh` to migrate existing hosts (removes legacy `lv_file`, prompts for SMB user/password).
 
 ## 1.0.6 - 2025-12-04
 - Installer now prints the detected host IP (best effort) for the UI URL after the stack starts.
@@ -133,7 +133,7 @@
 ## 1.9.0 - 2025-12-04
 - Added SMB staging path (default /mnt/smb_staging) for SMB browser copies plus Samba share `smbstaging`; installer now provisions the share and compose mounts ./SMBStaging.
 - SMB queue now respects the configurable staging path instead of hardcoding /mnt/input.
-- Added helper script `scripts/setup_smbstaging_share.sh` to create the smbstaging share and restart the stack.
+- Added helper script `necessary-scripts/setup_smbstaging_share.sh` to create the smbstaging share and restart the stack.
 
 ## 1.9.1 - 2025-12-04
 - SMB browser copies now log as staged and the scanner includes the staging path so staged files are picked up.
@@ -165,7 +165,7 @@
 
 ## 1.11.0 - 2025-12-04
 - MakeMKV update check endpoint/button added (runs makemkvcon --update and surfaces the message in UI).
-- Added host-side helper script `scripts/update_makemkv.sh` to rebuild/restart with a chosen MakeMKV version.
+- Added host-side helper script `necessary-scripts/update_makemkv.sh` to rebuild/restart with a chosen MakeMKV version.
 
 ## 1.11.1 - 2025-12-04
 - Fix: update check now uses makemkvcon --version (since --update isn’t supported) and UI button label clarified.
@@ -299,10 +299,10 @@
 - Config persistence: config now lives in the state volume (`/var/lib/autoencoder/state/config.json`), seeded from repo `config.json` on first run, so UI settings survive pulls/rebuilds.
 
 ## 1.21.2 - 2025-12-06
-- USB automount: added `scripts/setup_usb_automount.sh` (udev + helper) to mount any USB partition to `./USB` automatically; installer now runs it. Media dirs ensure `USBStaging` exists.
+- USB automount: added `necessary-scripts/setup_usb_automount.sh` (udev + helper) to mount any USB partition to `./USB` automatically; installer now runs it. Media dirs ensure `USBStaging` exists.
 
 ## 1.21.3 - 2025-12-06
-- Samba: installer now also shares `USBStaging` (usbstaging) alongside input/output/smbstaging. Added `scripts/setup_usbstaging_share.sh` for on-demand share setup.
+- Samba: installer now also shares `USBStaging` (usbstaging) alongside input/output/smbstaging. Added `necessary-scripts/setup_usbstaging_share.sh` for on-demand share setup.
 
 ## 1.21.4 - 2025-12-06
 - `setup_usbstaging_share.sh` now always prompts for Samba credentials (ignores env) to avoid accidental reuse of incorrect env vars.
@@ -833,3 +833,8 @@
 ## 1.25.106 - 2025-12-21
 - Allow forced disc info scans more time and resume scan when titles are missing.
 - Version bumped to 1.25.106.
+
+## 1.25.107 - 2025-12-22
+- Reorganized scripts into `necessary-scripts` and `one-off scripts`; moved txt files into `txt/`.
+- Updated Docker build context, compose mounts, and docs to match the new layout.
+- Version bumped to 1.25.107.

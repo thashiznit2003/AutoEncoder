@@ -121,7 +121,7 @@ ensure_media_dirs() {
 }
 
 setup_usb_automount() {
-  local script="$REPO_DIR/linux-video-encoder/scripts/setup_usb_automount.sh"
+  local script="$REPO_DIR/necessary-scripts/setup_usb_automount.sh"
   if [ ! -x "$script" ]; then
     log "USB automount script missing; skipping."
     return
@@ -131,7 +131,7 @@ setup_usb_automount() {
 }
 
 install_usb_host_helper() {
-  local helper="$REPO_DIR/linux-video-encoder/scripts/install_usb_host_helper.sh"
+  local helper="$REPO_DIR/necessary-scripts/install_usb_host_helper.sh"
   if [ ! -x "$helper" ]; then
     log "USB host helper installer missing at $helper; skipping."
     return
@@ -142,7 +142,7 @@ install_usb_host_helper() {
 }
 
 setup_ripped_smb_share() {
-  local script="$REPO_DIR/linux-video-encoder/scripts/share_ripped_smb.sh"
+  local script="$REPO_DIR/necessary-scripts/share_ripped_smb.sh"
   if [ ! -x "$script" ]; then
     log "Ripped SMB share script missing; skipping."
     return
@@ -259,7 +259,7 @@ build_and_run() {
 }
 
 maybe_install_nvidia_toolkit() {
-  local helper="$REPO_DIR/linux-video-encoder/scripts/install_nvidia_toolkit.sh"
+  local helper="$REPO_DIR/necessary-scripts/install_nvidia_toolkit.sh"
   if [ ! -f "$helper" ]; then
     log "NVIDIA toolkit helper not found at $helper; skipping prompt."
     return

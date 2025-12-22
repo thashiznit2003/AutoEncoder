@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fetch and compare the running UI HTML vs the on-disk web_server.py inside the container.
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/debug_copy_button.sh -o /tmp/debug_copy_button.sh
+#   curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/one-off%20scripts/debug_copy_button.sh -o /tmp/debug_copy_button.sh
 #   bash /tmp/debug_copy_button.sh
 
 set -euo pipefail

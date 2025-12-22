@@ -4,7 +4,7 @@ set -euo pipefail
 # Install the host-side USB helper as a systemd service.
 # It listens on 127.0.0.1:8765 and mounts to the repo USB path by default.
 
-HELPER_URL="https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/usb_host_helper.py"
+HELPER_URL="https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/usb_host_helper.py"
 TARGET_DIR="/usr/local/lib/autoencoder"
 HELPER_PATH="${TARGET_DIR}/usb_host_helper.py"
 SERVICE_PATH="/etc/systemd/system/autoencoder-usb-helper.service"

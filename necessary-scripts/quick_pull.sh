@@ -2,7 +2,7 @@
 # Pull latest code and restart the stack without rebuild (bind mounts keep code live).
 # Usage:
 #   cd /linux-video-encoder/AutoEncoder/linux-video-encoder
-#   bash scripts/quick_pull.sh
+#   bash necessary-scripts/quick_pull.sh
 
 set -euo pipefail
 

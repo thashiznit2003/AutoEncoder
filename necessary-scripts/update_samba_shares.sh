@@ -3,7 +3,7 @@ set -euo pipefail
 
 # This script reconfigures Samba shares to use "input" and "output" and removes the legacy "lv_file" share.
 # It will prompt for Samba username and password, install samba if missing, and restart smbd/nmbd.
-# Usage: curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/update_samba_shares.sh -o /tmp/update_samba_shares.sh && sudo bash /tmp/update_samba_shares.sh
+# Usage: curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/update_samba_shares.sh -o /tmp/update_samba_shares.sh && sudo bash /tmp/update_samba_shares.sh
 
 SUDO=""
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then

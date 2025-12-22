@@ -12,8 +12,8 @@ Latest changes (since chat4)
 
 Deployment one-liner (Ubuntu host)
 - cd /linux-video-encoder/AutoEncoder/linux-video-encoder && git pull --ff-only && docker compose down && docker compose up -d --force-recreate
-- MakeMKV host update helper: scripts/update_makemkv.sh (use MAKEMKV_VERSION env).
-- SMB staging share helper: scripts/setup_smbstaging_share.sh.
+- MakeMKV host update helper: necessary-scripts/update_makemkv.sh (use MAKEMKV_VERSION env).
+- SMB staging share helper: necessary-scripts/setup_smbstaging_share.sh.
 
 Security notes (open)
 - UI/API currently protected only by Basic auth; no TLS/CSRF/rate limiting.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sync the repo to latest main, restart the stack (no rebuild), and verify the running UI shows the copy-logs button.
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/sync_and_check_ui.sh -o /tmp/sync_and_check_ui.sh
+#   curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/one-off%20scripts/sync_and_check_ui.sh -o /tmp/sync_and_check_ui.sh
 #   bash /tmp/sync_and_check_ui.sh
 
 set -euo pipefail

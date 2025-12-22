@@ -1139,7 +1139,7 @@ HTML_PAGE_TEMPLATE = """
         cmdEl.value = "";
         return;
       }
-      cmdEl.value = 'curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/update_makemkv.sh -o /tmp/update_makemkv.sh && chmod +x /tmp/update_makemkv.sh && MAKEMKV_VERSION=' + latest + ' /tmp/update_makemkv.sh';
+      cmdEl.value = 'curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/update_makemkv.sh -o /tmp/update_makemkv.sh && chmod +x /tmp/update_makemkv.sh && MAKEMKV_VERSION=' + latest + ' /tmp/update_makemkv.sh';
     }
 
     document.getElementById("mk-latest").addEventListener("input", refreshUpdateCommand);

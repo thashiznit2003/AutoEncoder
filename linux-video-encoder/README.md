@@ -13,18 +13,18 @@ To install the necessary dependencies, run:
 
 ```
 sudo apt-get install -y python3 ffmpeg libdvdread4 libbluray-bdj libdvdcss2 udisks2
-pip install -r requirements.txt
+pip install -r ../txt/requirements.txt
 ```
 
 **MakeMKV tarballs required for Docker build**  
-The Dockerfile expects `makemkv-oss-1.18.2.tar.gz` and `makemkv-bin-1.18.2.tar.gz` to be present in the `linux-video-encoder` directory (same folder as the Dockerfile) when building from a clean checkout. If they are missing, the build will fail during the `COPY makemkv-*.tar.gz` steps. Place both tarballs there (they live at the repo root in `/AutoEncoder` by default) before running `docker compose build`, or let `scripts/install_and_run.sh` download them automatically.
+The Dockerfile expects `makemkv-oss-1.18.2.tar.gz` and `makemkv-bin-1.18.2.tar.gz` to be present at the repo root (same level as `necessary-scripts`) when building from a clean checkout. If they are missing, the build will fail during the `COPY makemkv-*.tar.gz` steps. Place both tarballs there before running `docker compose build`, or let `necessary-scripts/install_and_run.sh` download them automatically.
 
 If you are working with blurays you'll need 'makemkv'. Depending on your OS you will have different [installation methods](https://makemkv.com/downloads)
 
 ### Host USB helper (recommended for reliable hotplug)
 On the host (not in the container), install the helper that listens on 0.0.0.0:8765 and performs USB refresh/mounts when the UI button is clicked:
 ```
-curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_usb_host_helper.sh -o /tmp/install_usb_host_helper.sh \
+curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/install_usb_host_helper.sh -o /tmp/install_usb_host_helper.sh \
   && chmod +x /tmp/install_usb_host_helper.sh \
   && /tmp/install_usb_host_helper.sh
 ```
@@ -83,16 +83,16 @@ Compose highlights:
 - Low-bitrate handling: optional auto-proceed or auto-skip for low bitrate vs target can be set in Settings.
 - Config persistence: config is stored in the state volume at `/var/lib/autoencoder/state/config.json` (seeded from repo `config.json` on first run), so UI settings survive pulls/rebuilds. If you want to reset, stop the stack and remove that file from the state volume.
 - USB automount: a udev helper mounts any USB partition to `./USB` (binds to `/mnt/usb`) automatically; USB files are staged to `/mnt/usb_staging` before encode so originals remain on the stick.
-- Samba shares: installer can create shares for input/output/smbstaging/usbstaging; standalone helper scripts live under `scripts/setup_smbstaging_share.sh` and `scripts/setup_usbstaging_share.sh`.
+- Samba shares: installer can create shares for input/output/smbstaging/usbstaging; standalone helper scripts live under `necessary-scripts/setup_smbstaging_share.sh` and `necessary-scripts/setup_usbstaging_share.sh`.
 
 ### Installer script defaults
-- `scripts/install_and_run.sh` defaults `REPO_URL` to your fork (`https://github.com/thashiznit2003/AutoEncoder.git`). Override with `REPO_URL=...` if needed.
+- `necessary-scripts/install_and_run.sh` defaults `REPO_URL` to your fork (`https://github.com/thashiznit2003/AutoEncoder.git`). Override with `REPO_URL=...` if needed.
 
 ### Run the installer on Ubuntu (CLI)
 1. SSH into your Ubuntu VM/host.
 2. Option A (no git required; curl only):
    ```bash
-   curl -LO https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/install_and_run.sh
+   curl -LO https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/install_and_run.sh
    chmod +x install_and_run.sh
    sudo ./install_and_run.sh
    ```
@@ -102,8 +102,8 @@ Compose highlights:
    ```bash
    git clone https://github.com/thashiznit2003/AutoEncoder.git
    cd AutoEncoder/linux-video-encoder
-   chmod +x scripts/install_and_run.sh
-   ./scripts/install_and_run.sh
+   chmod +x necessary-scripts/install_and_run.sh
+   ./necessary-scripts/install_and_run.sh
    ```
 4. After completion, Docker will be installed (if missing), the image built, and the stack started.
 5. Open `http://<host>:5959` to view the web UI.
@@ -135,7 +135,7 @@ MakeMKV downloads note:
 * __auth_user__ / __auth_password__ - HTTP Basic credentials for the UI/API (set via Authentication panel).
 * HandBrake audio options now include encoder (AAC/HE-AAC/Opus/AC3/E-AC3/copy), mixdown, sample rate, DRC, gain, optional language filter, track list, and “Auto Dolby” mode (copy AC3/E-AC3 else encode to E-AC3; no upmix for sub-5.1).
 * MakeMKV: preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, auto-rip toggle, disc info display, manual “Start rip” button when auto-rip is off, in-app registration key entry, and a UI update check/installed-version display with a helper command generator for host updates.
-* SMB staging: `smb_staging_dir` (default /mnt/smb_staging) used for SMB browser copies; exported as Samba share `smbstaging` via installer; mounted from host `./SMBStaging` in compose. A helper script `scripts/setup_smbstaging_share.sh` can add the share and restart the stack.
+* SMB staging: `smb_staging_dir` (default /mnt/smb_staging) used for SMB browser copies; exported as Samba share `smbstaging` via installer; mounted from host `./SMBStaging` in compose. A helper script `necessary-scripts/setup_smbstaging_share.sh` can add the share and restart the stack.
 
 ### Defaults and profiles
 - Default HandBrake profile: x264, RF 20, 1080p output, `.mkv`, AAC audio 128 kbps (DVD uses the same, Blu-ray uses RF 25 at 2160p).
@@ -151,7 +151,7 @@ MakeMKV downloads note:
 ## Samba shares
 - Installer can optionally create SMB shares: `input` (maps to `linux-video-encoder/File`) and `output` (maps to `linux-video-encoder/Output`), prompting for SMB username/password and installing Samba if needed.
 - To update an existing host from the legacy `lv_file` share, run the provided script (on the host): \
-  `curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/update_samba_shares.sh -o /tmp/update_samba_shares.sh && sudo bash /tmp/update_samba_shares.sh`
+  `curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/update_samba_shares.sh -o /tmp/update_samba_shares.sh && sudo bash /tmp/update_samba_shares.sh`
 
 ## SMB browser (in UI)
 - Connect to `smb://server/share[/path]` with username/password, browse directories, and queue files for encoding. Mounts are clickable to re-select. Selected files (and matching sidecar `.srt` files) are copied into the configured SMB staging directory (default `/mnt/smb_staging`) under an allowlist; copies defer when an encode is active or staging is busy, and originals stay on the share.

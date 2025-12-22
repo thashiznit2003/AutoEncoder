@@ -2,7 +2,7 @@
 # Update the linux-video-encoder stack to the latest main branch and restart it.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/linux-video-encoder/scripts/update_stack.sh -o /tmp/update_stack.sh
+#   curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/update_stack.sh -o /tmp/update_stack.sh
 #   bash /tmp/update_stack.sh
 #
 # Tunables (env):

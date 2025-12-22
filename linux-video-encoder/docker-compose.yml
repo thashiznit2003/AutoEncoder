@@ -1,6 +1,8 @@
 services:
   autoencoder:
-    build: .
+    build:
+      context: ..
+      dockerfile: linux-video-encoder/Dockerfile
     image: linux-video-encoder:latest
     container_name: linux-video-encoder
     restart: unless-stopped
@@ -25,7 +27,7 @@ services:
       # Bind config and media paths (host-relative to repo) into the container.
       - ./config.json:/linux-video-encoder/config.json
       - ./src:/linux-video-encoder/src
-      - ./scripts:/linux-video-encoder/scripts
+      - ../necessary-scripts:/linux-video-encoder/scripts
       - ./USB:/mnt/usb:rw,rslave
       - ./USBStaging:/mnt/usb_staging:rw
       - ./DVD:/mnt/dvd:rw
