@@ -844,3 +844,7 @@
 - Samba shares are writable, created directly in the main installer, and the installer prints host SMB paths at the end.
 - Installer build/run now uses the repo root Docker context and explicit compose file path.
 - Version bumped to 1.25.108.
+
+## 1.25.109 - 2025-12-22
+- Inlined USB host helper setup in the main installer; helper is now downloaded from GitHub during install.
+- Version bumped to 1.25.109.

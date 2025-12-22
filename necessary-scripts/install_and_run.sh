@@ -142,14 +142,45 @@ setup_usb_automount() {
 }
 
 install_usb_host_helper() {
-  local helper="$REPO_DIR/necessary-scripts/install_usb_host_helper.sh"
-  if [ ! -x "$helper" ]; then
-    log "USB host helper installer missing at $helper; skipping."
+  local helper_url="https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/usb_host_helper.py"
+  local target_dir="/usr/local/lib/autoencoder"
+  local helper_path="${target_dir}/usb_host_helper.py"
+  local service_path="/etc/systemd/system/autoencoder-usb-helper.service"
+  local listen_addr="${HELPER_LISTEN_ADDR:-0.0.0.0}"
+  local listen_port="${HELPER_LISTEN_PORT:-8765}"
+  local mountpoint="${HELPER_MOUNTPOINT:-$REPO_DIR/linux-video-encoder/USB}"
+
+  log "Installing USB host helper service (downloaded from GitHub)..."
+  $SUDO mkdir -p "$target_dir"
+  $SUDO curl -fsSL "$helper_url" -o "$helper_path"
+  $SUDO chmod 755 "$helper_path"
+
+  local python_bin
+  python_bin="$(command -v python3 || true)"
+  if [ -z "$python_bin" ]; then
+    log "python3 not found; skipping USB host helper install."
     return
   fi
-  log "Installing USB host helper service..."
-  HELPER_LISTEN_ADDR=0.0.0.0 HELPER_LISTEN_PORT=8765 HELPER_MOUNTPOINT="$REPO_DIR/linux-video-encoder/USB" $SUDO "$helper" || \
-    log "USB host helper install exited non-zero (continuing)."
+
+  $SUDO tee "$service_path" >/dev/null <<EOF
+[Unit]
+Description=AutoEncoder USB Host Helper
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=${python_bin} ${helper_path} --listen ${listen_addr} --port ${listen_port} --mountpoint ${mountpoint}
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  $SUDO systemctl daemon-reload
+  $SUDO systemctl enable --now autoencoder-usb-helper.service
+  $SUDO systemctl status --no-pager autoencoder-usb-helper.service || true
+  log "USB host helper running on ${listen_addr}:${listen_port}"
 }
 
 build_and_run() {
