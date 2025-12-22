@@ -27,6 +27,11 @@ chmod +x /tmp/update_and_publish.sh && \
 sudo /tmp/update_and_publish.sh
 ```
 
+You can also pass the version explicitly:
+```
+sudo /tmp/update_and_publish.sh 1.25.128
+```
+
 If you want to force MakeMKV tarball re-download during the add-on build:
 ```
 FORCE_MAKEMKV_DOWNLOAD=1 sudo /tmp/update_and_publish.sh

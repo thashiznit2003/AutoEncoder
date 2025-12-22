@@ -17,6 +17,10 @@ FORCE_MAKEMKV_DOWNLOAD="${FORCE_MAKEMKV_DOWNLOAD:-0}"
 
 log() { printf '[dockerhub-update] %s\n' "$*"; }
 
+if [ "${1:-}" != "" ]; then
+  VERSION_TAG="$1"
+fi
+
 log "Updating repo..."
 cd "$REPO_DIR"
 $SUDO git pull --ff-only
@@ -27,7 +31,10 @@ if [ -z "$VERSION_TAG" ]; then
     log "version.py not found at $version_file"
     exit 1
   fi
-  VERSION_TAG="$(awk -F '\"' '/VERSION/{print $2; exit}' "$version_file" || true)"
+  VERSION_TAG="$(sed -n 's/^VERSION *= *"\\([^"]*\\)".*/\\1/p' "$version_file" | head -n 1 || true)"
+  if [ -z "$VERSION_TAG" ]; then
+    VERSION_TAG="$(awk -F '\"' '/VERSION/{print $2; exit}' "$version_file" || true)"
+  fi
   if [ -z "$VERSION_TAG" ]; then
     VERSION_TAG="$(grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' "$version_file" | head -n 1 || true)"
   fi
@@ -44,6 +51,8 @@ PY
 fi
 
 if [ -z "$VERSION_TAG" ]; then
+  log "version.py content:"
+  head -n 3 "$version_file" || true
   log "Could not determine VERSION_TAG. Set VERSION_TAG explicitly."
   exit 1
 fi

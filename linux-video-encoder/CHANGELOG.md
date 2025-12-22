@@ -926,3 +926,7 @@
 ## 1.25.128 - 2025-12-22
 - Docker Hub update script now falls back to a simple x.y.z regex if VERSION parsing fails.
 - Version bumped to 1.25.128.
+
+## 1.25.129 - 2025-12-22
+- Docker Hub update script now accepts a version argument and has a more robust parser with debug output.
+- Version bumped to 1.25.129.
