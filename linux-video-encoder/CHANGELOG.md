@@ -848,3 +848,7 @@
 ## 1.25.109 - 2025-12-22
 - Inlined USB host helper setup in the main installer; helper is now downloaded from GitHub during install.
 - Version bumped to 1.25.109.
+
+## 1.25.110 - 2025-12-22
+- Installer now always downloads the repo as a GitHub tarball and no longer uses git.
+- Version bumped to 1.25.110.

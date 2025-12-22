@@ -92,25 +92,13 @@ install_docker() {
 }
 
 fetch_repo() {
-  # If repo already exists and is a git repo, update it; otherwise download a tarball via curl.
-  if [ -d "$REPO_DIR/.git" ] && command -v git >/dev/null 2>&1; then
-    log "Repo already present at $REPO_DIR; pulling latest..."
-    git -C "$REPO_DIR" pull --ff-only || true
-    return
-  fi
-
+  # Always download the repo from GitHub as a tarball (no git required).
   if [ -d "$REPO_DIR" ] && [ ! -d "$REPO_DIR/linux-video-encoder" ]; then
-    log "Found existing $REPO_DIR but no git metadata. Replacing with fresh download."
+    log "Found existing $REPO_DIR but no app content. Replacing with fresh download."
     rm -rf "$REPO_DIR"
   fi
 
-  if command -v git >/dev/null 2>&1; then
-    log "Cloning repo from $REPO_URL..."
-    git clone "$REPO_URL" "$REPO_DIR"
-    return
-  fi
-
-  log "Git not available; downloading tarball via curl."
+  log "Downloading repo tarball from GitHub..."
   tmpdir="$(mktemp -d)"
   curl -L "$REPO_TARBALL_URL" -o "$tmpdir/repo.tar.gz"
   mkdir -p "$REPO_DIR"
