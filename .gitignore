@@ -57,3 +57,4 @@ mnt/auto_media/
 *.bak
 *.swp
 *~
+linux-video-encoder/docker-compose.yml.bak.*
