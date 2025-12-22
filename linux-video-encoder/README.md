@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.25.113)
+# Linux Video Encoder (v1.25.114)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -38,6 +38,16 @@ Portainer Stack steps:
 3. Paste the contents of `linux-video-encoder/docker-compose.yml` into the editor.
 4. Click **Deploy the stack**.
 5. Open the UI at `http://<host>:5959` (use the host IP from the host setup script output).
+
+### Tarball Update (no git)
+
+Use the helper below to update a host that was installed from a tarball (download fresh repo snapshot, rebuild image, restart stack):
+
+```
+curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/update_from_tarball.sh -o /tmp/update_from_tarball.sh && \
+chmod +x /tmp/update_from_tarball.sh && \
+sudo /tmp/update_from_tarball.sh
+```
 
 If you are working with blurays you'll need 'makemkv'. Depending on your OS you will have different [installation methods](https://makemkv.com/downloads)
 

@@ -865,3 +865,7 @@
 ## 1.25.113 - 2025-12-22
 - Added Portainer Stack steps to the README.
 - Version bumped to 1.25.113.
+
+## 1.25.114 - 2025-12-22
+- Added `update_from_tarball.sh` for one-command tarball updates (download → rebuild → restart).
+- Version bumped to 1.25.114.
