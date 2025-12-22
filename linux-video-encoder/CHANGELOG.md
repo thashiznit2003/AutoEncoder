@@ -861,3 +861,7 @@
 ## 1.25.112 - 2025-12-22
 - Portainer-friendly compose: absolute host paths, no build stanza, optional dev bind mounts commented.
 - Version bumped to 1.25.112.
+
+## 1.25.113 - 2025-12-22
+- Added Portainer Stack steps to the README.
+- Version bumped to 1.25.113.
