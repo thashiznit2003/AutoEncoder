@@ -1,10 +1,11 @@
-# Linux Video Encoder (v1.25.114)
+# Linux Video Encoder (v1.25.115)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
 Logo: `assets/linux-video-encoder-icon.svg` (DVD + shrinking file motif) is used in the UI header and baked into the image.
 
 Current release notes live in `CHANGELOG.md`. The UI header shows the running version pulled from `src/version.py`.
+Third-party notices are documented in `THIRD_PARTY_NOTICES.md`.
 
 
 ## Installation
@@ -19,7 +20,19 @@ pip install -r ../txt/requirements.txt
 **MakeMKV tarballs required for Docker build**  
 The Dockerfile expects `makemkv-oss-1.18.2.tar.gz` and `makemkv-bin-1.18.2.tar.gz` to be present at the repo root (same level as `necessary-scripts`) when building from a clean checkout. If they are missing, the build will fail during the `COPY makemkv-*.tar.gz` steps. Place both tarballs there before running `docker compose build`, or let `necessary-scripts/install_and_run.sh` download them automatically.
 
-### Portainer Host Setup
+## Install Paths
+
+There are two supported install paths:
+
+1. **Local/Portainer (includes MakeMKV)**  
+   - Uses local builds and MakeMKV tarballs on the host.  
+   - See `portainer/README.md`.
+
+2. **Docker Hub (public image, no MakeMKV)**  
+   - Public beta image that excludes MakeMKV.  
+   - See `dockerhub/README.md`.
+
+### Portainer Host Setup (Local/MakeMKV)
 
 If you want to deploy the stack via Portainer, run the host setup script first to configure the Docker host (USB automount helper, USB host helper service, Samba shares, optional NVIDIA toolkit). This script downloads all required helpers directly from GitHub.
 
@@ -35,7 +48,7 @@ The compose file uses absolute host paths for Portainer compatibility and does n
 Portainer Stack steps:
 1. In Portainer, go to **Stacks** → **Add stack**.
 2. Name the stack (e.g., `linux-video-encoder`).
-3. Paste the contents of `linux-video-encoder/docker-compose.yml` into the editor.
+3. Paste the contents of `portainer/docker-compose.yml` into the editor.
 4. Click **Deploy the stack**.
 5. Open the UI at `http://<host>:5959` (use the host IP from the host setup script output).
 

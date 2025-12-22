@@ -869,3 +869,8 @@
 ## 1.25.114 - 2025-12-22
 - Added `update_from_tarball.sh` for one-command tarball updates (download → rebuild → restart).
 - Version bumped to 1.25.114.
+
+## 1.25.115 - 2025-12-22
+- Added Docker Hub publish artifacts and Portainer folder separation.
+- Updated licensing and third-party notices.
+- Version bumped to 1.25.115.

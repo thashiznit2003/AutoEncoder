@@ -1,0 +1,26 @@
+# Docker Hub (Public) Image
+
+This folder contains the Docker Hub publish artifacts. The image is **public** and labeled **beta**.
+
+Important:
+- The Docker Hub image **does not include MakeMKV** due to redistribution restrictions.
+- Use the local/Portainer build path if you need MakeMKV (see the main README).
+
+## Build & Push (Maintainer)
+
+Example commands (run on the Docker host):
+
+```
+docker login
+docker build -f dockerhub/Dockerfile -t thashiznit2003/autoencoder:beta -t thashiznit2003/autoencoder:1.25.115 .
+docker push thashiznit2003/autoencoder:beta
+docker push thashiznit2003/autoencoder:1.25.115
+```
+
+## Run (Users)
+
+Use `dockerhub/docker-compose.yml`:
+
+```
+docker compose -f dockerhub/docker-compose.yml up -d
+```
