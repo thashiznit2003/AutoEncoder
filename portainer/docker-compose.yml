@@ -1,6 +1,7 @@
 services:
   autoencoder:
     image: linux-video-encoder:latest
+    pull_policy: never
     container_name: linux-video-encoder
     restart: unless-stopped
     runtime: nvidia

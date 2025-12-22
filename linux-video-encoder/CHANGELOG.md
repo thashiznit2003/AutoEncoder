@@ -902,3 +902,7 @@
 ## 1.25.122 - 2025-12-22
 - MakeMKV add-on build script now always re-downloads tarballs and skips validation.
 - Version bumped to 1.25.122.
+
+## 1.25.123 - 2025-12-22
+- Portainer compose now sets `pull_policy: never` for local images.
+- Version bumped to 1.25.123.
