@@ -1,8 +1,5 @@
 services:
   autoencoder:
-    build:
-      context: ..
-      dockerfile: linux-video-encoder/Dockerfile
     image: linux-video-encoder:latest
     container_name: linux-video-encoder
     restart: unless-stopped
@@ -24,18 +21,19 @@ services:
               count: all
               capabilities: [gpu]
     volumes:
-      # Bind config and media paths (host-relative to repo) into the container.
-      - ./config.json:/linux-video-encoder/config.json
-      - ./src:/linux-video-encoder/src
-      - ../necessary-scripts:/linux-video-encoder/scripts
-      - ./USB:/mnt/usb:rw,rslave
-      - ./USBStaging:/mnt/usb_staging:rw
-      - ./DVD:/mnt/dvd:rw
-      - ./Bluray:/mnt/bluray:rw
-      - ./File:/mnt/input:rw
-      - ./Output:/mnt/output:rw
-      - ./Ripped:/mnt/ripped:rw
-      - ./SMBStaging:/mnt/smb_staging:rw
+      # Bind config and media paths (absolute for Portainer compatibility).
+      - /linux-video-encoder/AutoEncoder/linux-video-encoder/config.json:/linux-video-encoder/config.json
+      - /linux-video-encoder/AutoEncoder/linux-video-encoder/USB:/mnt/usb:rw,rslave
+      - /linux-video-encoder/AutoEncoder/linux-video-encoder/USBStaging:/mnt/usb_staging:rw
+      - /linux-video-encoder/AutoEncoder/linux-video-encoder/DVD:/mnt/dvd:rw
+      - /linux-video-encoder/AutoEncoder/linux-video-encoder/Bluray:/mnt/bluray:rw
+      - /linux-video-encoder/AutoEncoder/linux-video-encoder/File:/mnt/input:rw
+      - /linux-video-encoder/AutoEncoder/linux-video-encoder/Output:/mnt/output:rw
+      - /linux-video-encoder/AutoEncoder/linux-video-encoder/Ripped:/mnt/ripped:rw
+      - /linux-video-encoder/AutoEncoder/linux-video-encoder/SMBStaging:/mnt/smb_staging:rw
+      # Optional development mounts (uncomment if you want live code/script edits).
+      # - /linux-video-encoder/AutoEncoder/linux-video-encoder/src:/linux-video-encoder/src
+      # - /linux-video-encoder/AutoEncoder/necessary-scripts:/linux-video-encoder/scripts
       - autoencoder_state:/var/lib/autoencoder/state:rw
     privileged: true
     devices:

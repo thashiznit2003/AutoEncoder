@@ -857,3 +857,7 @@
 - Added `host_setup_portainer.sh` to configure host prerequisites for Portainer deployments (USB automount, USB helper, Samba shares, optional NVIDIA toolkit).
 - USB automount script now accepts a `TARGET` override.
 - Version bumped to 1.25.111.
+
+## 1.25.112 - 2025-12-22
+- Portainer-friendly compose: absolute host paths, no build stanza, optional dev bind mounts commented.
+- Version bumped to 1.25.112.

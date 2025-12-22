@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.25.111)
+# Linux Video Encoder (v1.25.112)
 
 This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
 
@@ -30,6 +30,7 @@ sudo /tmp/host_setup_portainer.sh
 ```
 
 After that completes, paste the `docker-compose.yml` into a Portainer Stack and deploy it. The compose file expects the host directories to exist under `/linux-video-encoder/AutoEncoder/linux-video-encoder` (created by the script above).
+The compose file uses absolute host paths for Portainer compatibility and does not require a separate `.env` file.
 
 If you are working with blurays you'll need 'makemkv'. Depending on your OS you will have different [installation methods](https://makemkv.com/downloads)
 
