@@ -886,3 +886,7 @@
 ## 1.25.118 - 2025-12-22
 - Documented that the application was Vibe-Coded with ChatGPT Codex.
 - Version bumped to 1.25.118.
+
+## 1.25.119 - 2025-12-22
+- MakeMKV add-on build script now validates tarballs and retries downloads to avoid corrupted archives.
+- Version bumped to 1.25.119.

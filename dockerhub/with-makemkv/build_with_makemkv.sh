@@ -45,12 +45,33 @@ log "Downloading MakeMKV tarballs..."
 cd "$REPO_DIR"
 for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
   url="${MAKEMKV_BASE_URL}/${f}"
-  if [ -s "$f" ]; then
-    log "$f already present; reusing."
-    continue
+  download_tarball() {
+    log "Downloading $f from $url"
+    curl -fsSL --retry 3 --retry-delay 2 "$url" -o "$f"
+    mime="$(file -b --mime-type "$f" || true)"
+    case "$mime" in application/gzip|application/x-gzip) ;; *)
+      log "Downloaded $f has unexpected MIME type: ${mime:-unknown}"
+      return 1
+    esac
+    return 0
+  }
+
+  validate_tarball() {
+    tar -tzf "$f" >/dev/null 2>&1
+  }
+
+  if [ -s "$f" ] && validate_tarball; then
+    log "$f already present and valid; reusing."
+  else
+    rm -f "$f"
+    download_tarball || { log "Failed to download $f"; exit 1; }
+    if ! validate_tarball; then
+      log "$f invalid after download; retrying..."
+      rm -f "$f"
+      download_tarball || { log "Failed to download $f"; exit 1; }
+      validate_tarball || { log "$f still invalid; aborting."; exit 1; }
+    fi
   fi
-  log "Downloading $f from $url"
-  curl -fsSL "$url" -o "$f"
   $SUDO chmod 644 "$f" || true
 done
 
