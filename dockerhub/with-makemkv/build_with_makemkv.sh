@@ -71,9 +71,10 @@ for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}
     return 1
   }
 
-  if [ -s "$f" ] && validate_tarball; then
+  if [ -s "$f" ] && validate_tarball && force_extract_test; then
     log "$f already present and valid; reusing."
   else
+    log "$f missing or invalid; re-downloading..."
     rm -f "$f"
     download_tarball || { log "Failed to download $f"; exit 1; }
     if ! validate_tarball || ! force_extract_test; then

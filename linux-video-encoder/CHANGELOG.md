@@ -894,3 +894,7 @@
 ## 1.25.120 - 2025-12-22
 - MakeMKV add-on build path now forces tar extraction with --ignore-zeros.
 - Version bumped to 1.25.120.
+
+## 1.25.121 - 2025-12-22
+- MakeMKV add-on build script now revalidates and re-downloads tarballs even if already present.
+- Version bumped to 1.25.121.
