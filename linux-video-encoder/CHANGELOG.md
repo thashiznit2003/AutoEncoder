@@ -922,3 +922,7 @@
 ## 1.25.127 - 2025-12-22
 - Docker Hub update script now checks for version.py and has a more robust VERSION_TAG fallback.
 - Version bumped to 1.25.127.
+
+## 1.25.128 - 2025-12-22
+- Docker Hub update script now falls back to a simple x.y.z regex if VERSION parsing fails.
+- Version bumped to 1.25.128.

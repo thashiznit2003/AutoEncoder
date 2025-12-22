@@ -28,6 +28,9 @@ if [ -z "$VERSION_TAG" ]; then
     exit 1
   fi
   VERSION_TAG="$(awk -F '\"' '/VERSION/{print $2; exit}' "$version_file" || true)"
+  if [ -z "$VERSION_TAG" ]; then
+    VERSION_TAG="$(grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' "$version_file" | head -n 1 || true)"
+  fi
   if [ -z "$VERSION_TAG" ] && command -v python3 >/dev/null 2>&1; then
     VERSION_TAG="$(python3 - <<PY
 import re
