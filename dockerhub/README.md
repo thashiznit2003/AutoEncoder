@@ -17,6 +17,21 @@ docker push thashiznit2003/autoencoder:beta
 docker push thashiznit2003/autoencoder:1.25.115
 ```
 
+## One-Command Update & Publish
+
+On the Docker host, this script pulls latest code, rebuilds + pushes the Docker Hub image, then rebuilds the local MakeMKV add-on image:
+
+```
+curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/dockerhub/update_and_publish.sh -o /tmp/update_and_publish.sh && \
+chmod +x /tmp/update_and_publish.sh && \
+sudo /tmp/update_and_publish.sh
+```
+
+If you want to force MakeMKV tarball re-download during the add-on build:
+```
+FORCE_MAKEMKV_DOWNLOAD=1 sudo /tmp/update_and_publish.sh
+```
+
 ## MakeMKV Add-on (Users)
 
 If you want MakeMKV, build a local image that layers MakeMKV on top of the Docker Hub image:

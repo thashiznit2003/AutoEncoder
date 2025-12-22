@@ -910,3 +910,7 @@
 ## 1.25.124 - 2025-12-22
 - MakeMKV add-on script now reuses existing tarballs by default; set `FORCE_MAKEMKV_DOWNLOAD=1` to refresh.
 - Version bumped to 1.25.124.
+
+## 1.25.125 - 2025-12-22
+- Added Docker Hub update/publish script and documented it.
+- Version bumped to 1.25.125.
