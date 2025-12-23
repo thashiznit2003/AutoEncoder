@@ -939,3 +939,7 @@
 - Integrate optical drive helper into MakeMKV flows and use helper-resolved dev nodes for scans and rips.
 - Persist helper disc source in disc info to stabilize refresh/pending scans.
 - Version bumped to 1.25.131.
+
+## 1.25.132 - 2025-12-22
+- Fix USB automount helper script to avoid unbound variables and ensure mount commands resolve correctly.
+- Version bumped to 1.25.132.
