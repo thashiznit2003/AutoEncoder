@@ -951,3 +951,8 @@
 ## 1.25.134 - 2025-12-22
 - Disable nounset during USB automount helper generation to avoid $1 expansion errors.
 - Version bumped to 1.25.134.
+
+## 1.25.135 - 2025-12-22
+- Only reuse existing MKV files when they match requested title IDs to avoid wrong title selection.
+- Log MakeMKV command for diagnostics and pick output file matching requested title when possible.
+- Version bumped to 1.25.135.

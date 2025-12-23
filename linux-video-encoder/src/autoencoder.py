@@ -434,15 +434,28 @@ def rip_disc(
     ]
     # MakeMKV CLI doesn't accept audio/subtitle language selectors in this build; skip them to avoid errors.
 
-    # Check for existing MKVs; reuse newest if present (ignore AppleDouble ._ files)
+    # Check for existing MKVs; reuse only when they match the requested title(s).
     existing_mkvs = sorted(
         [p for p in output_dir_path.glob("*.mkv") if not p.name.startswith("._")],
         key=os.path.getmtime,
     )
-    if existing_mkvs:
-        latest = existing_mkvs[-1].resolve()
+    reuse_candidates = existing_mkvs
+    if title_list:
+        reuse_candidates = []
+        for t in title_list:
+            if not str(t).isdigit():
+                continue
+            tid = int(str(t))
+            pattern = re.compile(rf"^title_t0*{tid}\\.mkv$", re.IGNORECASE)
+            for p in existing_mkvs:
+                if pattern.match(p.name):
+                    reuse_candidates.append(p)
+        reuse_candidates = sorted(set(reuse_candidates), key=os.path.getmtime)
+    if reuse_candidates:
+        latest = reuse_candidates[-1].resolve()
         msg_existing = f"⚠️  Found existing MKV file: {latest}\nReusing existing rip."
         print(msg_existing)
+        logging.info("Reusing existing MKV: %s", latest)
         if status_tracker:
             status_tracker.add_event(f"Using existing ripped MKV: {latest}")
             status_tracker.complete(job_key, True, str(latest), "Reused existing rip")
@@ -450,6 +463,7 @@ def rip_disc(
 
     msg = f"📀 Running: {' '.join(cmd)}"
     print(msg)
+    logging.info("Running MakeMKV: %s", " ".join(cmd))
     if status_tracker:
         status_tracker.add_event(
             f"MakeMKV rip started ({disc_source}; titles={title_arg}; audio={','.join(lang_list_audio) or 'all'}; subs={','.join(lang_list_subs) or 'all'})"
@@ -503,6 +517,18 @@ def rip_disc(
         [p for p in output_dir_path.glob("*.mkv") if not p.name.startswith("._")],
         key=os.path.getmtime,
     )
+    if title_list:
+        matched = []
+        for t in title_list:
+            if not str(t).isdigit():
+                continue
+            tid = int(str(t))
+            pattern = re.compile(rf"^title_t0*{tid}\\.mkv$", re.IGNORECASE)
+            for p in mkv_files:
+                if pattern.match(p.name):
+                    matched.append(p)
+        if matched:
+            mkv_files = sorted(set(matched), key=os.path.getmtime)
 
     if not mkv_files:
         print("⚠️  No MKV files found in output directory.")
