@@ -18,6 +18,7 @@ CONFIG_URL="${CONFIG_URL:-https://raw.githubusercontent.com/thashiznit2003/AutoE
 USB_HELPER_URL="${USB_HELPER_URL:-https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/usb_host_helper.py}"
 USB_AUTOMOUNT_URL="${USB_AUTOMOUNT_URL:-https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/setup_usb_automount.sh}"
 NVIDIA_TOOLKIT_URL="${NVIDIA_TOOLKIT_URL:-https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/install_nvidia_toolkit.sh}"
+OPTICAL_HELPER_URL="${OPTICAL_HELPER_URL:-https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/optical_host_helper.py}"
 
 log() { printf '[host-setup] %s\n' "$*"; }
 
@@ -108,6 +109,45 @@ EOF
   log "USB host helper running on ${listen_addr}:${listen_port}"
 }
 
+install_optical_host_helper() {
+  local target_dir="/usr/local/lib/autoencoder"
+  local helper_path="${target_dir}/optical_host_helper.py"
+  local service_path="/etc/systemd/system/autoencoder-optical-helper.service"
+  local listen_addr="${OPTICAL_HELPER_LISTEN_ADDR:-0.0.0.0}"
+  local listen_port="${OPTICAL_HELPER_LISTEN_PORT:-8767}"
+
+  log "Installing optical host helper from GitHub..."
+  $SUDO mkdir -p "$target_dir"
+  $SUDO curl -fsSL "$OPTICAL_HELPER_URL" -o "$helper_path"
+  $SUDO chmod 755 "$helper_path"
+
+  local python_bin
+  python_bin="$(command -v python3 || true)"
+  if [ -z "$python_bin" ]; then
+    log "python3 not found; skipping optical host helper install."
+    return
+  fi
+
+  $SUDO tee "$service_path" >/dev/null <<EOF
+[Unit]
+Description=AutoEncoder Optical Host Helper
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=${python_bin} ${helper_path} --listen ${listen_addr} --port ${listen_port}
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  $SUDO systemctl daemon-reload
+  $SUDO systemctl enable --now autoencoder-optical-helper.service
+  $SUDO systemctl status --no-pager autoencoder-optical-helper.service || true
+  log "Optical host helper running on ${listen_addr}:${listen_port}"
+}
 setup_samba_shares() {
   local file_share_path="$APP_DIR/File"
   local output_share_path="$APP_DIR/Output"
@@ -252,6 +292,7 @@ main() {
   prepare_dirs
   setup_usb_automount
   install_usb_host_helper
+  install_optical_host_helper
   setup_samba_shares
   maybe_install_nvidia_toolkit
   log "Host setup complete. Paste the docker-compose.yml into Portainer and deploy."

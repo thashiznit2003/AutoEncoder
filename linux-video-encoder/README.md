@@ -40,7 +40,7 @@ MakeMKV has a proprietary license that does **not** allow redistribution. A publ
 
 ### Portainer Host Setup (Local/MakeMKV)
 
-If you want to deploy the stack via Portainer, run the host setup script first to configure the Docker host (USB automount helper, USB host helper service, Samba shares, optional NVIDIA toolkit). This script downloads all required helpers directly from GitHub.
+If you want to deploy the stack via Portainer, run the host setup script first to configure the Docker host (USB automount helper, USB host helper service, optical host helper service, Samba shares, optional NVIDIA toolkit). This script downloads all required helpers directly from GitHub.
 
 ```
 curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/host_setup_portainer.sh -o /tmp/host_setup_portainer.sh && \

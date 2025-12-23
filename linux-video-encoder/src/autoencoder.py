@@ -9,6 +9,7 @@ Dependencies:
 - HandBrakeCLI (installed on the system and available on PATH)
 """
 from pathlib import Path
+import urllib.request
 import json
 import os
 import time
@@ -343,6 +344,7 @@ def ensure_smb_root():
         logging.debug("Failed to create SMB mount root %s", SMB_MOUNT_ROOT, exc_info=True)
 
 def rip_disc(
+    disc_source,
     disc_index,
     output_dir_path,
     min_length=1800,
@@ -357,7 +359,7 @@ def rip_disc(
     """
     logger = logging.getLogger(__name__)
     output_dir = output_dir_path.as_posix()
-    job_key = f"disc:{disc_index}"
+    job_key = f"disc:{disc_index}" if disc_index is not None else (disc_source or "disc:unknown")
     disc_type = None
     if status_tracker:
         try:
@@ -371,8 +373,8 @@ def rip_disc(
         try:
             di = status_tracker.disc_info()
             if not di or not di.get("info"):
-                scanned = scan_disc_info(disc_index)
-                status_tracker.set_disc_info({"disc_index": disc_index, "info": scanned})
+                scanned = scan_disc_info(disc_source)
+                status_tracker.set_disc_info({"disc_index": disc_index, "source": disc_source, "info": scanned})
         except Exception:
             logger.debug("Initial disc scan before rip failed", exc_info=True)
     dest_hint = output_dir
@@ -381,7 +383,7 @@ def rip_disc(
             status_tracker.start(job_key, dest_hint, info=None, state="ripping")
         else:
             status_tracker.set_state(job_key, "ripping")
-        status_tracker.set_message(job_key, f"Ripping disc {disc_index}")
+        status_tracker.set_message(job_key, f"Ripping {disc_source}")
     title_list = []
     if titles:
         try:
@@ -425,7 +427,7 @@ def rip_disc(
         "-r",
         "--progress=-same",
         "mkv",
-        f"disc:{disc_index}",
+        disc_source,
         title_arg,
         output_dir,
         f"--minlength={min_length}",
@@ -450,7 +452,7 @@ def rip_disc(
     print(msg)
     if status_tracker:
         status_tracker.add_event(
-            f"MakeMKV rip started (disc {disc_index}; titles={title_arg}; audio={','.join(lang_list_audio) or 'all'}; subs={','.join(lang_list_subs) or 'all'})"
+            f"MakeMKV rip started ({disc_source}; titles={title_arg}; audio={','.join(lang_list_audio) or 'all'}; subs={','.join(lang_list_subs) or 'all'})"
         )
     result = None
     try:
@@ -468,7 +470,7 @@ def rip_disc(
                             raw = int(match.group(1))
                             pct = min(100.0, max(0.0, raw / 655.35))
                             status_tracker.update_progress(job_key, pct)
-                            status_tracker.set_message(job_key, f"Ripping disc {disc_index} ({pct:.1f}%)")
+                            status_tracker.set_message(job_key, f"Ripping {disc_source} ({pct:.1f}%)")
                 except Exception:
                     logger.debug("Failed to parse MakeMKV progress line: %s", line, exc_info=True)
         rc = result.wait()
@@ -489,9 +491,9 @@ def rip_disc(
     success = (result.returncode == 0)
     if status_tracker:
         if success:
-            status_tracker.add_event(f"MakeMKV rip complete (disc {disc_index})")
+            status_tracker.add_event(f"MakeMKV rip complete ({disc_source})")
         else:
-            status_tracker.add_event(f"MakeMKV rip failed (disc {disc_index})", level="error")
+            status_tracker.add_event(f"MakeMKV rip failed ({disc_source})", level="error")
 
     if not success:
         return None, False
@@ -545,13 +547,31 @@ def rip_disc(
         status_tracker.complete(job_key, True, first_file, "Rip complete")
     return first_file, False
 
+def _fetch_optical_helper_status() -> Optional[dict]:
+    url = os.environ.get("OPTICAL_HELPER_URL", "http://host.docker.internal:8767/optical/status")
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
+def _resolve_optical_devnode() -> Optional[str]:
+    status = _fetch_optical_helper_status()
+    if not status:
+        return None
+    selected = status.get("selected") or {}
+    dev = selected.get("sr_device")
+    return dev
+
+
 def get_disc_number():
     """
     Returns the first detected MakeMKV disc index as an integer.
     If no disc is found, returns None.
     """
     try:
-        # Query MakeMKV for available drives
         result = subprocess.run(
             ["makemkvcon", "-r", "--cache=1", "info", "disc:9999"],
             stdout=subprocess.PIPE,
@@ -573,13 +593,17 @@ def get_disc_number():
     # DRV:0,0,999,0,"BD-RE HL-DT-ST BD-RE  WH16NS40 1.05","/dev/sr0"
     pattern = re.compile(r'DRV:(\d+),\d+,\d+,\d+,"([^"]+)","([^"]+)"')
 
-    match = pattern.search(output)
-    if match:
+    devnode = _resolve_optical_devnode()
+    for match in pattern.finditer(output):
         disc_index = int(match.group(1))
         drive_name = match.group(2)
         device_path = match.group(3)
-        print(f"Found disc in drive '{drive_name}' ({device_path}) — disc:{disc_index}")
-        return disc_index
+        if devnode and device_path == devnode:
+            print(f"Found disc in drive '{drive_name}' ({device_path}) — disc:{disc_index}")
+            return disc_index
+        if devnode is None:
+            print(f"Found disc in drive '{drive_name}' ({device_path}) — disc:{disc_index}")
+            return disc_index
 
     if output:
         print("No disc detected. makemkvcon output:")
@@ -923,14 +947,14 @@ def probe_audio_stream(path: Path) -> Optional[dict]:
     except Exception:
         return None
 
-def scan_disc_info(disc_index: int) -> Optional[dict]:
+def scan_disc_info(disc_source: str) -> Optional[dict]:
     """
     Runs makemkvcon info to gather titles/tracks.
     Returns a dict with raw text plus parsed titles/audio/subs when possible.
     """
     try:
         res = subprocess.run(
-            ["makemkvcon", "-r", "info", f"disc:{disc_index}"],
+            ["makemkvcon", "-r", "info", disc_source],
             capture_output=True,
             text=True,
             check=False,
@@ -953,10 +977,10 @@ def scan_disc_info(disc_index: int) -> Optional[dict]:
             parsed["disc_type"] = disc_type
     return parsed
 
-def scan_disc_info_with_timeout(disc_index: int, timeout_sec: int = 60) -> Optional[dict]:
+def scan_disc_info_with_timeout(disc_source: str, timeout_sec: int = 60) -> Optional[dict]:
     try:
         proc = subprocess.Popen(
-            ["makemkvcon", "-r", "info", f"disc:{disc_index}"],
+            ["makemkvcon", "-r", "info", disc_source],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -1038,6 +1062,10 @@ def _build_title_summary(title_ids: list, disc_titles: list) -> Optional[str]:
 
 def is_disc_present(devnode: str = "/dev/sr0") -> Optional[bool]:
     try:
+        if devnode == "/dev/sr0":
+            helper_dev = _resolve_optical_devnode()
+            if helper_dev:
+                devnode = helper_dev
         if not os.path.exists(devnode):
             return False
         size_path = f"/sys/class/block/{Path(devnode).name}/size"
@@ -1058,6 +1086,15 @@ def _disc_key_from_info(info: dict, disc_index: int) -> str:
             return f"{label}|{drive}"
     except Exception:
         pass
+    return f"disc:{disc_index}"
+
+def _resolve_disc_source() -> Optional[str]:
+    devnode = _resolve_optical_devnode()
+    if devnode:
+        return f"dev:{devnode}"
+    disc_index = get_disc_number()
+    if disc_index is None:
+        return None
     return f"disc:{disc_index}"
 
 def _select_top_titles(info: dict, count: int, min_seconds: int) -> list:
@@ -1454,13 +1491,15 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
 
     if is_bluray:
         logging.info("Ripping Blu-ray disc from %s", video_file)
+        disc_source = _resolve_disc_source()
         disc_num = get_disc_number()
-        if disc_num is not None:
+        if disc_source:
             minlen = int(config.get("makemkv_minlength", 1800))
             rip_titles = config.get("makemkv_titles", [])
             rip_audio_langs = config.get("makemkv_audio_langs") or config.get("makemkv_preferred_audio_langs", [])
             rip_sub_langs = config.get("makemkv_subtitle_langs") or config.get("makemkv_preferred_subtitle_langs", [])
             rip_path, reused_rip = rip_disc(
+                disc_source,
                 disc_num,
                 rip_dir,
                 min_length=minlen,
@@ -1743,8 +1782,9 @@ def main():
             # Handle manual rip requests even when no bluray files are present in the scan
             mode = status_tracker.consume_disc_rip_request() if status_tracker else None
             if status_tracker and mode:
+                disc_source = _resolve_disc_source()
                 disc_num = get_disc_number()
-                if disc_num is None:
+                if disc_source is None:
                     label = "Auto" if mode == "auto" else "Manual"
                     status_tracker.add_event(f"{label} MakeMKV rip requested but no disc detected.", level="error")
                 else:
@@ -1753,7 +1793,7 @@ def main():
                     mk_audio_langs = config.get("makemkv_audio_langs", []) or config.get("makemkv_preferred_audio_langs", [])
                     mk_sub_langs = config.get("makemkv_subtitle_langs", []) or config.get("makemkv_preferred_subtitle_langs", [])
                     if mode == "auto":
-                        disc_info = scan_disc_info_with_timeout(disc_num, 90) or {}
+                        disc_info = scan_disc_info_with_timeout(disc_source, 90) or {}
                         disc_key = _disc_key_from_info(disc_info, disc_num)
                         queue = status_tracker.disc_auto_queue()
                         if status_tracker.disc_auto_key() != disc_key or not queue:
@@ -1768,6 +1808,7 @@ def main():
                             continue
                         mk_titles = [next_title]
                     rip_path, reused = rip_disc(
+                        disc_source,
                         disc_num,
                         rip_dir,
                         min_length=mk_minlen,
@@ -1778,7 +1819,9 @@ def main():
                     )
                     if rip_path:
                         video_files.append(str(rip_path))
-                        status_tracker.set_disc_info({"disc_index": disc_num, "info": {"raw": f"Manual rip started for disc:{disc_num}"}})
+                        status_tracker.set_disc_info(
+                            {"disc_index": disc_num, "source": disc_source, "info": {"raw": f"Manual rip started for {disc_source}"}}
+                        )
                         label = "Auto" if mode == "auto" else "Manual"
                         status_tracker.add_event(f"{label} MakeMKV rip {'reused existing' if reused else 'produced'}: {rip_path}")
                         if mode == "auto":
@@ -1823,10 +1866,11 @@ def main():
             # Disc detection / info
             try:
                 if status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
+                    disc_source = _resolve_disc_source()
                     disc_num = get_disc_number()
-                    if disc_num is not None:
-                        disc_info = scan_disc_info_with_timeout(disc_num, 60)
-                        status_tracker.set_disc_info({"disc_index": disc_num, "info": disc_info})
+                    if disc_source:
+                        disc_info = scan_disc_info_with_timeout(disc_source, 60)
+                        status_tracker.set_disc_info({"disc_index": disc_num, "source": disc_source, "info": disc_info})
                         if not auto_rip and _disc_scan_complete(disc_info or {}):
                             status_tracker.pause_disc_scan()
             except Exception:
@@ -1837,10 +1881,11 @@ def main():
                     info = di.get("info") or {}
                     titles = info.get("titles") or []
                     disc_num = di.get("disc_index")
-                    if disc_num is not None and not titles:
-                        refreshed = scan_disc_info_with_timeout(disc_num, 60)
+                    disc_source = di.get("source") or _resolve_disc_source()
+                    if disc_source and not titles:
+                        refreshed = scan_disc_info_with_timeout(disc_source, 60)
                         if refreshed:
-                            status_tracker.set_disc_info({"disc_index": disc_num, "info": refreshed})
+                            status_tracker.set_disc_info({"disc_index": disc_num, "source": disc_source, "info": refreshed})
                             if not auto_rip and _disc_scan_complete(refreshed or {}):
                                 status_tracker.pause_disc_scan()
             except Exception:
@@ -1859,11 +1904,14 @@ def main():
             except Exception:
                 bluray_present = False
             if bluray_present and status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
+                disc_source = _resolve_disc_source()
                 disc_num = get_disc_number()
-                disc_info = scan_disc_info_with_timeout(disc_num, 60) if disc_num is not None else None
-                info_payload = {"disc_index": disc_num, "info": disc_info}
+                disc_info = scan_disc_info_with_timeout(disc_source, 60) if disc_source else None
+                info_payload = {"disc_index": disc_num, "source": disc_source, "info": disc_info}
                 status_tracker.set_disc_info(info_payload)
-                status_tracker.add_event(f"Disc detected (index={disc_num}); auto-rip={'on' if auto_rip else 'off'}")
+                status_tracker.add_event(
+                    f"Disc detected ({disc_source or 'unknown'}); auto-rip={'on' if auto_rip else 'off'}"
+                )
                 if not auto_rip and _disc_scan_complete(disc_info or {}):
                     status_tracker.pause_disc_scan()
 
@@ -1879,10 +1927,11 @@ def main():
                         for a in active_snapshot.get("active", [])
                     )
                     if not has_disc_task and not status_tracker.disc_rip_requested():
+                        disc_source = _resolve_disc_source()
                         disc_num = get_disc_number()
-                        if disc_num is not None:
+                        if disc_source:
                             status_tracker.request_disc_rip("auto")
-                            status_tracker.add_event(f"Auto-rip requested for disc:{disc_num}")
+                            status_tracker.add_event(f"Auto-rip requested for {disc_source}")
             except Exception:
                 logging.debug("Auto-rip trigger failed", exc_info=True)
             single_job_mode = len(video_files) == 1 and queued_active == 1

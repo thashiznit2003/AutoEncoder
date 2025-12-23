@@ -171,10 +171,52 @@ EOF
   log "USB host helper running on ${listen_addr}:${listen_port}"
 }
 
+install_optical_host_helper() {
+  local helper_url="https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/optical_host_helper.py"
+  local target_dir="/usr/local/lib/autoencoder"
+  local helper_path="${target_dir}/optical_host_helper.py"
+  local service_path="/etc/systemd/system/autoencoder-optical-helper.service"
+  local listen_addr="${OPTICAL_HELPER_LISTEN_ADDR:-0.0.0.0}"
+  local listen_port="${OPTICAL_HELPER_LISTEN_PORT:-8767}"
+
+  log "Installing optical host helper service (downloaded from GitHub)..."
+  $SUDO mkdir -p "$target_dir"
+  $SUDO curl -fsSL "$helper_url" -o "$helper_path"
+  $SUDO chmod 755 "$helper_path"
+
+  local python_bin
+  python_bin="$(command -v python3 || true)"
+  if [ -z "$python_bin" ]; then
+    log "python3 not found; skipping optical host helper install."
+    return
+  fi
+
+  $SUDO tee "$service_path" >/dev/null <<EOF
+[Unit]
+Description=AutoEncoder Optical Host Helper
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=${python_bin} ${helper_path} --listen ${listen_addr} --port ${listen_port}
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  $SUDO systemctl daemon-reload
+  $SUDO systemctl enable --now autoencoder-optical-helper.service
+  $SUDO systemctl status --no-pager autoencoder-optical-helper.service || true
+  log "Optical host helper running on ${listen_addr}:${listen_port}"
+}
+
 build_and_run() {
   ensure_media_dirs
   setup_usb_automount
   install_usb_host_helper
+  install_optical_host_helper
   setup_samba_shares
   log "Stopping any existing stack (docker compose down)..."
   IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" down || true
