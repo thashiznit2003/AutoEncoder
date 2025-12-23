@@ -965,3 +965,7 @@
 - Stop All Ripping now fully blocks new disc scans/rips and ignores queued rip requests until restarted.
 - Prevent paused disc scans from resuming while Stop All Ripping is enabled.
 - Version bumped to 1.25.137.
+
+## 1.25.138 - 2025-12-22
+- Increase forced MakeMKV info scan timeout to 90s so title lists populate reliably on manual refresh.
+- Version bumped to 1.25.138.

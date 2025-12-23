@@ -2156,7 +2156,7 @@ def create_app(tracker, config_manager=None):
                 cached = tracker.disc_info() or {}
                 cached["paused"] = True
                 return jsonify(cached)
-            timeout_sec = 60 if force else 15
+            timeout_sec = 90 if force else 15
             proc = subprocess.Popen(
                 ["makemkvcon", "-r", "--cache=1", "info", "disc:0"],
                 stdout=subprocess.PIPE,
