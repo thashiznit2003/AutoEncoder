@@ -947,3 +947,7 @@
 ## 1.25.133 - 2025-12-22
 - Quote USB automount helper heredoc and inject target path safely to avoid early expansion.
 - Version bumped to 1.25.133.
+
+## 1.25.134 - 2025-12-22
+- Disable nounset during USB automount helper generation to avoid $1 expansion errors.
+- Version bumped to 1.25.134.

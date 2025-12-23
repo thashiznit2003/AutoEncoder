@@ -19,6 +19,7 @@ apt-get update -y >/dev/null 2>&1 || true
 apt-get install -y exfatprogs >/dev/null 2>&1 || true
 mkdir -p "$TARGET"
 
+set +u
 cat > "$HELPER" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -79,6 +80,7 @@ while [ "$attempt" -le "$max_attempts" ]; do
 done
 exit 0
 EOF
+set -u
 sed -i "s|__TARGET__|$TARGET|g" "$HELPER"
 chmod +x "$HELPER"
 
