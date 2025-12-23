@@ -1819,6 +1819,7 @@ def main():
                 except Exception:
                     logging.debug("Disc presence detection failed", exc_info=True)
             busy = bool(status_tracker and status_tracker.has_active_nonqueued())
+            auto_rip = bool(config.get("makemkv_auto_rip"))
             # Disc detection / info
             try:
                 if status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
@@ -1857,7 +1858,6 @@ def main():
                 bluray_present = any("bdmv" in str(f).lower() or "bluray" in str(f).lower() for f in video_files)
             except Exception:
                 bluray_present = False
-            auto_rip = bool(config.get("makemkv_auto_rip"))
             if bluray_present and status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
                 disc_num = get_disc_number()
                 disc_info = scan_disc_info_with_timeout(disc_num, 60) if disc_num is not None else None

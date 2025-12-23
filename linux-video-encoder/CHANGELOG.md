@@ -930,3 +930,7 @@
 ## 1.25.129 - 2025-12-22
 - Docker Hub update script now accepts a version argument and has a more robust parser with debug output.
 - Version bumped to 1.25.129.
+
+## 1.25.130 - 2025-12-22
+- Fix UnboundLocalError in auto disc info refresh by initializing auto_rip before scan logic.
+- Version bumped to 1.25.130.
