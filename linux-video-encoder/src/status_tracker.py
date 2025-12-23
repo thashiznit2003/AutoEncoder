@@ -380,6 +380,10 @@ class StatusTracker:
         with self._lock:
             return self._disc_pending
 
+    def set_disc_pending(self, value: bool):
+        with self._lock:
+            self._disc_pending = bool(value)
+
     def request_disc_rip(self, mode: str = "manual"):
         with self._lock:
             if mode == "auto" and self._disc_rip_requested and self._disc_rip_mode == "manual":

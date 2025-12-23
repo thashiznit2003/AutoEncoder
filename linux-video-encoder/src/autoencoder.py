@@ -1809,6 +1809,11 @@ def main():
             # Handle manual rip requests even when no bluray files are present in the scan
             mode = status_tracker.consume_disc_rip_request() if status_tracker else None
             if status_tracker and mode:
+                if status_tracker.disc_rip_blocked():
+                    status_tracker.add_event("Rip request ignored; Stop All Ripping is enabled.", level="error")
+                    mode = None
+                if not mode:
+                    continue
                 disc_source = _resolve_disc_source()
                 disc_num = get_disc_number()
                 if disc_source is None:
@@ -1922,7 +1927,7 @@ def main():
                     di = status_tracker.disc_info() or {}
                     info = di.get("info") or {}
                     titles = info.get("titles") or []
-                    if not titles and status_tracker.disc_scan_paused():
+                    if not titles and status_tracker.disc_scan_paused() and not status_tracker.disc_rip_blocked():
                         status_tracker.resume_disc_scan()
             except Exception:
                 logging.debug("Disc scan resume check failed", exc_info=True)

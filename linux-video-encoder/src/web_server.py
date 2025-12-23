@@ -2295,6 +2295,7 @@ def create_app(tracker, config_manager=None):
         try:
             tracker.block_disc_rip()
             tracker.pause_disc_scan()
+            tracker.set_disc_pending(False)
         except Exception:
             pass
         tracker.add_event("Stop All Ripping enabled; auto-rip paused.")

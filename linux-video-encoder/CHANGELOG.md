@@ -960,3 +960,8 @@
 ## 1.25.136 - 2025-12-22
 - Omit MakeMKV minlength filtering when explicit title IDs are requested to avoid title index remapping.
 - Version bumped to 1.25.136.
+
+## 1.25.137 - 2025-12-22
+- Stop All Ripping now fully blocks new disc scans/rips and ignores queued rip requests until restarted.
+- Prevent paused disc scans from resuming while Stop All Ripping is enabled.
+- Version bumped to 1.25.137.
