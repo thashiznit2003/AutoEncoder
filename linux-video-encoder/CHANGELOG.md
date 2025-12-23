@@ -956,3 +956,7 @@
 - Only reuse existing MKV files when they match requested title IDs to avoid wrong title selection.
 - Log MakeMKV command for diagnostics and pick output file matching requested title when possible.
 - Version bumped to 1.25.135.
+
+## 1.25.136 - 2025-12-22
+- Omit MakeMKV minlength filtering when explicit title IDs are requested to avoid title index remapping.
+- Version bumped to 1.25.136.

@@ -430,8 +430,9 @@ def rip_disc(
         disc_source,
         title_arg,
         output_dir,
-        f"--minlength={min_length}",
     ]
+    if not title_list:
+        cmd.append(f"--minlength={min_length}")
     # MakeMKV CLI doesn't accept audio/subtitle language selectors in this build; skip them to avoid errors.
 
     # Check for existing MKVs; reuse only when they match the requested title(s).
