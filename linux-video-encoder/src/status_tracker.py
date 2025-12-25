@@ -36,6 +36,10 @@ class StatusTracker:
         self._disc_auto_key = None
         self._smb_pending = []
         self._usb_status = {"state": "unknown", "message": "USB status unknown"}
+        self._disc_scan_inflight = False
+        self._disc_scan_cooldown_until = 0.0
+        self._disc_scan_failures = 0
+        self._disc_scan_last_ts = 0.0
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -467,3 +471,42 @@ class StatusTracker:
     def disc_scan_paused(self) -> bool:
         with self._lock:
             return self._disc_scan_paused
+
+    def can_start_disc_scan(self, force: bool = False) -> bool:
+        now = time.time()
+        with self._lock:
+            if self._disc_scan_inflight:
+                return False
+            if force:
+                return True
+            if self._disc_scan_paused or self._disc_rip_blocked:
+                return False
+            return now >= self._disc_scan_cooldown_until
+
+    def start_disc_scan(self) -> bool:
+        with self._lock:
+            if self._disc_scan_inflight:
+                return False
+            self._disc_scan_inflight = True
+            return True
+
+    def finish_disc_scan(self, success: bool, timed_out: bool = False):
+        now = time.time()
+        with self._lock:
+            self._disc_scan_inflight = False
+            self._disc_scan_last_ts = now
+            if success and not timed_out:
+                self._disc_scan_failures = 0
+                return
+            self._disc_scan_failures += 1
+            backoff = min(300, 60 * self._disc_scan_failures)
+            self._disc_scan_cooldown_until = max(self._disc_scan_cooldown_until, now + backoff)
+
+    def set_disc_scan_cooldown(self, seconds: int):
+        now = time.time()
+        with self._lock:
+            self._disc_scan_cooldown_until = max(self._disc_scan_cooldown_until, now + max(0, int(seconds)))
+
+    def disc_scan_inflight(self) -> bool:
+        with self._lock:
+            return self._disc_scan_inflight

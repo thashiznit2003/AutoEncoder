@@ -46,6 +46,14 @@ ensure_base_tools() {
   fi
 }
 
+ensure_optical_tools() {
+  if ! command -v sg_reset >/dev/null 2>&1 || ! command -v eject >/dev/null 2>&1; then
+    log "Installing optical tooling (sg3-utils, eject)..."
+    $SUDO apt-get update
+    $SUDO apt-get install -y sg3-utils eject
+  fi
+}
+
 prepare_dirs() {
   log "Preparing host directories under $APP_DIR"
   $SUDO mkdir -p "$APP_DIR"
@@ -289,6 +297,7 @@ maybe_install_nvidia_toolkit() {
 
 main() {
   ensure_base_tools
+  ensure_optical_tools
   prepare_dirs
   setup_usb_automount
   install_usb_host_helper

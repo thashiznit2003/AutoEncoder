@@ -5,6 +5,7 @@ Host-side helper to manage optical drive visibility.
 Endpoints:
   GET  /optical/status   -> returns detected optical devices and selected dev paths
   POST /optical/refresh  -> rescans SCSI hosts and returns updated status
+  POST /optical/reset    -> attempts a soft reset/eject on the selected drive
 """
 
 import argparse
@@ -44,6 +45,21 @@ def scsi_generic_for_sr(sr: str):
     return None
 
 
+def disc_present_for_sr(sr: str) -> bool:
+    try:
+        media = f"/sys/class/block/{sr}/device/media"
+        if os.path.isfile(media):
+            with open(media, "r", encoding="utf-8") as f:
+                return f.read().strip() == "1"
+        size = f"/sys/class/block/{sr}/size"
+        if os.path.isfile(size):
+            with open(size, "r", encoding="utf-8") as f:
+                return int(f.read().strip() or "0") > 0
+    except Exception:
+        return False
+    return False
+
+
 def udev_props(devnode: str):
     res = run(["udevadm", "info", "--query=property", "--name", devnode])
     props = {}
@@ -72,6 +88,7 @@ def detect_optical_devices():
             continue
         sr = f"/dev/{name}"
         props = udev_props(sr)
+        present = disc_present_for_sr(name)
         devices.append(
             {
                 "sr_device": sr,
@@ -80,6 +97,7 @@ def detect_optical_devices():
                 "serial": props.get("ID_SERIAL_SHORT") or props.get("ID_SERIAL"),
                 "bus": props.get("ID_BUS") or parts.get("TRAN"),
                 "label": props.get("ID_FS_LABEL"),
+                "present": present,
             }
         )
     return devices
@@ -89,6 +107,30 @@ def build_status():
     devices = detect_optical_devices()
     selected = devices[0] if devices else None
     return {"devices": devices, "selected": selected}
+
+
+def reset_optical_device(selected: dict) -> dict:
+    if not selected:
+        return {"ok": False, "error": "no optical device detected"}
+    sr_device = selected.get("sr_device")
+    sg_device = selected.get("sg_device")
+    actions = []
+    errors = []
+    if sg_device and os.path.exists(sg_device) and run(["which", "sg_reset"]).returncode == 0:
+        res = run(["sg_reset", "--device", sg_device])
+        actions.append({"cmd": "sg_reset --device", "rc": res.returncode})
+        if res.returncode != 0:
+            errors.append(res.stderr.strip() or res.stdout.strip() or "sg_reset failed")
+    if sr_device and os.path.exists(sr_device) and run(["which", "eject"]).returncode == 0:
+        res = run(["eject", "-T", sr_device])
+        actions.append({"cmd": "eject -T", "rc": res.returncode})
+        if res.returncode != 0:
+            errors.append(res.stderr.strip() or res.stdout.strip() or "eject failed")
+    ok = not errors
+    payload = {"ok": ok, "actions": actions}
+    if errors:
+        payload["errors"] = errors
+    return payload
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -113,6 +155,11 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.startswith("/optical/refresh"):
             rescan_scsi_hosts()
             self._json(200, build_status())
+            return
+        if self.path.startswith("/optical/reset"):
+            status = build_status()
+            result = reset_optical_device(status.get("selected") or {})
+            self._json(200 if result.get("ok") else 500, result)
             return
         self._json(404, {"error": "not found"})
 

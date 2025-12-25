@@ -73,6 +73,14 @@ ensure_base_tools() {
   fi
 }
 
+ensure_optical_tools() {
+  if ! command -v sg_reset >/dev/null 2>&1 || ! command -v eject >/dev/null 2>&1; then
+    log "Installing optical tooling (sg3-utils, eject)..."
+    $SUDO apt-get update
+    $SUDO apt-get install -y sg3-utils eject
+  fi
+}
+
 install_docker() {
   if command -v docker >/dev/null 2>&1; then
     log "Docker already installed."
@@ -461,6 +469,7 @@ CONFIG
 
 main() {
   ensure_base_tools
+  ensure_optical_tools
   install_docker
   fetch_repo
   build_and_run

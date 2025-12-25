@@ -564,8 +564,8 @@ MAIN_PAGE_TEMPLATE = """
         const discPresent = (status.disc_present === true) ? true : ((status.disc_present === false) ? false : null);
         if ((!discInfo || !discInfo.info) && discPresent !== false) {
           try {
-            if (!status.disc_scan_paused) {
-              const info = await fetchJSONWithTimeout("/api/makemkv/info?force=1", {}, 20000);
+            if (!status.disc_scan_paused && !status.disc_rip_blocked) {
+              const info = await fetchJSONWithTimeout("/api/makemkv/info?force=1", {}, 90000);
               if (info) {
                 discInfo = info;
                 discPending = true;
@@ -1085,6 +1085,7 @@ SETTINGS_PAGE_TEMPLATE = """
         <div class="muted field-display" id="mk-rip-status">Rip status: active</div>
         <div style="display:flex; gap:6px; margin:6px 0; flex-wrap:wrap;">
           <button type="button" id="mk-refresh-info">Refresh disc info</button>
+          <button type="button" id="mk-reset-drive">Reset drive</button>
           <button type="button" id="mk-start-rip">Start rip</button>
           <button type="button" id="mk-stop-all">Stop all ripping</button>
           <button type="button" id="mk-copy-info">Copy disc info</button>
@@ -1514,6 +1515,19 @@ SETTINGS_PAGE_TEMPLATE = """
         renderTitleList(info);
       } catch (e) {
         alert("Failed to fetch disc info: " + e);
+      }
+    });
+
+    document.getElementById("mk-reset-drive").addEventListener("click", async () => {
+      try {
+        const res = await fetchJSON("/api/makemkv/reset_drive", { method: "POST" });
+        if (res && res.ok) {
+          alert("Drive reset requested.");
+        } else {
+          alert("Drive reset failed.");
+        }
+      } catch (e) {
+        alert("Failed to reset drive: " + e);
       }
     });
 

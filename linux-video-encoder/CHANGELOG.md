@@ -969,3 +969,10 @@
 ## 1.25.138 - 2025-12-22
 - Increase forced MakeMKV info scan timeout to 90s so title lists populate reliably on manual refresh.
 - Version bumped to 1.25.138.
+
+## 1.25.139 - 2025-12-22
+- Add single-flight + cooldown/backoff for MakeMKV scans to avoid overlapping drive reads.
+- Pause disc scanning during active jobs and after rip completion; resume only on disc change or manual action.
+- Use optical helper presence for stable disc detection; add host-side reset endpoint and UI button.
+- Host setup scripts now install sg3-utils and eject for reset support.
+- Version bumped to 1.25.139.

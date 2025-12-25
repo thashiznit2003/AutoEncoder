@@ -11,6 +11,7 @@ from pathlib import Path
 import shutil
 from functools import wraps
 import logging
+import urllib.request
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
 from smb_allowlist import save_smb_allowlist, load_smb_allowlist, remove_from_allowlist
 from makemkv_parser import parse_makemkv_info_output
@@ -25,6 +26,15 @@ DIAG_GIT_EMAIL = os.environ.get("DIAG_GIT_EMAIL", "diagnostics@example.com")
 STATE_ROOT = Path(os.environ.get("AE_STATE_DIR", "/var/lib/autoencoder/state"))
 TIMING_PATH = STATE_ROOT / "timing.log"
 MAKEMKV_TIMEOUT_EVENT_TS = 0.0
+
+
+def _call_optical_helper(path: str, method: str = "POST") -> dict:
+    base = os.environ.get("OPTICAL_HELPER_URL", "http://host.docker.internal:8767/optical/status")
+    base_root = base.rsplit("/optical/", 1)[0]
+    url = base_root + path
+    req = urllib.request.Request(url, method=method)
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        return json.loads(resp.read().decode("utf-8"))
 
 def log_timing(label: str, started_at: float, extra: str = ""):
     """Append simple timing entries for diagnostics, ignore failures."""
@@ -645,7 +655,7 @@ HTML_PAGE_TEMPLATE = """
       applyDiscInfo(discInfoRaw, discPending);
       // Non-blocking fallback: fetch detailed info with timeout, then update card
       if (discPending && (!discInfoRaw || !discInfoRaw.info)) {
-        fetchJSONWithTimeout("/api/makemkv/info", {}, 20000)
+        fetchJSONWithTimeout("/api/makemkv/info", {}, 90000)
           .then((di) => applyDiscInfo(di || discInfoRaw, discPending))
           .catch((err) => console.warn("Fallback disc info fetch failed", err));
       }
@@ -2156,6 +2166,21 @@ def create_app(tracker, config_manager=None):
                 cached = tracker.disc_info() or {}
                 cached["paused"] = True
                 return jsonify(cached)
+            if tracker.has_active_nonqueued():
+                cached = tracker.disc_info() or {}
+                cached["paused"] = True
+                cached["note"] = "Disc scan paused during active jobs"
+                return jsonify(cached)
+            if not tracker.can_start_disc_scan(force=force):
+                cached = tracker.disc_info() or {}
+                cached["pending"] = True
+                cached["note"] = "MakeMKV scan in progress or cooling down"
+                return jsonify(cached)
+            if not tracker.start_disc_scan():
+                cached = tracker.disc_info() or {}
+                cached["pending"] = True
+                cached["note"] = "MakeMKV scan already running"
+                return jsonify(cached)
             timeout_sec = 90 if force else 15
             proc = subprocess.Popen(
                 ["makemkvcon", "-r", "--cache=1", "info", "disc:0"],
@@ -2207,6 +2232,8 @@ def create_app(tracker, config_manager=None):
                 if now - MAKEMKV_TIMEOUT_EVENT_TS > 30:
                     tracker.add_event("MakeMKV info scan timed out; returning partial output")
                     MAKEMKV_TIMEOUT_EVENT_TS = now
+            success = bool(parsed) and not timed_out and bool(parsed.get("titles"))
+            tracker.finish_disc_scan(success=success, timed_out=timed_out)
             tracker.set_disc_info(info_payload)
             if force:
                 try:
@@ -2226,6 +2253,11 @@ def create_app(tracker, config_manager=None):
             tracker.add_event(f"MakeMKV info error: {exc}", level="error")
             return jsonify({"error": str(exc)}), 500
         finally:
+            try:
+                if tracker.disc_scan_inflight():
+                    tracker.finish_disc_scan(success=False, timed_out=False)
+            except Exception:
+                pass
             log_timing("api/makemkv/info", t0)
 
     @app.route("/api/retry", methods=["POST"])
@@ -2300,6 +2332,17 @@ def create_app(tracker, config_manager=None):
             pass
         tracker.add_event("Stop All Ripping enabled; auto-rip paused.")
         return jsonify({"stopped": stopped, "blocked": True})
+
+    @app.route("/api/makemkv/reset_drive", methods=["POST"])
+    @require_auth
+    def makemkv_reset_drive():
+        try:
+            result = _call_optical_helper("/optical/reset", method="POST")
+            tracker.add_event("Optical drive reset requested.")
+            return jsonify(result)
+        except Exception as exc:
+            tracker.add_event(f"Optical drive reset failed: {exc}", level="error")
+            return jsonify({"ok": False, "error": str(exc)}), 500
 
     @app.route("/api/makemkv/rename", methods=["POST"])
     @require_auth

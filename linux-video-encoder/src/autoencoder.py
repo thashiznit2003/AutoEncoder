@@ -368,13 +368,18 @@ def rip_disc(
                 disc_type = di.get("disc_type")
         except Exception:
             disc_type = None
-    # If we don't have disc info yet, try to capture it up front so UI shows label/type while ripping
+    # Avoid extra MakeMKV scans while ripping; only fill info if a scan is allowed
     if status_tracker:
         try:
             di = status_tracker.disc_info()
-            if not di or not di.get("info"):
-                scanned = scan_disc_info(disc_source)
-                status_tracker.set_disc_info({"disc_index": disc_index, "source": disc_source, "info": scanned})
+            if (not di or not di.get("info")) and status_tracker.can_start_disc_scan(force=False):
+                if status_tracker.start_disc_scan():
+                    scanned = scan_disc_info_with_timeout(disc_source, 30)
+                    timed_out = bool(scanned and scanned.get("scan_pending"))
+                    success = bool(scanned) and not timed_out and _disc_scan_complete(scanned)
+                    status_tracker.finish_disc_scan(success=success, timed_out=timed_out)
+                    if scanned:
+                        status_tracker.set_disc_info({"disc_index": disc_index, "source": disc_source, "info": scanned})
         except Exception:
             logger.debug("Initial disc scan before rip failed", exc_info=True)
     dest_hint = output_dir
@@ -384,6 +389,7 @@ def rip_disc(
         else:
             status_tracker.set_state(job_key, "ripping")
         status_tracker.set_message(job_key, f"Ripping {disc_source}")
+        status_tracker.pause_disc_scan()
     title_list = []
     if titles:
         try:
@@ -591,6 +597,16 @@ def _resolve_optical_devnode() -> Optional[str]:
     selected = status.get("selected") or {}
     dev = selected.get("sr_device")
     return dev
+
+
+def _resolve_optical_present() -> Optional[bool]:
+    status = _fetch_optical_helper_status()
+    if not status:
+        return None
+    selected = status.get("selected") or {}
+    if "present" in selected:
+        return bool(selected.get("present"))
+    return None
 
 
 def get_disc_number():
@@ -1089,6 +1105,9 @@ def _build_title_summary(title_ids: list, disc_titles: list) -> Optional[str]:
 
 def is_disc_present(devnode: str = "/dev/sr0") -> Optional[bool]:
     try:
+        helper_present = _resolve_optical_present()
+        if helper_present is not None:
+            return helper_present
         if devnode == "/dev/sr0":
             helper_dev = _resolve_optical_devnode()
             if helper_dev:
@@ -1123,6 +1142,20 @@ def _resolve_disc_source() -> Optional[str]:
     if disc_index is None:
         return None
     return f"disc:{disc_index}"
+
+
+def _guarded_disc_scan(status_tracker: Optional[StatusTracker], disc_source: str, timeout_sec: int, force: bool = False):
+    if status_tracker:
+        if not status_tracker.can_start_disc_scan(force=force):
+            return None, False, False
+        if not status_tracker.start_disc_scan():
+            return None, False, False
+    info = scan_disc_info_with_timeout(disc_source, timeout_sec)
+    timed_out = bool(info and info.get("scan_pending"))
+    success = bool(info) and not timed_out and _disc_scan_complete(info)
+    if status_tracker:
+        status_tracker.finish_disc_scan(success=success, timed_out=timed_out)
+    return info, success, timed_out
 
 def _select_top_titles(info: dict, count: int, min_seconds: int) -> list:
     titles = (info or {}).get("titles") or []
@@ -1825,7 +1858,11 @@ def main():
                     mk_audio_langs = config.get("makemkv_audio_langs", []) or config.get("makemkv_preferred_audio_langs", [])
                     mk_sub_langs = config.get("makemkv_subtitle_langs", []) or config.get("makemkv_preferred_subtitle_langs", [])
                     if mode == "auto":
-                        disc_info = scan_disc_info_with_timeout(disc_source, 90) or {}
+                        disc_info = status_tracker.disc_info() or {}
+                        if not _disc_scan_complete(disc_info.get("info") if isinstance(disc_info, dict) else disc_info):
+                            scanned, _success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 90, force=True)
+                            if scanned:
+                                disc_info = {"disc_index": disc_num, "source": disc_source, "info": scanned}
                         disc_key = _disc_key_from_info(disc_info, disc_num)
                         queue = status_tracker.disc_auto_queue()
                         if status_tracker.disc_auto_key() != disc_key or not queue:
@@ -1864,10 +1901,13 @@ def main():
                             else:
                                 status_tracker.add_event("Auto-rip queue complete.")
                                 status_tracker.pause_disc_scan()
+                                status_tracker.set_disc_scan_cooldown(120)
                         else:
                             status_tracker.pause_disc_scan()
+                            status_tracker.set_disc_scan_cooldown(120)
                     else:
                         status_tracker.add_event("Manual MakeMKV rip failed to produce output.", level="error")
+                        status_tracker.set_disc_scan_cooldown(120)
             # Pre-register queued items so they appear in Active
             for f in video_files:
                 try:
@@ -1878,6 +1918,7 @@ def main():
                     logging.debug("Failed to pre-register queued file %s", f, exc_info=True)
             # Disc insert/remove detection without MakeMKV polling
             present = None
+            disc_present_changed = False
             if status_tracker:
                 try:
                     present = is_disc_present()
@@ -1889,6 +1930,8 @@ def main():
                     if present is True and prev is not True:
                         status_tracker.resume_disc_scan()
                         status_tracker.add_event("Disc inserted.")
+                    if present is not None and prev != present:
+                        disc_present_changed = True
                     if present is not None:
                         status_tracker.set_disc_present(present)
                 except Exception:
@@ -1898,13 +1941,15 @@ def main():
             # Disc detection / info
             try:
                 if status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
-                    disc_source = _resolve_disc_source()
-                    disc_num = get_disc_number()
-                    if disc_source:
-                        disc_info = scan_disc_info_with_timeout(disc_source, 60)
-                        status_tracker.set_disc_info({"disc_index": disc_num, "source": disc_source, "info": disc_info})
-                        if not auto_rip and _disc_scan_complete(disc_info or {}):
-                            status_tracker.pause_disc_scan()
+                    if disc_present_changed or not status_tracker.disc_info():
+                        disc_source = _resolve_disc_source()
+                        disc_num = get_disc_number()
+                        if disc_source:
+                            disc_info, success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 60, force=False)
+                            if disc_info:
+                                status_tracker.set_disc_info({"disc_index": disc_num, "source": disc_source, "info": disc_info})
+                            if not auto_rip and _disc_scan_complete(disc_info or {}):
+                                status_tracker.pause_disc_scan()
             except Exception:
                 logging.debug("Auto disc info refresh failed", exc_info=True)
             try:
@@ -1915,7 +1960,7 @@ def main():
                     disc_num = di.get("disc_index")
                     disc_source = di.get("source") or _resolve_disc_source()
                     if disc_source and not titles:
-                        refreshed = scan_disc_info_with_timeout(disc_source, 60)
+                        refreshed, _success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 60, force=False)
                         if refreshed:
                             status_tracker.set_disc_info({"disc_index": disc_num, "source": disc_source, "info": refreshed})
                             if not auto_rip and _disc_scan_complete(refreshed or {}):
