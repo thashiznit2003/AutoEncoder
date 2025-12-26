@@ -163,13 +163,31 @@ MAIN_PAGE_TEMPLATE = """
     let authDirty = false;
     let lastMkInfoText = "";
     let lastMkInfoPayload = null;
-    let lastMkInfoText = "";
-    let lastMkInfoPayload = null;
     let eventsCache = [];
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
       document.getElementById("smb-connect").click();
     }
+
+    function showJsError(msg) {
+      let el = document.getElementById("js-error-banner");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "js-error-banner";
+        el.style.cssText = "position:sticky;top:0;z-index:9999;background:#7f1d1d;color:#fee2e2;padding:8px 12px;border-bottom:1px solid #fecaca;font-size:12px;display:none;";
+        document.body.prepend(el);
+      }
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    window.addEventListener("error", (e) => {
+      showJsError("JS error: " + (e && e.message ? e.message : e));
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      const reason = e && e.reason ? (e.reason.message || e.reason) : e;
+      showJsError("Promise error: " + reason);
+    });
 
     async function fetchJSON(url, opts) {
       const res = await fetch(url, { ...(opts || {}), credentials: "include" });
@@ -204,20 +222,6 @@ MAIN_PAGE_TEMPLATE = """
       const m = Math.floor((total % 3600) / 60);
       const s = total % 60;
       return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
-    }
-
-    function extractTitlePayload(info) {
-      const payload = (info && (info.info || info)) || {};
-      if (payload.titles && payload.titles.length) return payload;
-      if (lastMkInfoPayload && lastMkInfoPayload.titles && lastMkInfoPayload.titles.length) return lastMkInfoPayload;
-      return payload;
-    }
-
-    function rememberTitles(info) {
-      const payload = (info && (info.info || info)) || {};
-      if (payload.titles && payload.titles.length) {
-        lastMkInfoPayload = payload;
-      }
     }
 
     function extractTitlePayload(info) {
@@ -620,6 +624,7 @@ MAIN_PAGE_TEMPLATE = """
         window.__discPending = discPending;
         window.__discPresent = discPresent;
       } catch (e) {
+        showJsError("Refresh failed: " + e);
         document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
         document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
       }
@@ -628,6 +633,7 @@ MAIN_PAGE_TEMPLATE = """
         const lines = Array.isArray(logs.lines) ? logs.lines : [];
         renderLogs(lines);
       } catch (e) {
+        showJsError("Logs fetch failed: " + e);
         document.getElementById("logs").textContent = "Logs unavailable.";
       }
       try {
@@ -638,6 +644,7 @@ MAIN_PAGE_TEMPLATE = """
         });
         document.getElementById("events").textContent = lines.join("\\n") || "No recent events.";
       } catch (e) {
+        showJsError("Events fetch failed: " + e);
         document.getElementById("events").textContent = "Events unavailable.";
       }
       try {
@@ -650,6 +657,7 @@ MAIN_PAGE_TEMPLATE = """
         renderMetrics(metrics);
       updateDiscCard(window.__discInfo || {}, !!window.__discPending, window.__discPresent);
       } catch (e) {
+        showJsError("Metrics fetch failed: " + e);
         document.getElementById("metrics").textContent = "Metrics unavailable.";
       }
     }
@@ -1199,6 +1207,20 @@ SETTINGS_PAGE_TEMPLATE = """
       return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
     }
 
+    function extractTitlePayload(info) {
+      const payload = (info && (info.info || info)) || {};
+      if (payload.titles && payload.titles.length) return payload;
+      if (lastMkInfoPayload && lastMkInfoPayload.titles && lastMkInfoPayload.titles.length) return lastMkInfoPayload;
+      return payload;
+    }
+
+    function rememberTitles(info) {
+      const payload = (info && (info.info || info)) || {};
+      if (payload.titles && payload.titles.length) {
+        lastMkInfoPayload = payload;
+      }
+    }
+
     function buildDiscInfoText(info) {
       if (!info) return "";
       const payload = info.info ? info.info : info;
@@ -1408,6 +1430,7 @@ SETTINGS_PAGE_TEMPLATE = """
         if (debugEl) {
           debugEl.textContent = "Titles: error - " + e;
         }
+        showJsError("Settings refresh failed: " + e);
         console.error("Failed to load config", e);
       }
     }

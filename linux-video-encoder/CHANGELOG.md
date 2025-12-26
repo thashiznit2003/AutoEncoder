@@ -1003,3 +1003,12 @@
 ## 1.25.145 - 2025-12-26
 - Guard MakeMKV title cache helpers in settings refresh to avoid ReferenceError if not loaded.
 - Version bumped to 1.25.145.
+
+## 1.25.147 - 2025-12-26
+- Remove duplicate JS declarations that triggered a syntax error and prevented UI scripts from running.
+- Version bumped to 1.25.147.
+
+## 1.25.146 - 2025-12-26
+- Add on-page JS error banner for both main and settings pages to surface fetch and runtime errors.
+- Ensure settings page includes MakeMKV title cache helpers and reports refresh failures.
+- Version bumped to 1.25.146.
