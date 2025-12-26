@@ -982,3 +982,7 @@
 - Avoid disc info text being overwritten by partial scans once full title data is cached.
 - Guard refresh to prevent missing renderTitleList errors.
 - Version bumped to 1.25.140.
+
+## 1.25.141 - 2025-12-26
+- Add a titles debug line on the MakeMKV Settings panel to show counts and disc presence.
+- Version bumped to 1.25.141.

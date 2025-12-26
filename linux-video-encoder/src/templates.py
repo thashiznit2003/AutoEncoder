@@ -1111,6 +1111,7 @@ SETTINGS_PAGE_TEMPLATE = """
         <div style="margin-top:10px;">
           <div class="muted" style="margin-bottom:6px;">Titles (select to set manual rip list)</div>
           <div id="mk-titles-list" class="log field-display" style="max-height:180px; overflow:auto; padding:8px;"></div>
+          <div id="mk-titles-debug" class="muted field-display" style="margin-top:6px; font-size:11px;"></div>
           <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" id="mk-titles-apply">Use selected titles</button>
           </div>
@@ -1354,6 +1355,13 @@ SETTINGS_PAGE_TEMPLATE = """
         }
         rememberTitles(status.disc_info);
         renderTitleList(status.disc_info);
+        const titlePayload = extractTitlePayload(status.disc_info);
+        const titlesCount = (titlePayload.titles || []).length;
+        const cachedCount = (lastMkInfoPayload && lastMkInfoPayload.titles) ? lastMkInfoPayload.titles.length : 0;
+        const debugEl = document.getElementById("mk-titles-debug");
+        if (debugEl) {
+          debugEl.textContent = "Titles: " + titlesCount + " (cached: " + cachedCount + ", disc present: " + (status.disc_present === true ? "yes" : (status.disc_present === false ? "no" : "unknown")) + ")";
+        }
         updateDiscInfoPanel(status);
         if (!authDirty) {
           document.getElementById("auth-user").value = cfg.auth_user || "";
