@@ -166,6 +166,8 @@ MAIN_PAGE_TEMPLATE = """
     let authDirty = false;
     let lastMkInfoText = "";
     let lastMkInfoPayload = null;
+    let lastTitleHtml = "";
+    let lastDiscKey = "";
     let eventsCache = [];
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
@@ -249,7 +251,11 @@ MAIN_PAGE_TEMPLATE = """
         : ((info && (info.info || info)) || {});
       const titles = parsed.titles || [];
       if (!titles.length) {
-        el.textContent = "No titles found yet.";
+        if (lastTitleHtml) {
+          el.innerHTML = lastTitleHtml;
+        } else {
+          el.textContent = "No titles found yet.";
+        }
         return;
       }
       const rows = titles.map(t => {
@@ -265,6 +271,7 @@ MAIN_PAGE_TEMPLATE = """
         );
       }).join("");
       el.innerHTML = rows;
+      lastTitleHtml = rows;
     }
 
     function renderMetrics(metrics) {
@@ -1291,6 +1298,8 @@ SETTINGS_PAGE_TEMPLATE = """
       const info = (status && status.disc_info) || {};
       const summary = info.summary || (info.info && info.info.summary) || {};
       const label = summary.disc_label || summary.label || "";
+      const drive = summary.drive || "";
+      const discKey = [label, drive].filter(Boolean).join("|");
       const text = buildDiscInfoText(info);
       const titlePayload = (typeof extractTitlePayload === "function")
         ? extractTitlePayload(info)
@@ -1298,10 +1307,19 @@ SETTINGS_PAGE_TEMPLATE = """
       const hasTitles = !!(titlePayload.titles && titlePayload.titles.length);
       const hasSummary = !!(summary.titles_detected || summary.title_count || (summary.main_feature && summary.main_feature.duration));
       const hasRawMarkers = text && (text.indexOf("TCOUNT:") !== -1 || text.indexOf("TINFO:") !== -1);
-      if (discPresent === false) {
+      if (discKey && discKey !== lastDiscKey) {
+        lastDiscKey = discKey;
+        lastMkInfoText = "";
+        lastMkInfoPayload = null;
+        lastTitleHtml = "";
+      }
+      const shouldClear = (discPresent === false && !discKey && !hasTitles && !hasSummary && !hasRawMarkers);
+      if (shouldClear) {
         discInfoEl.value = "";
         lastMkInfoText = "";
         lastMkInfoPayload = null;
+        lastTitleHtml = "";
+        lastDiscKey = "";
         if (discStatusEl) {
           discStatusEl.textContent = "Disc status: no disc";
         }
@@ -1314,8 +1332,12 @@ SETTINGS_PAGE_TEMPLATE = """
         discInfoEl.value = lastMkInfoText;
       }
       if (discStatusEl) {
-        if (discPresent === true) {
-          discStatusEl.textContent = label ? ("Disc status: " + label) : "Disc status: present";
+        if (label) {
+          discStatusEl.textContent = "Disc status: " + label;
+        } else if (discPresent === false) {
+          discStatusEl.textContent = "Disc status: no disc";
+        } else if (discPresent === true) {
+          discStatusEl.textContent = "Disc status: present";
         } else {
           discStatusEl.textContent = "Disc status: unknown";
         }
