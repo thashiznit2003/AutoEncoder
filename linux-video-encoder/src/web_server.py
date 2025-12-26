@@ -2181,7 +2181,7 @@ def create_app(tracker, config_manager=None):
                 cached["pending"] = True
                 cached["note"] = "MakeMKV scan already running"
                 return jsonify(cached)
-            timeout_sec = 90 if force else 15
+            timeout_sec = 120 if force else 30
             proc = subprocess.Popen(
                 ["makemkvcon", "-r", "--cache=1", "info", "disc:0"],
                 stdout=subprocess.PIPE,

@@ -374,7 +374,7 @@ def rip_disc(
             di = status_tracker.disc_info()
             if (not di or not di.get("info")) and status_tracker.can_start_disc_scan(force=False):
                 if status_tracker.start_disc_scan():
-                    scanned = scan_disc_info_with_timeout(disc_source, 30)
+                    scanned = scan_disc_info_with_timeout(disc_source, 60)
                     timed_out = bool(scanned and scanned.get("scan_pending"))
                     success = bool(scanned) and not timed_out and _disc_scan_complete(scanned)
                     status_tracker.finish_disc_scan(success=success, timed_out=timed_out)
@@ -1020,7 +1020,7 @@ def scan_disc_info(disc_source: str) -> Optional[dict]:
             parsed["disc_type"] = disc_type
     return parsed
 
-def scan_disc_info_with_timeout(disc_source: str, timeout_sec: int = 60) -> Optional[dict]:
+def scan_disc_info_with_timeout(disc_source: str, timeout_sec: int = 120) -> Optional[dict]:
     try:
         proc = subprocess.Popen(
             ["makemkvcon", "-r", "info", disc_source],
@@ -1945,7 +1945,7 @@ def main():
                         disc_source = _resolve_disc_source()
                         disc_num = get_disc_number()
                         if disc_source:
-                            disc_info, success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 60, force=False)
+                        disc_info, success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 120, force=False)
                             if disc_info:
                                 status_tracker.set_disc_info({"disc_index": disc_num, "source": disc_source, "info": disc_info})
                             if not auto_rip and _disc_scan_complete(disc_info or {}):
@@ -1960,7 +1960,7 @@ def main():
                     disc_num = di.get("disc_index")
                     disc_source = di.get("source") or _resolve_disc_source()
                     if disc_source and not titles:
-                        refreshed, _success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 60, force=False)
+                        refreshed, _success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 120, force=False)
                         if refreshed:
                             status_tracker.set_disc_info({"disc_index": disc_num, "source": disc_source, "info": refreshed})
                             if not auto_rip and _disc_scan_complete(refreshed or {}):
@@ -1983,7 +1983,7 @@ def main():
             if bluray_present and status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
                 disc_source = _resolve_disc_source()
                 disc_num = get_disc_number()
-                disc_info = scan_disc_info_with_timeout(disc_source, 60) if disc_source else None
+                disc_info = scan_disc_info_with_timeout(disc_source, 120) if disc_source else None
                 info_payload = {"disc_index": disc_num, "source": disc_source, "info": disc_info}
                 status_tracker.set_disc_info(info_payload)
                 status_tracker.add_event(

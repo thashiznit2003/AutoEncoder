@@ -251,6 +251,7 @@ class StatusTracker:
             disc_pending = self._disc_pending
             disc_rip_blocked = self._disc_rip_blocked
             disc_scan_paused = self._disc_scan_paused
+            disc_scan_inflight = self._disc_scan_inflight
             disc_present = self._disc_present
             # If a disc rip is active, force disc_pending so UI shows presence
             if not disc_pending:
@@ -267,6 +268,7 @@ class StatusTracker:
             "disc_pending": disc_pending,
             "disc_rip_blocked": disc_rip_blocked,
             "disc_scan_paused": disc_scan_paused,
+            "disc_scan_inflight": disc_scan_inflight,
             "disc_present": disc_present,
             "usb_status": usb_status,
         }

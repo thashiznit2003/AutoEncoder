@@ -7,6 +7,9 @@ MAIN_PAGE_TEMPLATE = """
   <style>
     :root { color-scheme: dark; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
     body { margin: 0; background: radial-gradient(circle at 18% 20%, rgba(59,130,246,0.12), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,0.12), transparent 32%), #0b1220; color: #e2e8f0; }
+    .scan-indicator { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:#93c5fd; }
+    .scan-dot { width:10px; height:10px; border:2px solid #93c5fd; border-top-color: transparent; border-radius:50%; animation: scan-spin 1s linear infinite; }
+    @keyframes scan-spin { to { transform: rotate(360deg); } }
     header { padding: 14px 16px; background: linear-gradient(120deg, #0f172a, #0c1425); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
     h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; display:flex; align-items:center; gap:10px; }
     .brand { display:flex; align-items:center; gap:12px; }
@@ -605,12 +608,16 @@ MAIN_PAGE_TEMPLATE = """
           " | Offset=" + audioOffsetLabel;
         // Disc card update (main page, no eject)
         let discInfo = status.disc_info || {};
+        const busyEl = document.getElementById("mk-scan-busy");
+        if (busyEl) {
+          busyEl.style.display = status.disc_scan_inflight ? "inline-flex" : "none";
+        }
         let discPending = !!status.disc_pending;
         const discPresent = (status.disc_present === true) ? true : ((status.disc_present === false) ? false : null);
         if ((!discInfo || !discInfo.info) && discPresent !== false) {
           try {
             if (!status.disc_scan_paused && !status.disc_rip_blocked) {
-              const info = await fetchJSONWithTimeout("/api/makemkv/info?force=1", {}, 90000);
+              const info = await fetchJSONWithTimeout("/api/makemkv/info?force=1", {}, 120000);
               if (info) {
                 discInfo = info;
                 discPending = true;
@@ -1129,7 +1136,13 @@ SETTINGS_PAGE_TEMPLATE = """
         <button type="button" id="mk-save">Save MakeMKV</button>
       </form>
       <div style="margin-top:8px;">
-        <h3 style="margin:0 0 6px 0; color:#cbd5e1; font-size:13px;">Disc Info</h3>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+          <h3 style="margin:0; color:#cbd5e1; font-size:13px;">Disc Info</h3>
+          <div id="mk-scan-busy" class="scan-indicator" style="display:none;">
+            <span class="scan-dot"></span>
+            Scanning disc...
+          </div>
+        </div>
         <div class="muted field-display" id="mk-disc-status">Disc status: unknown</div>
         <div class="muted field-display" id="mk-rip-status">Rip status: active</div>
         <div style="display:flex; gap:6px; margin:6px 0; flex-wrap:wrap;">
