@@ -237,7 +237,9 @@ MAIN_PAGE_TEMPLATE = """
     function renderTitleList(info) {
       const el = document.getElementById("mk-titles-list");
       if (!el) return;
-      const parsed = extractTitlePayload(info);
+      const parsed = (typeof extractTitlePayload === "function")
+        ? extractTitlePayload(info)
+        : ((info && (info.info || info)) || {});
       const titles = parsed.titles || [];
       if (!titles.length) {
         el.textContent = "No titles found yet.";
@@ -1255,7 +1257,9 @@ SETTINGS_PAGE_TEMPLATE = """
       const summary = info.summary || (info.info && info.info.summary) || {};
       const label = summary.disc_label || summary.label || "";
       const text = buildDiscInfoText(info);
-      const titlePayload = extractTitlePayload(info);
+      const titlePayload = (typeof extractTitlePayload === "function")
+        ? extractTitlePayload(info)
+        : ((info && (info.info || info)) || {});
       const hasTitles = !!(titlePayload.titles && titlePayload.titles.length);
       const hasSummary = !!(summary.titles_detected || summary.title_count || (summary.main_feature && summary.main_feature.duration));
       const hasRawMarkers = text && (text.indexOf("TCOUNT:") !== -1 || text.indexOf("TINFO:") !== -1);
@@ -1381,9 +1385,13 @@ SETTINGS_PAGE_TEMPLATE = """
         if (ripStatus) {
           ripStatus.textContent = status.disc_rip_blocked ? "Rip status: paused" : "Rip status: active";
         }
-        rememberTitles(status.disc_info);
+        if (typeof rememberTitles === "function") {
+          rememberTitles(status.disc_info);
+        }
         renderTitleList(status.disc_info);
-        const titlePayload = extractTitlePayload(status.disc_info);
+        const titlePayload = (typeof extractTitlePayload === "function")
+          ? extractTitlePayload(status.disc_info)
+          : ((status.disc_info && (status.disc_info.info || status.disc_info)) || {});
         const titlesCount = (titlePayload.titles || []).length;
         const cachedCount = (lastMkInfoPayload && lastMkInfoPayload.titles) ? lastMkInfoPayload.titles.length : 0;
         const debugEl = document.getElementById("mk-titles-debug");
@@ -1573,7 +1581,9 @@ SETTINGS_PAGE_TEMPLATE = """
           const idx = (info && info.disc_index !== undefined) ? info.disc_index : null;
           discStatusEl.textContent = idx !== null ? ("Disc present (index " + idx + ")") : "Disc info refreshed.";
         }
-        rememberTitles(info);
+        if (typeof rememberTitles === "function") {
+          rememberTitles(info);
+        }
         if (typeof renderTitleList === "function") {
           renderTitleList(info);
         }

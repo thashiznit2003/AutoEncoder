@@ -999,3 +999,7 @@
 ## 1.25.144 - 2025-12-26
 - Define MakeMKV title cache helpers in the Settings page script to fix refresh errors.
 - Version bumped to 1.25.144.
+
+## 1.25.145 - 2025-12-26
+- Guard MakeMKV title cache helpers in settings refresh to avoid ReferenceError if not loaded.
+- Version bumped to 1.25.145.
