@@ -162,6 +162,7 @@ MAIN_PAGE_TEMPLATE = """
     let mkDirty = false;
     let authDirty = false;
     let lastMkInfoText = "";
+    let lastMkInfoPayload = null;
     let eventsCache = [];
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
@@ -195,10 +196,24 @@ MAIN_PAGE_TEMPLATE = """
       return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
     }
 
+    function extractTitlePayload(info) {
+      const payload = (info && (info.info || info)) || {};
+      if (payload.titles && payload.titles.length) return payload;
+      if (lastMkInfoPayload && lastMkInfoPayload.titles && lastMkInfoPayload.titles.length) return lastMkInfoPayload;
+      return payload;
+    }
+
+    function rememberTitles(info) {
+      const payload = (info && (info.info || info)) || {};
+      if (payload.titles && payload.titles.length) {
+        lastMkInfoPayload = payload;
+      }
+    }
+
     function renderTitleList(info) {
       const el = document.getElementById("mk-titles-list");
       if (!el) return;
-      const parsed = (info && (info.info || info)) || {};
+      const parsed = extractTitlePayload(info);
       const titles = parsed.titles || [];
       if (!titles.length) {
         el.textContent = "No titles found yet.";
@@ -1180,7 +1195,7 @@ SETTINGS_PAGE_TEMPLATE = """
     function renderTitleList(info) {
       const el = document.getElementById("mk-titles-list");
       if (!el) return;
-      const parsed = (info && (info.info || info)) || {};
+      const parsed = extractTitlePayload(info);
       const titles = parsed.titles || [];
       if (!titles.length) {
         el.textContent = "No titles found yet.";
@@ -1211,15 +1226,20 @@ SETTINGS_PAGE_TEMPLATE = """
       const summary = info.summary || (info.info && info.info.summary) || {};
       const label = summary.disc_label || summary.label || "";
       const text = buildDiscInfoText(info);
+      const titlePayload = extractTitlePayload(info);
+      const hasTitles = !!(titlePayload.titles && titlePayload.titles.length);
+      const hasSummary = !!(summary.titles_detected || summary.title_count || (summary.main_feature && summary.main_feature.duration));
+      const hasRawMarkers = text && (text.indexOf("TCOUNT:") !== -1 || text.indexOf("TINFO:") !== -1);
       if (discPresent === false) {
         discInfoEl.value = "";
         lastMkInfoText = "";
+        lastMkInfoPayload = null;
         if (discStatusEl) {
           discStatusEl.textContent = "Disc status: no disc";
         }
         return;
       }
-      if (text) {
+      if (text && (hasTitles || hasSummary || hasRawMarkers || !lastMkInfoText)) {
         discInfoEl.value = text;
         lastMkInfoText = text;
       } else if (lastMkInfoText) {
@@ -1332,6 +1352,7 @@ SETTINGS_PAGE_TEMPLATE = """
         if (ripStatus) {
           ripStatus.textContent = status.disc_rip_blocked ? "Rip status: paused" : "Rip status: active";
         }
+        rememberTitles(status.disc_info);
         renderTitleList(status.disc_info);
         updateDiscInfoPanel(status);
         if (!authDirty) {
@@ -1512,7 +1533,10 @@ SETTINGS_PAGE_TEMPLATE = """
           const idx = (info && info.disc_index !== undefined) ? info.disc_index : null;
           discStatusEl.textContent = idx !== null ? ("Disc present (index " + idx + ")") : "Disc info refreshed.";
         }
-        renderTitleList(info);
+        rememberTitles(info);
+        if (typeof renderTitleList === "function") {
+          renderTitleList(info);
+        }
       } catch (e) {
         alert("Failed to fetch disc info: " + e);
       }

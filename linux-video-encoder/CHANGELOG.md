@@ -976,3 +976,9 @@
 - Use optical helper presence for stable disc detection; add host-side reset endpoint and UI button.
 - Host setup scripts now install sg3-utils and eject for reset support.
 - Version bumped to 1.25.139.
+
+## 1.25.140 - 2025-12-26
+- Cache last MakeMKV title payload so the Settings page can render titles reliably.
+- Avoid disc info text being overwritten by partial scans once full title data is cached.
+- Guard refresh to prevent missing renderTitleList errors.
+- Version bumped to 1.25.140.
