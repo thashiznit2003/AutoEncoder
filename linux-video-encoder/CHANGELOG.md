@@ -990,3 +990,8 @@
 ## 1.25.142 - 2025-12-26
 - Define MakeMKV title cache helpers on the Settings page so refresh uses the same cached payload.
 - Version bumped to 1.25.142.
+
+## 1.25.143 - 2025-12-26
+- Ensure browser fetch calls include credentials and report API errors in the titles debug line.
+- Remove duplicate MakeMKV cache declarations in the main page script.
+- Version bumped to 1.25.143.

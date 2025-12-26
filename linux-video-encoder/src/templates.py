@@ -163,8 +163,6 @@ MAIN_PAGE_TEMPLATE = """
     let authDirty = false;
     let lastMkInfoText = "";
     let lastMkInfoPayload = null;
-    let lastMkInfoText = "";
-    let lastMkInfoPayload = null;
     let eventsCache = [];
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
@@ -172,16 +170,24 @@ MAIN_PAGE_TEMPLATE = """
     }
 
     async function fetchJSON(url, opts) {
-      const res = await fetch(url, opts);
-      return res.json();
+      const res = await fetch(url, { ...(opts || {}), credentials: "include" });
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status + " for " + url + ": " + text.slice(0, 200));
+      }
+      return JSON.parse(text);
     }
 
     async function fetchJSONWithTimeout(url, opts, timeoutMs) {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeoutMs || 20000);
       try {
-        const res = await fetch(url, { ...(opts || {}), signal: controller.signal });
-        return res.json();
+        const res = await fetch(url, { ...(opts || {}), signal: controller.signal, credentials: "include" });
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status + " for " + url + ": " + text.slice(0, 200));
+        }
+        return JSON.parse(text);
       } finally {
         clearTimeout(id);
       }
@@ -1173,8 +1179,12 @@ SETTINGS_PAGE_TEMPLATE = """
     let authDirty = false;
 
     async function fetchJSON(url) {
-      const res = await fetch(url);
-      return res.json();
+      const res = await fetch(url, { credentials: "include" });
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status + " for " + url + ": " + text.slice(0, 200));
+      }
+      return JSON.parse(text);
     }
 
     function formatSeconds(sec) {
@@ -1384,6 +1394,10 @@ SETTINGS_PAGE_TEMPLATE = """
           document.getElementById("auth-pass").value = cfg.auth_password || "";
         }
       } catch (e) {
+        const debugEl = document.getElementById("mk-titles-debug");
+        if (debugEl) {
+          debugEl.textContent = "Titles: error - " + e;
+        }
         console.error("Failed to load config", e);
       }
     }
