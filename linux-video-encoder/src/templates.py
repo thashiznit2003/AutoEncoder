@@ -163,6 +163,8 @@ MAIN_PAGE_TEMPLATE = """
     let authDirty = false;
     let lastMkInfoText = "";
     let lastMkInfoPayload = null;
+    let lastMkInfoText = "";
+    let lastMkInfoPayload = null;
     let eventsCache = [];
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
@@ -194,6 +196,20 @@ MAIN_PAGE_TEMPLATE = """
       const m = Math.floor((total % 3600) / 60);
       const s = total % 60;
       return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    }
+
+    function extractTitlePayload(info) {
+      const payload = (info && (info.info || info)) || {};
+      if (payload.titles && payload.titles.length) return payload;
+      if (lastMkInfoPayload && lastMkInfoPayload.titles && lastMkInfoPayload.titles.length) return lastMkInfoPayload;
+      return payload;
+    }
+
+    function rememberTitles(info) {
+      const payload = (info && (info.info || info)) || {};
+      if (payload.titles && payload.titles.length) {
+        lastMkInfoPayload = payload;
+      }
     }
 
     function extractTitlePayload(info) {

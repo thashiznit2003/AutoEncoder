@@ -986,3 +986,7 @@
 ## 1.25.141 - 2025-12-26
 - Add a titles debug line on the MakeMKV Settings panel to show counts and disc presence.
 - Version bumped to 1.25.141.
+
+## 1.25.142 - 2025-12-26
+- Define MakeMKV title cache helpers on the Settings page so refresh uses the same cached payload.
+- Version bumped to 1.25.142.
