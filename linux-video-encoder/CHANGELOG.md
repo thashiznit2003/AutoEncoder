@@ -995,3 +995,7 @@
 - Ensure browser fetch calls include credentials and report API errors in the titles debug line.
 - Remove duplicate MakeMKV cache declarations in the main page script.
 - Version bumped to 1.25.143.
+
+## 1.25.144 - 2025-12-26
+- Define MakeMKV title cache helpers in the Settings page script to fix refresh errors.
+- Version bumped to 1.25.144.

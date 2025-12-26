@@ -163,6 +163,8 @@ MAIN_PAGE_TEMPLATE = """
     let authDirty = false;
     let lastMkInfoText = "";
     let lastMkInfoPayload = null;
+    let lastMkInfoText = "";
+    let lastMkInfoPayload = null;
     let eventsCache = [];
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
