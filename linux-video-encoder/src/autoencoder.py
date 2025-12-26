@@ -1945,7 +1945,7 @@ def main():
                         disc_source = _resolve_disc_source()
                         disc_num = get_disc_number()
                         if disc_source:
-                        disc_info, success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 120, force=False)
+                            disc_info, success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 120, force=False)
                             if disc_info:
                                 status_tracker.set_disc_info({"disc_index": disc_num, "source": disc_source, "info": disc_info})
                             if not auto_rip and _disc_scan_complete(disc_info or {}):

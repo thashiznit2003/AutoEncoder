@@ -1013,6 +1013,10 @@
 - Surface disc scan in-flight state and show a busy indicator near Disc Info while scanning.
 - Version bumped to 1.25.148.
 
+## 1.25.149 - 2025-12-26
+- Fix indentation error that prevented the app from starting.
+- Version bumped to 1.25.149.
+
 ## 1.25.146 - 2025-12-26
 - Add on-page JS error banner for both main and settings pages to surface fetch and runtime errors.
 - Ensure settings page includes MakeMKV title cache helpers and reports refresh failures.
