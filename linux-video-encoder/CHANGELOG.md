@@ -1001,6 +1001,11 @@
 - Auto-resume disc scanning when auto-rip is enabled and scans were paused.
 - Version bumped to 1.25.151.
 
+## 1.25.153 - 2025-12-26
+- Add optical drive timing metrics to `/api/status` for disc label, title, and scan visibility.
+- Allow GET on `/api/makemkv/reset_drive` to avoid 405 errors from UI clients.
+- Version bumped to 1.25.153.
+
 ## 1.25.152 - 2025-12-26
 - Guard MakeMKV cached title payload access to avoid ReferenceError in the settings UI.
 - Version bumped to 1.25.152.

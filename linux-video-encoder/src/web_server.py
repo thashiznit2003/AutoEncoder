@@ -2333,7 +2333,7 @@ def create_app(tracker, config_manager=None):
         tracker.add_event("Stop All Ripping enabled; auto-rip paused.")
         return jsonify({"stopped": stopped, "blocked": True})
 
-    @app.route("/api/makemkv/reset_drive", methods=["POST"])
+    @app.route("/api/makemkv/reset_drive", methods=["POST", "GET"])
     @require_auth
     def makemkv_reset_drive():
         try:

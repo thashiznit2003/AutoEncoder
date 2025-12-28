@@ -40,6 +40,9 @@ class StatusTracker:
         self._disc_scan_cooldown_until = 0.0
         self._disc_scan_failures = 0
         self._disc_scan_last_ts = 0.0
+        self._disc_scan_started_ts = None
+        self._disc_scan_last_duration = None
+        self._disc_scan_last_timed_out = None
         self._disc_inserted_ts = None
         self._disc_removed_ts = None
         self._disc_info_first_ts = None
@@ -48,6 +51,9 @@ class StatusTracker:
         self._disc_titles_last_ts = None
         self._disc_info_cleared_ts = None
         self._disc_titles_cleared_ts = None
+        self._disc_label_first_ts = None
+        self._disc_label_last_ts = None
+        self._disc_label_cleared_ts = None
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -270,6 +276,8 @@ class StatusTracker:
             usb_status = dict(self._usb_status)
             info_payload = (disc_info.get("info") if isinstance(disc_info, dict) else disc_info) or {}
             titles_count = len(info_payload.get("titles") or [])
+            summary = info_payload.get("summary") or {}
+            label = summary.get("disc_label") or summary.get("label") or ""
             disc_timing = {
                 "disc_inserted_at": self._disc_inserted_ts,
                 "disc_removed_at": self._disc_removed_ts,
@@ -279,21 +287,34 @@ class StatusTracker:
                 "disc_titles_last_at": self._disc_titles_last_ts,
                 "disc_info_cleared_at": self._disc_info_cleared_ts,
                 "disc_titles_cleared_at": self._disc_titles_cleared_ts,
+                "disc_label_first_at": self._disc_label_first_ts,
+                "disc_label_last_at": self._disc_label_last_ts,
+                "disc_label_cleared_at": self._disc_label_cleared_ts,
+                "disc_scan_started_at": self._disc_scan_started_ts,
+                "disc_scan_last_at": self._disc_scan_last_ts,
+                "disc_scan_last_duration_sec": self._disc_scan_last_duration,
+                "disc_scan_last_timed_out": self._disc_scan_last_timed_out,
             }
             if self._disc_info_last_ts:
                 disc_timing["disc_info_age_sec"] = max(0.0, now - self._disc_info_last_ts)
             if self._disc_titles_last_ts:
                 disc_timing["disc_titles_age_sec"] = max(0.0, now - self._disc_titles_last_ts)
+            if self._disc_label_last_ts:
+                disc_timing["disc_label_age_sec"] = max(0.0, now - self._disc_label_last_ts)
             if self._disc_inserted_ts and self._disc_info_first_ts:
                 disc_timing["disc_info_time_to_first_sec"] = max(0.0, self._disc_info_first_ts - self._disc_inserted_ts)
             if self._disc_inserted_ts and self._disc_titles_first_ts:
                 disc_timing["disc_titles_time_to_first_sec"] = max(0.0, self._disc_titles_first_ts - self._disc_inserted_ts)
+            if self._disc_inserted_ts and self._disc_label_first_ts:
+                disc_timing["disc_label_time_to_first_sec"] = max(0.0, self._disc_label_first_ts - self._disc_inserted_ts)
             if self._disc_titles_first_ts and self._disc_titles_last_ts:
                 disc_timing["disc_titles_visible_for_sec"] = max(0.0, self._disc_titles_last_ts - self._disc_titles_first_ts)
             if disc_present and titles_count == 0 and self._disc_titles_last_ts:
                 disc_timing["disc_titles_missing_for_sec"] = max(0.0, now - self._disc_titles_last_ts)
             if disc_present and not info_payload and self._disc_info_last_ts:
                 disc_timing["disc_info_missing_for_sec"] = max(0.0, now - self._disc_info_last_ts)
+            if disc_present and not label and self._disc_label_last_ts:
+                disc_timing["disc_label_missing_for_sec"] = max(0.0, now - self._disc_label_last_ts)
         return {
             "active": active,
             "recent": history[::-1],  # newest first
@@ -415,6 +436,13 @@ class StatusTracker:
                 self._disc_titles_cleared_ts = None
                 if self._disc_present and self._disc_titles_first_ts is None:
                     self._disc_titles_first_ts = now
+            summary = payload.get("summary") or {}
+            label = summary.get("disc_label") or summary.get("label") or ""
+            if label:
+                self._disc_label_last_ts = now
+                self._disc_label_cleared_ts = None
+                if self._disc_present and self._disc_label_first_ts is None:
+                    self._disc_label_first_ts = now
 
     def clear_disc_info(self):
         now = time.time()
@@ -423,6 +451,8 @@ class StatusTracker:
                 self._disc_info_cleared_ts = now
                 if self._disc_titles_last_ts and self._disc_titles_cleared_ts is None:
                     self._disc_titles_cleared_ts = now
+                if self._disc_label_last_ts and self._disc_label_cleared_ts is None:
+                    self._disc_label_cleared_ts = now
             self._disc_info = None
             self._disc_pending = False
             self._disc_rip_requested = False
@@ -520,6 +550,9 @@ class StatusTracker:
                 self._disc_titles_last_ts = None
                 self._disc_info_cleared_ts = None
                 self._disc_titles_cleared_ts = None
+                self._disc_label_first_ts = None
+                self._disc_label_last_ts = None
+                self._disc_label_cleared_ts = None
             if not present and prev is not False:
                 self._disc_removed_ts = now
 
@@ -555,6 +588,7 @@ class StatusTracker:
             if self._disc_scan_inflight:
                 return False
             self._disc_scan_inflight = True
+            self._disc_scan_started_ts = time.time()
             return True
 
     def finish_disc_scan(self, success: bool, timed_out: bool = False):
@@ -562,6 +596,9 @@ class StatusTracker:
         with self._lock:
             self._disc_scan_inflight = False
             self._disc_scan_last_ts = now
+            if self._disc_scan_started_ts:
+                self._disc_scan_last_duration = max(0.0, now - self._disc_scan_started_ts)
+            self._disc_scan_last_timed_out = bool(timed_out)
             if success and not timed_out:
                 self._disc_scan_failures = 0
                 return
