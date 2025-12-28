@@ -28,7 +28,7 @@ from encoder import Encoder  # kept as a fallback if needed
 from status_tracker import StatusTracker
 from smb_allowlist import enforce_smb_allowlist, load_smb_allowlist, save_smb_allowlist, remove_from_allowlist
 from web_server import start_web_server
-from makemkv_parser import parse_makemkv_info_output
+from makemkv_parser import parse_makemkv_info_output, _parse_duration_to_seconds
 
 # locate config in the state volume (seeded from repo config.json on first run)
 STATE_DIR = Path("/var/lib/autoencoder/state")
@@ -1158,11 +1158,16 @@ def _guarded_disc_scan(status_tracker: Optional[StatusTracker], disc_source: str
     return info, success, timed_out
 
 def _select_top_titles(info: dict, count: int, min_seconds: int) -> list:
-    titles = (info or {}).get("titles") or []
+    payload = info or {}
+    if isinstance(payload, dict) and payload.get("info"):
+        payload = payload.get("info") or payload
+    titles = (payload or {}).get("titles") or []
     candidates = []
     for t in titles:
         try:
             dur = t.get("duration_seconds") or 0
+            if not dur:
+                dur = _parse_duration_to_seconds(t.get("duration") or "") or 0
             tid = t.get("id")
             if tid is None:
                 continue

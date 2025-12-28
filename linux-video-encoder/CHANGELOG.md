@@ -1064,6 +1064,11 @@
 - Prefer udev CDROM flags and sg_turs results over stale sysfs values for disc presence.
 - Version bumped to 1.25.158.
 
+## 1.25.161 - 2025-12-26
+- Fix auto-rip title selection by reading titles from nested disc info payloads.
+- Parse duration strings when duration seconds are missing for auto-rip sorting.
+- Version bumped to 1.25.161.
+
 ## 1.25.160 - 2025-12-26
 - Remove duplicate MakeMKV cache declarations on the main page to prevent JS syntax errors.
 - Define MakeMKV cache helpers in the Settings page script to stop ReferenceError failures.
