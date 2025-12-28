@@ -359,7 +359,7 @@ def rip_disc(
     """
     logger = logging.getLogger(__name__)
     output_dir = output_dir_path.as_posix()
-    job_key = f"disc:{disc_index}" if disc_index is not None else (disc_source or "disc:unknown")
+    base_key = f"disc:{disc_index}" if disc_index is not None else (disc_source or "disc:unknown")
     disc_type = None
     if status_tracker:
         try:
@@ -382,7 +382,24 @@ def rip_disc(
                         status_tracker.set_disc_info({"disc_index": disc_index, "source": disc_source, "info": scanned})
         except Exception:
             logger.debug("Initial disc scan before rip failed", exc_info=True)
+    title_list = []
+    if titles:
+        try:
+            title_list = [str(t).strip() for t in titles if str(t).strip()]
+        except Exception:
+            title_list = []
+    single_title_id = None
+    if len(title_list) == 1 and title_list[0].isdigit():
+        try:
+            single_title_id = int(title_list[0])
+        except Exception:
+            single_title_id = None
+    job_key = base_key
+    if single_title_id is not None:
+        job_key = f"{base_key}:title:{single_title_id}"
     dest_hint = output_dir
+    if single_title_id is not None:
+        dest_hint = str(output_dir_path / f"title_t{single_title_id:02d}.mkv")
     if status_tracker:
         if not status_tracker.has_active(job_key):
             status_tracker.start(job_key, dest_hint, info=None, state="ripping")
@@ -390,12 +407,6 @@ def rip_disc(
             status_tracker.set_state(job_key, "ripping")
         status_tracker.set_message(job_key, f"Ripping {disc_source}")
         status_tracker.pause_disc_scan()
-    title_list = []
-    if titles:
-        try:
-            title_list = [str(t).strip() for t in titles if str(t).strip()]
-        except Exception:
-            title_list = []
     if title_list:
         title_arg = ",".join(title_list)
     else:
@@ -414,6 +425,8 @@ def rip_disc(
             info_parts.append(title_summary)
         else:
             info_parts.append("Titles: all")
+        if single_title_id is not None:
+            info_parts.append(f"Output: {Path(dest_hint).name}")
         if disc_type:
             info_parts.append(f"Disc type: {disc_type}")
         status_tracker.update_fields(job_key, {"info": " | ".join(info_parts)})

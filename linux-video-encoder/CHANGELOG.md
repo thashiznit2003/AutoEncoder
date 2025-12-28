@@ -1082,6 +1082,11 @@
 - Preserve MakeMKV disc/title info during ripping and encoding; only clear when the disc is actually absent.
 - Version bumped to 1.25.165.
 
+## 1.25.166 - 2025-12-28
+- Split auto-rip titles into separate ripping tasks and show expected output filenames.
+- Include title duration/output details in Active Encodes during ripping.
+- Version bumped to 1.25.166.
+
 ## 1.25.161 - 2025-12-26
 - Fix auto-rip title selection by reading titles from nested disc info payloads.
 - Parse duration strings when duration seconds are missing for auto-rip sorting.
