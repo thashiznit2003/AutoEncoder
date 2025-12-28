@@ -55,11 +55,19 @@ def _read_sys(path: str) -> str | None:
         return None
 
 
-def disc_present_for_sr(sr: str) -> bool:
+def disc_present_for_sr(sr: str, props: dict | None = None, sg_device: str | None = None) -> bool:
     device_dir = f"/sys/class/block/{sr}/device"
-    media = _read_sys(f"{device_dir}/media")
-    if media == "0":
-        return False
+    if props is None:
+        props = udev_props(f"/dev/{sr}")
+    if props:
+        media_flag = props.get("ID_CDROM_MEDIA")
+        if media_flag in {"0", "1"}:
+            return media_flag == "1"
+        media_state = (props.get("ID_CDROM_MEDIA_STATE") or "").lower()
+        if media_state in {"no_disc", "nodisc", "none"}:
+            return False
+        if media_state in {"complete", "blank", "appendable"}:
+            return True
     medium_state = (_read_sys(f"{device_dir}/medium_state") or "").lower()
     if medium_state:
         if "empty" in medium_state or "no" in medium_state:
@@ -73,13 +81,18 @@ def disc_present_for_sr(sr: str) -> bool:
     size = _read_sys(f"/sys/class/block/{sr}/size")
     if size and size.isdigit() and int(size) == 0:
         return False
-    sg = scsi_generic_for_sr(sr)
+    sg = sg_device or scsi_generic_for_sr(sr)
     if sg and os.path.exists(sg) and run(["which", "sg_turs"]).returncode == 0:
         try:
-            res = run(["sg_turs", "--quiet", sg], timeout=2)
-            return res.returncode == 0
+            res = run(["sg_turs", "-n", "1", sg], timeout=2)
+            if res.returncode == 0:
+                return True
+            output = f"{res.stdout}\n{res.stderr}".lower()
+            if "not ready" in output or "no medium" in output:
+                return False
         except Exception:
             pass
+    media = _read_sys(f"{device_dir}/media")
     if media in {"0", "1"}:
         return media == "1"
     if size and size.isdigit():
@@ -115,11 +128,12 @@ def detect_optical_devices():
             continue
         sr = f"/dev/{name}"
         props = udev_props(sr)
-        present = disc_present_for_sr(name)
+        sg_device = scsi_generic_for_sr(name)
+        present = disc_present_for_sr(name, props=props, sg_device=sg_device)
         devices.append(
             {
                 "sr_device": sr,
-                "sg_device": scsi_generic_for_sr(name),
+                "sg_device": sg_device,
                 "model": props.get("ID_MODEL") or parts.get("MODEL"),
                 "serial": props.get("ID_SERIAL_SHORT") or props.get("ID_SERIAL"),
                 "bus": props.get("ID_BUS") or parts.get("TRAN"),

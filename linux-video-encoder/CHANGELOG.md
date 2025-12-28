@@ -1059,3 +1059,7 @@
 ## 1.25.157 - 2025-12-26
 - Treat `media=0` or `size=0` as authoritative “no disc” in optical helper detection.
 - Version bumped to 1.25.157.
+
+## 1.25.158 - 2025-12-26
+- Prefer udev CDROM flags and sg_turs results over stale sysfs values for disc presence.
+- Version bumped to 1.25.158.
