@@ -210,6 +210,46 @@ MAIN_PAGE_TEMPLATE = """
       }, 4800);
     }
 
+    function uiConfirm(message, opts) {
+      const text = String(message || "");
+      const okLabel = (opts && opts.okText) ? opts.okText : "OK";
+      const cancelLabel = (opts && opts.cancelText) ? opts.cancelText : "Cancel";
+      return new Promise((resolve) => {
+        const overlay = document.createElement("div");
+        overlay.style.cssText = "position:fixed;inset:0;background:rgba(2,6,23,0.6);display:flex;align-items:center;justify-content:center;z-index:10000;padding:16px;";
+        const box = document.createElement("div");
+        box.style.cssText = "background:#0f172a;border:1px solid #1f2937;border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,0.4);padding:16px;max-width:420px;width:100%;color:#e2e8f0;display:flex;flex-direction:column;gap:10px;";
+        const msg = document.createElement("div");
+        msg.textContent = text;
+        msg.style.cssText = "font-size:13px;line-height:1.5;";
+        const actions = document.createElement("div");
+        actions.style.cssText = "display:flex;gap:8px;justify-content:flex-end;margin-top:4px;";
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.textContent = cancelLabel;
+        cancelBtn.style.cssText = "background:#1f2937;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-weight:600;";
+        const okBtn = document.createElement("button");
+        okBtn.type = "button";
+        okBtn.textContent = okLabel;
+        okBtn.style.cssText = "background:linear-gradient(135deg, #2563eb, #4f46e5);color:#fff;border:0;border-radius:8px;padding:6px 12px;font-weight:700;";
+        const cleanup = (result) => {
+          try { overlay.remove(); } catch (e) {}
+          resolve(result);
+        };
+        cancelBtn.addEventListener("click", () => cleanup(false));
+        okBtn.addEventListener("click", () => cleanup(true));
+        overlay.addEventListener("click", (e) => {
+          if (e.target === overlay) cleanup(false);
+        });
+        actions.appendChild(cancelBtn);
+        actions.appendChild(okBtn);
+        box.appendChild(msg);
+        box.appendChild(actions);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+      });
+    }
+
     window.alert = (msg) => {
       const text = String(msg || "");
       const level = /fail|error|denied|not allowed|unable/i.test(text)
@@ -738,10 +778,10 @@ MAIN_PAGE_TEMPLATE = """
       }
       if (e.target.classList.contains("stop-btn")) {
         const src = decodeURIComponent(e.target.getAttribute("data-src"));
-        const ok = confirm("Stop this encode?\\nAre you sure?");
+        const ok = await uiConfirm("Stop this encode? Are you sure?");
         if (!ok) return;
         let deleteSrc = false;
-        if (confirm("Delete the source file too?\\nChoose OK to delete, Cancel to keep.")) {
+        if (await uiConfirm("Delete the source file too?", { okText: "Delete", cancelText: "Keep" })) {
           deleteSrc = true;
         }
         await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, delete_source: deleteSrc }) });
@@ -749,7 +789,7 @@ MAIN_PAGE_TEMPLATE = """
       }
       if (e.target.classList.contains("remove-queued-btn")) {
         const src = decodeURIComponent(e.target.getAttribute("data-src"));
-        const ok = confirm("Remove this queued item and delete the staged file?");
+        const ok = await uiConfirm("Remove this queued item and delete the staged file?");
         if (!ok) return;
         await fetch("/api/stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, delete_source: true }) });
         refresh();
@@ -1259,6 +1299,18 @@ SETTINGS_PAGE_TEMPLATE = """
     let lastTitleHtml = "";
     let lastDiscKey = "";
 
+    function showJsError(msg) {
+      let el = document.getElementById("js-error-banner");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "js-error-banner";
+        el.style.cssText = "position:sticky;top:0;z-index:9999;background:#7f1d1d;color:#fee2e2;padding:8px 12px;border-bottom:1px solid #fecaca;font-size:12px;display:none;";
+        document.body.prepend(el);
+      }
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
     function uiNotify(msg, level) {
       const text = String(msg || "");
       let stack = document.getElementById("toast-stack");
@@ -1291,6 +1343,14 @@ SETTINGS_PAGE_TEMPLATE = """
       uiNotify(text, level);
     };
 
+    window.addEventListener("error", (e) => {
+      showJsError("JS error: " + (e && e.message ? e.message : e));
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      const reason = e && e.reason ? (e.reason.message || e.reason) : e;
+      showJsError("Promise error: " + reason);
+    });
+
     function getLastMkInfoPayload() {
       return (typeof lastMkInfoPayload === "undefined") ? null : lastMkInfoPayload;
     }
@@ -1301,8 +1361,8 @@ SETTINGS_PAGE_TEMPLATE = """
       }
     }
 
-    async function fetchJSON(url) {
-      const res = await fetch(url, { credentials: "include" });
+    async function fetchJSON(url, opts) {
+      const res = await fetch(url, { ...(opts || {}), credentials: "include" });
       const text = await res.text();
       if (!res.ok) {
         throw new Error("HTTP " + res.status + " for " + url + ": " + text.slice(0, 200));

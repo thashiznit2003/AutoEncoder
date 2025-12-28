@@ -2393,7 +2393,7 @@ def create_app(tracker, config_manager=None):
         tracker.add_event(f"Rip rename set for {src}: {safe}")
         return jsonify({"ok": True, "name": safe})
 
-    @app.route("/api/makemkv/eject", methods=["POST"])
+    @app.route("/api/makemkv/eject", methods=["POST", "GET"])
     @require_auth
     def makemkv_eject():
         try:
@@ -2457,7 +2457,7 @@ def create_app(tracker, config_manager=None):
             tracker.add_event(f"Eject error: {exc}", level="error")
             return jsonify({"ok": False, "error": str(exc)}), 500
 
-    @app.route("/api/makemkv/close_tray", methods=["POST"])
+    @app.route("/api/makemkv/close_tray", methods=["POST", "GET"])
     @require_auth
     def makemkv_close_tray():
         try:

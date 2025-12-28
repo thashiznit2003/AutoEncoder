@@ -1071,6 +1071,13 @@
 - Replace browser alert popups with non-blocking in-app notifications.
 - Version bumped to 1.25.163.
 
+## 1.25.164 - 2025-12-28
+- Replace blocking browser confirms with in-app confirmations on the main page.
+- Add Settings page JS error banner and promise/error handlers for visibility.
+- Allow Settings fetch helpers to honor POST options so reset/eject/close tray requests work.
+- Permit GET on close-tray endpoint for compatibility.
+- Version bumped to 1.25.164.
+
 ## 1.25.161 - 2025-12-26
 - Fix auto-rip title selection by reading titles from nested disc info payloads.
 - Parse duration strings when duration seconds are missing for auto-rip sorting.
