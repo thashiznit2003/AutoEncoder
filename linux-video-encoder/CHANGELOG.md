@@ -991,6 +991,37 @@
 - Define MakeMKV title cache helpers on the Settings page so refresh uses the same cached payload.
 - Version bumped to 1.25.142.
 
+## 1.25.143 - 2025-12-26
+- Ensure browser fetch calls include credentials and report API errors in the titles debug line.
+- Remove duplicate MakeMKV cache declarations in the main page script.
+- Version bumped to 1.25.143.
+
+## 1.25.144 - 2025-12-26
+- Define MakeMKV title cache helpers in the Settings page script to fix refresh errors.
+- Version bumped to 1.25.144.
+
+## 1.25.145 - 2025-12-26
+- Guard MakeMKV title cache helpers in settings refresh to avoid ReferenceError if not loaded.
+- Version bumped to 1.25.145.
+
+## 1.25.146 - 2025-12-26
+- Add on-page JS error banner for both main and settings pages to surface fetch and runtime errors.
+- Ensure settings page includes MakeMKV title cache helpers and reports refresh failures.
+- Version bumped to 1.25.146.
+
+## 1.25.147 - 2025-12-26
+- Remove duplicate JS declarations that triggered a syntax error and prevented UI scripts from running.
+- Version bumped to 1.25.147.
+
+## 1.25.148 - 2025-12-26
+- Increase MakeMKV scan timeouts to reduce partial scans and repeated retries.
+- Surface disc scan in-flight state and show a busy indicator near Disc Info while scanning.
+- Version bumped to 1.25.148.
+
+## 1.25.149 - 2025-12-26
+- Fix indentation error that prevented the app from starting.
+- Version bumped to 1.25.149.
+
 ## 1.25.150 - 2025-12-26
 - Keep disc info and title list stable in the Settings page until a disc is actually removed.
 - Avoid clearing cached titles/info when disc presence briefly flaps during scans.
@@ -1001,42 +1032,17 @@
 - Auto-resume disc scanning when auto-rip is enabled and scans were paused.
 - Version bumped to 1.25.151.
 
+## 1.25.152 - 2025-12-26
+- Guard MakeMKV cached title payload access to avoid ReferenceError in the settings UI.
+- Version bumped to 1.25.152.
+
 ## 1.25.153 - 2025-12-26
 - Add optical drive timing metrics to `/api/status` for disc label, title, and scan visibility.
 - Allow GET on `/api/makemkv/reset_drive` to avoid 405 errors from UI clients.
 - Version bumped to 1.25.153.
 
-## 1.25.152 - 2025-12-26
-- Guard MakeMKV cached title payload access to avoid ReferenceError in the settings UI.
-- Version bumped to 1.25.152.
-
-## 1.25.149 - 2025-12-26
-- Fix indentation error that prevented the app from starting.
-- Version bumped to 1.25.149.
-
-## 1.25.148 - 2025-12-26
-- Increase MakeMKV scan timeouts to reduce partial scans and repeated retries.
-- Surface disc scan in-flight state and show a busy indicator near Disc Info while scanning.
-- Version bumped to 1.25.148.
-
-## 1.25.147 - 2025-12-26
-- Remove duplicate JS declarations that triggered a syntax error and prevented UI scripts from running.
-- Version bumped to 1.25.147.
-
-## 1.25.146 - 2025-12-26
-- Add on-page JS error banner for both main and settings pages to surface fetch and runtime errors.
-- Ensure settings page includes MakeMKV title cache helpers and reports refresh failures.
-- Version bumped to 1.25.146.
-
-## 1.25.145 - 2025-12-26
-- Guard MakeMKV title cache helpers in settings refresh to avoid ReferenceError if not loaded.
-- Version bumped to 1.25.145.
-
-## 1.25.144 - 2025-12-26
-- Define MakeMKV title cache helpers in the Settings page script to fix refresh errors.
-- Version bumped to 1.25.144.
-
-## 1.25.143 - 2025-12-26
-- Ensure browser fetch calls include credentials and report API errors in the titles debug line.
-- Remove duplicate MakeMKV cache declarations in the main page script.
-- Version bumped to 1.25.143.
+## 1.25.154 - 2025-12-26
+- Improve optical helper disc-present detection and add helper eject/close endpoints.
+- Reset drive now performs sg_reset + rescan without toggling the tray.
+- Add Close tray button in MakeMKV settings and route helper calls through the API.
+- Version bumped to 1.25.154.

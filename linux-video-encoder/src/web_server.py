@@ -12,6 +12,7 @@ import shutil
 from functools import wraps
 import logging
 import urllib.request
+import urllib.error
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
 from smb_allowlist import save_smb_allowlist, load_smb_allowlist, remove_from_allowlist
 from makemkv_parser import parse_makemkv_info_output
@@ -33,8 +34,23 @@ def _call_optical_helper(path: str, method: str = "POST") -> dict:
     base_root = base.rsplit("/optical/", 1)[0]
     url = base_root + path
     req = urllib.request.Request(url, method=method)
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = ""
+        try:
+            body = exc.read().decode("utf-8")
+        except Exception:
+            body = ""
+        try:
+            payload = json.loads(body) if body else {}
+        except Exception:
+            payload = {}
+        payload.setdefault("ok", False)
+        payload.setdefault("error", f"HTTP {exc.code}")
+        payload["http_status"] = exc.code
+        return payload
 
 def log_timing(label: str, started_at: float, extra: str = ""):
     """Append simple timing entries for diagnostics, ignore failures."""
@@ -2362,6 +2378,14 @@ def create_app(tracker, config_manager=None):
     @app.route("/api/makemkv/eject", methods=["POST"])
     @require_auth
     def makemkv_eject():
+        try:
+            helper = _call_optical_helper("/optical/eject", method="POST")
+            if helper.get("ok"):
+                tracker.add_event("Ejected disc via optical helper.")
+                tracker.clear_disc_info()
+                return jsonify(helper)
+        except Exception as exc:
+            tracker.add_event(f"Optical helper eject failed: {exc}", level="error")
         dev = request.json.get("device") if request.is_json else None
         device = dev or "/dev/sr0"
         # Build candidate device list: primary + inferred sg sibling + common fallbacks
@@ -2413,6 +2437,17 @@ def create_app(tracker, config_manager=None):
             return jsonify({"ok": False, "error": "eject/sg_raw not found"}), 500
         except Exception as exc:
             tracker.add_event(f"Eject error: {exc}", level="error")
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    @app.route("/api/makemkv/close_tray", methods=["POST"])
+    @require_auth
+    def makemkv_close_tray():
+        try:
+            result = _call_optical_helper("/optical/close", method="POST")
+            tracker.add_event("Optical drive close requested.")
+            return jsonify(result)
+        except Exception as exc:
+            tracker.add_event(f"Optical drive close failed: {exc}", level="error")
             return jsonify({"ok": False, "error": str(exc)}), 500
 
     @app.route("/api/makemkv/register", methods=["POST"])
