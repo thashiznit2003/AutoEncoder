@@ -57,9 +57,6 @@ def _read_sys(path: str) -> str | None:
 
 def disc_present_for_sr(sr: str) -> bool:
     device_dir = f"/sys/class/block/{sr}/device"
-    media = _read_sys(f"{device_dir}/media")
-    if media in {"0", "1"}:
-        return media == "1"
     medium_state = (_read_sys(f"{device_dir}/medium_state") or "").lower()
     if medium_state:
         if "empty" in medium_state or "no" in medium_state:
@@ -77,6 +74,9 @@ def disc_present_for_sr(sr: str) -> bool:
             return res.returncode == 0
         except Exception:
             pass
+    media = _read_sys(f"{device_dir}/media")
+    if media in {"0", "1"}:
+        return media == "1"
     size = _read_sys(f"/sys/class/block/{sr}/size")
     if size and size.isdigit():
         return int(size) > 0

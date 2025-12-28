@@ -1050,3 +1050,8 @@
 ## 1.25.155 - 2025-12-26
 - Add an explicit Eject button to MakeMKV settings that uses the helper-backed eject route.
 - Version bumped to 1.25.155.
+
+## 1.25.156 - 2025-12-26
+- Fix Settings page MakeMKV title cache helper to avoid `getLastMkInfoPayload` ReferenceError.
+- Improve optical helper disc-present detection ordering to reduce false “disc present” states.
+- Version bumped to 1.25.156.
