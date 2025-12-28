@@ -1166,6 +1166,7 @@ SETTINGS_PAGE_TEMPLATE = """
         <div style="display:flex; gap:6px; margin:6px 0; flex-wrap:wrap;">
           <button type="button" id="mk-refresh-info">Refresh disc info</button>
           <button type="button" id="mk-reset-drive">Reset drive</button>
+          <button type="button" id="mk-eject">Eject</button>
           <button type="button" id="mk-close-tray">Close tray</button>
           <button type="button" id="mk-start-rip">Start rip</button>
           <button type="button" id="mk-stop-all">Stop all ripping</button>
@@ -1674,6 +1675,18 @@ SETTINGS_PAGE_TEMPLATE = """
         }
       } catch (e) {
         alert("Failed to reset drive: " + e);
+      }
+    });
+    document.getElementById("mk-eject").addEventListener("click", async () => {
+      try {
+        const res = await fetchJSON("/api/makemkv/eject", { method: "POST" });
+        if (res && res.ok) {
+          alert("Disc ejected.");
+        } else {
+          alert("Disc eject failed.");
+        }
+      } catch (e) {
+        alert("Failed to eject: " + e);
       }
     });
     document.getElementById("mk-close-tray").addEventListener("click", async () => {

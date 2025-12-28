@@ -1046,3 +1046,7 @@
 - Reset drive now performs sg_reset + rescan without toggling the tray.
 - Add Close tray button in MakeMKV settings and route helper calls through the API.
 - Version bumped to 1.25.154.
+
+## 1.25.155 - 2025-12-26
+- Add an explicit Eject button to MakeMKV settings that uses the helper-backed eject route.
+- Version bumped to 1.25.155.
