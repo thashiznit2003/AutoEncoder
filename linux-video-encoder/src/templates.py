@@ -167,17 +167,6 @@ MAIN_PAGE_TEMPLATE = """
     let lastMkInfoText = "";
     let lastMkInfoPayload = null;
     let lastTitleHtml = "";
-    function getLastMkInfoPayload() {
-      return (typeof lastMkInfoPayload === "undefined") ? null : lastMkInfoPayload;
-    }
-    function setLastMkInfoPayload(val) {
-      if (typeof lastMkInfoPayload !== "undefined") {
-        lastMkInfoPayload = val;
-      }
-    }
-    let lastMkInfoText = "";
-    let lastMkInfoPayload = null;
-    let lastTitleHtml = "";
     let lastDiscKey = "";
     let eventsCache = [];
     const smbForm = document.getElementById("smb-form");
@@ -1233,6 +1222,20 @@ SETTINGS_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     let authDirty = false;
+    let lastMkInfoText = "";
+    let lastMkInfoPayload = null;
+    let lastTitleHtml = "";
+    let lastDiscKey = "";
+
+    function getLastMkInfoPayload() {
+      return (typeof lastMkInfoPayload === "undefined") ? null : lastMkInfoPayload;
+    }
+
+    function setLastMkInfoPayload(val) {
+      if (typeof lastMkInfoPayload !== "undefined") {
+        lastMkInfoPayload = val;
+      }
+    }
 
     async function fetchJSON(url) {
       const res = await fetch(url, { credentials: "include" });

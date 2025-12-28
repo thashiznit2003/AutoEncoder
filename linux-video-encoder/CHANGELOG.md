@@ -1064,6 +1064,11 @@
 - Prefer udev CDROM flags and sg_turs results over stale sysfs values for disc presence.
 - Version bumped to 1.25.158.
 
+## 1.25.160 - 2025-12-26
+- Remove duplicate MakeMKV cache declarations on the main page to prevent JS syntax errors.
+- Define MakeMKV cache helpers in the Settings page script to stop ReferenceError failures.
+- Version bumped to 1.25.160.
+
 ## 1.25.159 - 2025-12-26
 - Fix main page JS duplicate declarations that blocked UI refresh.
 - Define MakeMKV title cache helpers for the Settings page to prevent missing data.
