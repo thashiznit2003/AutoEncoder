@@ -520,6 +520,11 @@ class StatusTracker:
         with self._lock:
             return self._disc_auto_key
 
+    def clear_disc_auto_queue(self):
+        with self._lock:
+            self._disc_auto_queue = []
+            self._disc_auto_key = None
+
     def set_disc_auto_complete(self, key: str):
         with self._lock:
             self._disc_auto_complete_key = key

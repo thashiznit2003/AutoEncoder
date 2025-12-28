@@ -186,6 +186,38 @@ MAIN_PAGE_TEMPLATE = """
       el.style.display = "block";
     }
 
+    function uiNotify(msg, level) {
+      const text = String(msg || "");
+      let stack = document.getElementById("toast-stack");
+      if (!stack) {
+        stack = document.createElement("div");
+        stack.id = "toast-stack";
+        stack.style.cssText = "position:fixed;right:16px;top:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;";
+        document.body.appendChild(stack);
+      }
+      const el = document.createElement("div");
+      const tone = level || "info";
+      const bg = tone === "error" ? "#7f1d1d" : (tone === "success" ? "#064e3b" : "#1f2937");
+      el.style.cssText = "background:" + bg + ";color:#f8fafc;padding:10px 12px;border-radius:10px;border:1px solid rgba(148,163,184,0.2);box-shadow:0 8px 24px rgba(0,0,0,0.35);font-size:12px;line-height:1.4;";
+      el.textContent = text;
+      stack.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = "0";
+        el.style.transform = "translateY(6px)";
+      }, 4000);
+      setTimeout(() => {
+        try { el.remove(); } catch (e) {}
+      }, 4800);
+    }
+
+    window.alert = (msg) => {
+      const text = String(msg || "");
+      const level = /fail|error|denied|not allowed|unable/i.test(text)
+        ? "error"
+        : (/saved|queued|requested|copied|complete|success/i.test(text) ? "success" : "info");
+      uiNotify(text, level);
+    };
+
     window.addEventListener("error", (e) => {
       showJsError("JS error: " + (e && e.message ? e.message : e));
     });
@@ -1226,6 +1258,38 @@ SETTINGS_PAGE_TEMPLATE = """
     let lastMkInfoPayload = null;
     let lastTitleHtml = "";
     let lastDiscKey = "";
+
+    function uiNotify(msg, level) {
+      const text = String(msg || "");
+      let stack = document.getElementById("toast-stack");
+      if (!stack) {
+        stack = document.createElement("div");
+        stack.id = "toast-stack";
+        stack.style.cssText = "position:fixed;right:16px;top:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;";
+        document.body.appendChild(stack);
+      }
+      const el = document.createElement("div");
+      const tone = level || "info";
+      const bg = tone === "error" ? "#7f1d1d" : (tone === "success" ? "#064e3b" : "#1f2937");
+      el.style.cssText = "background:" + bg + ";color:#f8fafc;padding:10px 12px;border-radius:10px;border:1px solid rgba(148,163,184,0.2);box-shadow:0 8px 24px rgba(0,0,0,0.35);font-size:12px;line-height:1.4;";
+      el.textContent = text;
+      stack.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = "0";
+        el.style.transform = "translateY(6px)";
+      }, 4000);
+      setTimeout(() => {
+        try { el.remove(); } catch (e) {}
+      }, 4800);
+    }
+
+    window.alert = (msg) => {
+      const text = String(msg || "");
+      const level = /fail|error|denied|not allowed|unable/i.test(text)
+        ? "error"
+        : (/saved|queued|requested|copied|complete|success/i.test(text) ? "success" : "info");
+      uiNotify(text, level);
+    };
 
     function getLastMkInfoPayload() {
       return (typeof lastMkInfoPayload === "undefined") ? null : lastMkInfoPayload;

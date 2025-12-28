@@ -1065,6 +1065,12 @@
 - Keep disc info payload intact after ripping so titles/labels stay stable.
 - Version bumped to 1.25.162.
 
+## 1.25.163 - 2025-12-26
+- Stop active disc rips immediately on disc removal to prevent orphaned rip loops.
+- Strengthen Stop All Ripping by clearing auto queues and pinning the disc as complete.
+- Replace browser alert popups with non-blocking in-app notifications.
+- Version bumped to 1.25.163.
+
 ## 1.25.161 - 2025-12-26
 - Fix auto-rip title selection by reading titles from nested disc info payloads.
 - Parse duration strings when duration seconds are missing for auto-rip sorting.

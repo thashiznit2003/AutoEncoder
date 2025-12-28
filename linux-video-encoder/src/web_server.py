@@ -2340,10 +2340,28 @@ def create_app(tracker, config_manager=None):
             if src.startswith("disc:") or state == "ripping":
                 tracker.stop_proc(src)
                 stopped += 1
+        disc_key = None
+        try:
+            di = tracker.disc_info() or {}
+            info = (di.get("info") if isinstance(di, dict) else None) or {}
+            summary = info.get("summary") or {}
+            label = summary.get("disc_label") or summary.get("label") or ""
+            drive = summary.get("drive") or ""
+            if label or drive:
+                disc_key = f"{label}|{drive}"
+            else:
+                disc_index = di.get("disc_index") if isinstance(di, dict) else None
+                if disc_index is not None:
+                    disc_key = f"disc:{disc_index}"
+        except Exception:
+            disc_key = None
         try:
             tracker.block_disc_rip()
             tracker.pause_disc_scan()
             tracker.set_disc_pending(False)
+            tracker.clear_disc_auto_queue()
+            if disc_key:
+                tracker.set_disc_auto_complete(disc_key)
         except Exception:
             pass
         tracker.add_event("Stop All Ripping enabled; auto-rip paused.")

@@ -1928,6 +1928,21 @@ def main():
                     present = is_disc_present()
                     prev = status_tracker.disc_present()
                     if present is False and prev is not False:
+                        stopped = 0
+                        try:
+                            snap = status_tracker.snapshot()
+                            for item in snap.get("active", []):
+                                src = (item.get("source") or "").strip()
+                                state = (item.get("state") or "").strip().lower()
+                                if src.startswith("disc:") or state == "ripping":
+                                    status_tracker.stop_proc(src)
+                                    stopped += 1
+                        except Exception:
+                            logging.debug("Failed to stop active disc rip on removal", exc_info=True)
+                        if stopped:
+                            status_tracker.add_event(
+                                f"Disc removed; stopped {stopped} ripping task{'s' if stopped != 1 else ''}."
+                            )
                         status_tracker.clear_disc_info()
                         status_tracker.resume_disc_scan()
                         status_tracker.add_event("Disc removed; status cleared.")
