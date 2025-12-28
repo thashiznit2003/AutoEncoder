@@ -34,6 +34,7 @@ class StatusTracker:
         self._disc_present = None
         self._disc_auto_queue = []
         self._disc_auto_key = None
+        self._disc_auto_complete_key = None
         self._smb_pending = []
         self._usb_status = {"state": "unknown", "message": "USB status unknown"}
         self._disc_scan_inflight = False
@@ -459,6 +460,7 @@ class StatusTracker:
             self._disc_rip_mode = None
             self._disc_auto_queue = []
             self._disc_auto_key = None
+            self._disc_auto_complete_key = None
             self._disc_preserve_info = False
 
     def disc_info(self):
@@ -517,6 +519,18 @@ class StatusTracker:
     def disc_auto_key(self):
         with self._lock:
             return self._disc_auto_key
+
+    def set_disc_auto_complete(self, key: str):
+        with self._lock:
+            self._disc_auto_complete_key = key
+
+    def clear_disc_auto_complete(self):
+        with self._lock:
+            self._disc_auto_complete_key = None
+
+    def disc_auto_complete(self, key: str) -> bool:
+        with self._lock:
+            return bool(self._disc_auto_complete_key and key and self._disc_auto_complete_key == key)
 
     def pop_disc_auto_title(self):
         with self._lock:

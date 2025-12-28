@@ -1060,9 +1060,10 @@
 - Treat `media=0` or `size=0` as authoritative “no disc” in optical helper detection.
 - Version bumped to 1.25.157.
 
-## 1.25.158 - 2025-12-26
-- Prefer udev CDROM flags and sg_turs results over stale sysfs values for disc presence.
-- Version bumped to 1.25.158.
+## 1.25.162 - 2025-12-26
+- Prevent auto-rip from looping past the two selected titles until the disc changes.
+- Keep disc info payload intact after ripping so titles/labels stay stable.
+- Version bumped to 1.25.162.
 
 ## 1.25.161 - 2025-12-26
 - Fix auto-rip title selection by reading titles from nested disc info payloads.
@@ -1078,3 +1079,7 @@
 - Fix main page JS duplicate declarations that blocked UI refresh.
 - Define MakeMKV title cache helpers for the Settings page to prevent missing data.
 - Version bumped to 1.25.159.
+
+## 1.25.158 - 2025-12-26
+- Prefer udev CDROM flags and sg_turs results over stale sysfs values for disc presence.
+- Version bumped to 1.25.158.

@@ -1893,9 +1893,6 @@ def main():
                     )
                     if rip_path:
                         video_files.append(str(rip_path))
-                        status_tracker.set_disc_info(
-                            {"disc_index": disc_num, "source": disc_source, "info": {"raw": f"Manual rip started for {disc_source}"}}
-                        )
                         label = "Auto" if mode == "auto" else "Manual"
                         status_tracker.add_event(f"{label} MakeMKV rip {'reused existing' if reused else 'produced'}: {rip_path}")
                         if mode == "auto":
@@ -1904,6 +1901,8 @@ def main():
                                 status_tracker.request_disc_rip("auto")
                                 status_tracker.add_event(f"Auto-rip queued next title: {remaining[0]}")
                             else:
+                                disc_key = _disc_key_from_info(status_tracker.disc_info() or {}, disc_num)
+                                status_tracker.set_disc_auto_complete(disc_key)
                                 status_tracker.add_event("Auto-rip queue complete.")
                                 status_tracker.pause_disc_scan()
                                 status_tracker.set_disc_scan_cooldown(120)
@@ -1934,6 +1933,7 @@ def main():
                         status_tracker.add_event("Disc removed; status cleared.")
                     if present is True and prev is not True:
                         status_tracker.resume_disc_scan()
+                        status_tracker.clear_disc_auto_complete()
                         status_tracker.add_event("Disc inserted.")
                     if present is not None and prev != present:
                         disc_present_changed = True
@@ -1944,7 +1944,10 @@ def main():
             busy = bool(status_tracker and status_tracker.has_active_nonqueued())
             auto_rip = bool(config.get("makemkv_auto_rip"))
             if status_tracker and auto_rip and status_tracker.disc_scan_paused() and not status_tracker.disc_rip_blocked():
-                status_tracker.resume_disc_scan()
+                disc_num = get_disc_number()
+                disc_key = _disc_key_from_info(status_tracker.disc_info() or {}, disc_num)
+                if not status_tracker.disc_auto_complete(disc_key):
+                    status_tracker.resume_disc_scan()
             # Disc detection / info
             try:
                 if status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
@@ -2013,7 +2016,8 @@ def main():
                     if not has_disc_task and not status_tracker.disc_rip_requested():
                         disc_source = _resolve_disc_source()
                         disc_num = get_disc_number()
-                        if disc_source:
+                        disc_key = _disc_key_from_info(status_tracker.disc_info() or {}, disc_num)
+                        if disc_source and not status_tracker.disc_auto_complete(disc_key):
                             status_tracker.request_disc_rip("auto")
                             status_tracker.add_event(f"Auto-rip requested for {disc_source}")
             except Exception:
