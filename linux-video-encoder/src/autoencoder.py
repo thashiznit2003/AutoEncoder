@@ -1576,13 +1576,15 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             if rip_path is None:
                 logging.error("Blu-ray ripping failed; skipping encoding for %s", video_file)
                 if status_tracker:
-                    status_tracker.clear_disc_info()
+                    if status_tracker.disc_present() is False:
+                        status_tracker.clear_disc_info()
                     status_tracker.complete(str(src), False, dest_str, "Blu-ray rip failed")
                 return False
         else:
             logging.error("No Blu-ray disc detected; skipping encoding for %s", video_file)
             if status_tracker:
-                status_tracker.clear_disc_info()
+                if status_tracker.disc_present() is False:
+                    status_tracker.clear_disc_info()
                 status_tracker.complete(str(src), False, dest_str, "No Blu-ray detected")
             return False
 
@@ -1595,7 +1597,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                 status_tracker.update_destination(str(src), dest_str)
     if video_file is None:
         if status_tracker:
-            status_tracker.clear_disc_info()
+            if status_tracker.disc_present() is False:
+                status_tracker.clear_disc_info()
             status_tracker.complete(str(src), False, dest_str, "No video file to encode")
         return False
     # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available
@@ -1631,7 +1634,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             logging.info("Fallback encoder succeeded: %s -> %s", video_file, out_path)
             if status_tracker:
                 status_tracker.complete(str(src), True, dest_str, "Fallback encoder succeeded")
-                status_tracker.clear_disc_info()
+                if status_tracker.disc_present() is False:
+                    status_tracker.clear_disc_info()
         except Exception:
             logging.exception("Fallback encoder failed for %s", video_file)
             if status_tracker:
@@ -1641,7 +1645,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         logging.info("Encoded %s -> %s (HandBrakeCLI)", video_file, out_path)
         if status_tracker and not status_tracker.was_canceled(str(src)):
             status_tracker.add_event(f"Encoding complete: {src}")
-        if status_tracker:
+        if status_tracker and status_tracker.disc_present() is False:
             status_tracker.clear_disc_info()
         # move final file to final_dir if specified
         if final_dir != "":
