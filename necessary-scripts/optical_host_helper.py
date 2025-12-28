@@ -57,6 +57,9 @@ def _read_sys(path: str) -> str | None:
 
 def disc_present_for_sr(sr: str) -> bool:
     device_dir = f"/sys/class/block/{sr}/device"
+    media = _read_sys(f"{device_dir}/media")
+    if media == "0":
+        return False
     medium_state = (_read_sys(f"{device_dir}/medium_state") or "").lower()
     if medium_state:
         if "empty" in medium_state or "no" in medium_state:
@@ -67,6 +70,9 @@ def disc_present_for_sr(sr: str) -> bool:
     if state:
         if "not ready" in state or "offline" in state or "no medium" in state:
             return False
+    size = _read_sys(f"/sys/class/block/{sr}/size")
+    if size and size.isdigit() and int(size) == 0:
+        return False
     sg = scsi_generic_for_sr(sr)
     if sg and os.path.exists(sg) and run(["which", "sg_turs"]).returncode == 0:
         try:
@@ -74,10 +80,8 @@ def disc_present_for_sr(sr: str) -> bool:
             return res.returncode == 0
         except Exception:
             pass
-    media = _read_sys(f"{device_dir}/media")
     if media in {"0", "1"}:
         return media == "1"
-    size = _read_sys(f"/sys/class/block/{sr}/size")
     if size and size.isdigit():
         return int(size) > 0
     return False

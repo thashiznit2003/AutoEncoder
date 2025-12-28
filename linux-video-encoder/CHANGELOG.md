@@ -1055,3 +1055,7 @@
 - Fix Settings page MakeMKV title cache helper to avoid `getLastMkInfoPayload` ReferenceError.
 - Improve optical helper disc-present detection ordering to reduce false “disc present” states.
 - Version bumped to 1.25.156.
+
+## 1.25.157 - 2025-12-26
+- Treat `media=0` or `size=0` as authoritative “no disc” in optical helper detection.
+- Version bumped to 1.25.157.
