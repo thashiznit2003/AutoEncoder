@@ -164,7 +164,9 @@ MAIN_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     let authDirty = false;
+    let lastMkInfoText = "";
     let lastMkInfoPayload = null;
+    let lastTitleHtml = "";
     function getLastMkInfoPayload() {
       return (typeof lastMkInfoPayload === "undefined") ? null : lastMkInfoPayload;
     }
