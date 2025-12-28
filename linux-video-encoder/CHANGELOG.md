@@ -996,6 +996,11 @@
 - Avoid clearing cached titles/info when disc presence briefly flaps during scans.
 - Version bumped to 1.25.150.
 
+## 1.25.151 - 2025-12-26
+- Add disc timing metrics to `/api/status` so diagnostics show when titles/info appear or go missing.
+- Auto-resume disc scanning when auto-rip is enabled and scans were paused.
+- Version bumped to 1.25.151.
+
 ## 1.25.149 - 2025-12-26
 - Fix indentation error that prevented the app from starting.
 - Version bumped to 1.25.149.

@@ -40,6 +40,14 @@ class StatusTracker:
         self._disc_scan_cooldown_until = 0.0
         self._disc_scan_failures = 0
         self._disc_scan_last_ts = 0.0
+        self._disc_inserted_ts = None
+        self._disc_removed_ts = None
+        self._disc_info_first_ts = None
+        self._disc_titles_first_ts = None
+        self._disc_info_last_ts = None
+        self._disc_titles_last_ts = None
+        self._disc_info_cleared_ts = None
+        self._disc_titles_cleared_ts = None
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -260,6 +268,32 @@ class StatusTracker:
                     for a in active
                 )
             usb_status = dict(self._usb_status)
+            info_payload = (disc_info.get("info") if isinstance(disc_info, dict) else disc_info) or {}
+            titles_count = len(info_payload.get("titles") or [])
+            disc_timing = {
+                "disc_inserted_at": self._disc_inserted_ts,
+                "disc_removed_at": self._disc_removed_ts,
+                "disc_info_first_at": self._disc_info_first_ts,
+                "disc_titles_first_at": self._disc_titles_first_ts,
+                "disc_info_last_at": self._disc_info_last_ts,
+                "disc_titles_last_at": self._disc_titles_last_ts,
+                "disc_info_cleared_at": self._disc_info_cleared_ts,
+                "disc_titles_cleared_at": self._disc_titles_cleared_ts,
+            }
+            if self._disc_info_last_ts:
+                disc_timing["disc_info_age_sec"] = max(0.0, now - self._disc_info_last_ts)
+            if self._disc_titles_last_ts:
+                disc_timing["disc_titles_age_sec"] = max(0.0, now - self._disc_titles_last_ts)
+            if self._disc_inserted_ts and self._disc_info_first_ts:
+                disc_timing["disc_info_time_to_first_sec"] = max(0.0, self._disc_info_first_ts - self._disc_inserted_ts)
+            if self._disc_inserted_ts and self._disc_titles_first_ts:
+                disc_timing["disc_titles_time_to_first_sec"] = max(0.0, self._disc_titles_first_ts - self._disc_inserted_ts)
+            if self._disc_titles_first_ts and self._disc_titles_last_ts:
+                disc_timing["disc_titles_visible_for_sec"] = max(0.0, self._disc_titles_last_ts - self._disc_titles_first_ts)
+            if disc_present and titles_count == 0 and self._disc_titles_last_ts:
+                disc_timing["disc_titles_missing_for_sec"] = max(0.0, now - self._disc_titles_last_ts)
+            if disc_present and not info_payload and self._disc_info_last_ts:
+                disc_timing["disc_info_missing_for_sec"] = max(0.0, now - self._disc_info_last_ts)
         return {
             "active": active,
             "recent": history[::-1],  # newest first
@@ -270,6 +304,8 @@ class StatusTracker:
             "disc_scan_paused": disc_scan_paused,
             "disc_scan_inflight": disc_scan_inflight,
             "disc_present": disc_present,
+            "disc_titles_count": titles_count,
+            "disc_timing": disc_timing,
             "usb_status": usb_status,
         }
 
@@ -362,14 +398,31 @@ class StatusTracker:
 
     # Disc info/pending management
     def set_disc_info(self, info: dict):
+        now = time.time()
         with self._lock:
             if self._disc_preserve_info and self._disc_info:
                 return
             self._disc_info = info
             self._disc_pending = True
+            self._disc_info_last_ts = now
+            self._disc_info_cleared_ts = None
+            if self._disc_present and self._disc_info_first_ts is None:
+                self._disc_info_first_ts = now
+            payload = (info.get("info") if isinstance(info, dict) else info) or {}
+            titles = payload.get("titles") or []
+            if titles:
+                self._disc_titles_last_ts = now
+                self._disc_titles_cleared_ts = None
+                if self._disc_present and self._disc_titles_first_ts is None:
+                    self._disc_titles_first_ts = now
 
     def clear_disc_info(self):
+        now = time.time()
         with self._lock:
+            if self._disc_present:
+                self._disc_info_cleared_ts = now
+                if self._disc_titles_last_ts and self._disc_titles_cleared_ts is None:
+                    self._disc_titles_cleared_ts = now
             self._disc_info = None
             self._disc_pending = False
             self._disc_rip_requested = False
@@ -455,8 +508,20 @@ class StatusTracker:
             return self._disc_rip_blocked
 
     def set_disc_present(self, present: bool):
+        now = time.time()
         with self._lock:
+            prev = self._disc_present
             self._disc_present = bool(present)
+            if present and prev is not True:
+                self._disc_inserted_ts = now
+                self._disc_info_first_ts = None
+                self._disc_titles_first_ts = None
+                self._disc_info_last_ts = None
+                self._disc_titles_last_ts = None
+                self._disc_info_cleared_ts = None
+                self._disc_titles_cleared_ts = None
+            if not present and prev is not False:
+                self._disc_removed_ts = now
 
     def disc_present(self):
         with self._lock:

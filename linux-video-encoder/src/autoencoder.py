@@ -1938,6 +1938,8 @@ def main():
                     logging.debug("Disc presence detection failed", exc_info=True)
             busy = bool(status_tracker and status_tracker.has_active_nonqueued())
             auto_rip = bool(config.get("makemkv_auto_rip"))
+            if status_tracker and auto_rip and status_tracker.disc_scan_paused() and not status_tracker.disc_rip_blocked():
+                status_tracker.resume_disc_scan()
             # Disc detection / info
             try:
                 if status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:
