@@ -194,6 +194,16 @@ MAIN_PAGE_TEMPLATE = """
       showJsError("Promise error: " + reason);
     });
 
+    function getLastMkInfoPayload() {
+      return (typeof lastMkInfoPayload === "undefined") ? null : lastMkInfoPayload;
+    }
+
+    function setLastMkInfoPayload(val) {
+      if (typeof lastMkInfoPayload !== "undefined") {
+        lastMkInfoPayload = val;
+      }
+    }
+
     async function fetchJSON(url, opts) {
       const res = await fetch(url, { ...(opts || {}), credentials: "include" });
       const text = await res.text();
@@ -232,14 +242,15 @@ MAIN_PAGE_TEMPLATE = """
     function extractTitlePayload(info) {
       const payload = (info && (info.info || info)) || {};
       if (payload.titles && payload.titles.length) return payload;
-      if (lastMkInfoPayload && lastMkInfoPayload.titles && lastMkInfoPayload.titles.length) return lastMkInfoPayload;
+      const cached = getLastMkInfoPayload();
+      if (cached && cached.titles && cached.titles.length) return cached;
       return payload;
     }
 
     function rememberTitles(info) {
       const payload = (info && (info.info || info)) || {};
       if (payload.titles && payload.titles.length) {
-        lastMkInfoPayload = payload;
+        setLastMkInfoPayload(payload);
       }
     }
 
@@ -1230,14 +1241,15 @@ SETTINGS_PAGE_TEMPLATE = """
     function extractTitlePayload(info) {
       const payload = (info && (info.info || info)) || {};
       if (payload.titles && payload.titles.length) return payload;
-      if (lastMkInfoPayload && lastMkInfoPayload.titles && lastMkInfoPayload.titles.length) return lastMkInfoPayload;
+      const cached = getLastMkInfoPayload();
+      if (cached && cached.titles && cached.titles.length) return cached;
       return payload;
     }
 
     function rememberTitles(info) {
       const payload = (info && (info.info || info)) || {};
       if (payload.titles && payload.titles.length) {
-        lastMkInfoPayload = payload;
+        setLastMkInfoPayload(payload);
       }
     }
 
@@ -1310,14 +1322,14 @@ SETTINGS_PAGE_TEMPLATE = """
       if (discKey && discKey !== lastDiscKey) {
         lastDiscKey = discKey;
         lastMkInfoText = "";
-        lastMkInfoPayload = null;
+        setLastMkInfoPayload(null);
         lastTitleHtml = "";
       }
       const shouldClear = (discPresent === false && !discKey && !hasTitles && !hasSummary && !hasRawMarkers);
       if (shouldClear) {
         discInfoEl.value = "";
         lastMkInfoText = "";
-        lastMkInfoPayload = null;
+        setLastMkInfoPayload(null);
         lastTitleHtml = "";
         lastDiscKey = "";
         if (discStatusEl) {
@@ -1450,7 +1462,8 @@ SETTINGS_PAGE_TEMPLATE = """
           ? extractTitlePayload(status.disc_info)
           : ((status.disc_info && (status.disc_info.info || status.disc_info)) || {});
         const titlesCount = (titlePayload.titles || []).length;
-        const cachedCount = (lastMkInfoPayload && lastMkInfoPayload.titles) ? lastMkInfoPayload.titles.length : 0;
+        const cachedPayload = getLastMkInfoPayload();
+        const cachedCount = (cachedPayload && cachedPayload.titles) ? cachedPayload.titles.length : 0;
         const debugEl = document.getElementById("mk-titles-debug");
         if (debugEl) {
           debugEl.textContent = "Titles: " + titlesCount + " (cached: " + cachedCount + ", disc present: " + (status.disc_present === true ? "yes" : (status.disc_present === false ? "no" : "unknown")) + ")";
