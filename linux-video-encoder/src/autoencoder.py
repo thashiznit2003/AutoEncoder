@@ -1782,7 +1782,7 @@ def main():
     rescan_interval = float(config.get("rescan_interval", 30))
     last_usb_state = None  # track mount/readability status to avoid noisy repeats
     usb_state_changed_to_ready = False
-    disc_absent_streak = 0
+    disc_absent_since = None
 
     logging.info("Starting continuous scanner. search_path=%s output=%s interval=%.1fs",
                  search_path if search_path else "<auto-detect>", output_dir, rescan_interval)
@@ -2003,17 +2003,25 @@ def main():
             if status_tracker:
                 try:
                     present = is_disc_present()
+                    raw_present = present
                     prev = status_tracker.disc_present()
-                    if present is False:
-                        disc_absent_streak += 1
+                    if raw_present is False:
+                        if disc_absent_since is None:
+                            disc_absent_since = time.time()
                     else:
-                        disc_absent_streak = 0
+                        disc_absent_since = None
+                    absent_duration = time.time() - disc_absent_since if disc_absent_since else 0.0
+                    has_disc_info = False
+                    try:
+                        di = status_tracker.disc_info() or {}
+                        payload = di.get("info") if isinstance(di, dict) else di
+                        summary = (payload or {}).get("summary") or {}
+                        has_disc_info = bool((payload or {}).get("titles") or summary.get("disc_label") or summary.get("label"))
+                    except Exception:
+                        has_disc_info = False
                     if present is None:
                         try:
-                            di = status_tracker.disc_info() or {}
-                            payload = di.get("info") if isinstance(di, dict) else di
-                            summary = (payload or {}).get("summary") or {}
-                            if (payload or {}).get("titles") or summary.get("disc_label") or summary.get("label"):
+                            if has_disc_info:
                                 present = True
                         except Exception:
                             pass
@@ -2023,14 +2031,11 @@ def main():
                             if status_tracker.disc_scan_inflight() or status_tracker.disc_pending():
                                 ignore_absent = True
                             else:
-                                di = status_tracker.disc_info() or {}
-                                payload = di.get("info") if isinstance(di, dict) else di
-                                summary = (payload or {}).get("summary") or {}
-                                if (payload or {}).get("titles") or summary.get("disc_label") or summary.get("label"):
+                                if has_disc_info:
                                     ignore_absent = True
                         except Exception:
                             ignore_absent = False
-                        if ignore_absent and disc_absent_streak < 2:
+                        if ignore_absent or absent_duration < 15.0:
                             present = None
                         else:
                             stopped = 0

@@ -1157,3 +1157,8 @@
 - Keep disc presence from flipping to false during scans when recent disc info exists.
 - Treat cached disc metadata as authoritative when presence checks return unknown.
 - Version bumped to 1.25.177.
+
+## 1.25.178 - 2025-12-29
+- Debounce disc-absent detection to prevent UI status flapping while the drive is busy.
+- Use cached disc info to hold presence green during short "no media" probes.
+- Version bumped to 1.25.178.
