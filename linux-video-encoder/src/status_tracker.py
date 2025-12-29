@@ -25,6 +25,8 @@ class StatusTracker:
         self._confirm_required = set()
         self._confirm_ok = set()
         self._disc_info = None
+        self._disc_info_cache = None
+        self._disc_info_cache_key = None
         self._disc_pending = False
         self._disc_rip_requested = False
         self._disc_rip_mode = None
@@ -278,6 +280,19 @@ class StatusTracker:
             usb_status = dict(self._usb_status)
             info_payload = (disc_info.get("info") if isinstance(disc_info, dict) else disc_info) or {}
             titles_count = len(info_payload.get("titles") or [])
+            if disc_present is not False and titles_count == 0 and self._disc_info_cache:
+                cache_key = self._disc_info_cache_key
+                if not cache_key or not self._disc_key or cache_key == self._disc_key:
+                    cache_payload = (
+                        self._disc_info_cache.get("info")
+                        if isinstance(self._disc_info_cache, dict)
+                        else self._disc_info_cache
+                    ) or {}
+                    cache_titles = len(cache_payload.get("titles") or [])
+                    if cache_titles:
+                        disc_info = self._disc_info_cache
+                        info_payload = cache_payload
+                        titles_count = cache_titles
             summary = info_payload.get("summary") or {}
             label = summary.get("disc_label") or summary.get("label") or ""
             disc_timing = {
@@ -454,6 +469,13 @@ class StatusTracker:
                 self._disc_titles_cleared_ts = None
                 if self._disc_present and self._disc_titles_first_ts is None:
                     self._disc_titles_first_ts = now
+                cache_key = self._disc_key
+                if not cache_key and isinstance(info, dict):
+                    disc_index = info.get("disc_index")
+                    if disc_index is not None:
+                        cache_key = f"disc:{disc_index}"
+                self._disc_info_cache = info
+                self._disc_info_cache_key = cache_key
             summary = payload.get("summary") or {}
             label = summary.get("disc_label") or summary.get("label") or ""
             if label:
@@ -484,7 +506,21 @@ class StatusTracker:
 
     def disc_info(self):
         with self._lock:
-            return self._disc_info
+            info = self._disc_info
+            if self._disc_present is False:
+                return info
+            payload = (info.get("info") if isinstance(info, dict) else info) or {}
+            titles = payload.get("titles") or []
+            if titles:
+                return info
+            cache = self._disc_info_cache
+            if cache:
+                cache_payload = (cache.get("info") if isinstance(cache, dict) else cache) or {}
+                cache_titles = cache_payload.get("titles") or []
+                cache_key = self._disc_info_cache_key
+                if cache_titles and (not cache_key or not self._disc_key or cache_key == self._disc_key):
+                    return cache
+            return info
 
     def disc_pending(self) -> bool:
         with self._lock:
@@ -586,6 +622,8 @@ class StatusTracker:
             if present and prev is not True:
                 self._disc_inserted_ts = now
                 self._disc_key = None
+                self._disc_info_cache = None
+                self._disc_info_cache_key = None
                 self._disc_info_first_ts = None
                 self._disc_titles_first_ts = None
                 self._disc_info_last_ts = None
@@ -598,6 +636,8 @@ class StatusTracker:
             if not present and prev is not False:
                 self._disc_removed_ts = now
                 self._disc_key = None
+                self._disc_info_cache = None
+                self._disc_info_cache_key = None
                 self._disc_rip_requested = False
                 self._disc_rip_mode = None
                 self._disc_pending = False

@@ -1135,15 +1135,17 @@ def is_disc_present(devnode: str = "/dev/sr0") -> Optional[bool]:
         medium_state_path = f"{device_dir}/medium_state"
         if os.path.isfile(medium_state_path):
             state = (Path(medium_state_path).read_text(encoding="utf-8").strip().lower() or "")
-            if "empty" in state or "no" in state:
+            if "empty" in state or "no medium" in state or "no disc" in state or "no disk" in state:
                 return False
             if "present" in state:
                 return True
         state_path = f"{device_dir}/state"
         if os.path.isfile(state_path):
             state = (Path(state_path).read_text(encoding="utf-8").strip().lower() or "")
-            if "not ready" in state or "no medium" in state or "offline" in state:
+            if "no medium" in state or "medium not present" in state:
                 return False
+            if "not ready" in state or "offline" in state:
+                return None
         media_path = f"{device_dir}/media"
         if os.path.isfile(media_path):
             media_val = (Path(media_path).read_text(encoding="utf-8").strip() or "")
@@ -1153,7 +1155,7 @@ def is_disc_present(devnode: str = "/dev/sr0") -> Optional[bool]:
         if os.path.isfile(size_path):
             size_val = (Path(size_path).read_text(encoding="utf-8").strip() or "0")
             if size_val.isdigit() and int(size_val) == 0:
-                return False
+                return None
         return None
     except Exception:
         return None

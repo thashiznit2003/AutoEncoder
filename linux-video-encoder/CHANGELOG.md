@@ -1147,3 +1147,8 @@
 - Avoid re-ripping MKV outputs when a Blu-ray disc marker is present; encode directly with the Blu-ray profile.
 - Reuse existing MakeMKV outputs for selected titles by matching `*_tXX.mkv` names.
 - Version bumped to 1.25.175.
+
+## 1.25.176 - 2025-12-29
+- Cache the last MakeMKV title list so UI navigation doesn't wipe disc info during scans.
+- Reduce false disc-removal signals by treating transient "not ready" states as unknown.
+- Version bumped to 1.25.176.
