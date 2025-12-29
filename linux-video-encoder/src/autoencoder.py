@@ -2089,9 +2089,11 @@ def main():
                     if status_tracker and status_tracker.disc_rip_blocked():
                         status_tracker.add_event("Disc rip is paused (Stop All Ripping enabled).")
                         continue
-                    if status_tracker and not auto_rip and not status_tracker.consume_disc_rip_request():
-                        # Wait for manual rip trigger
-                        status_tracker.add_event("Disc present; waiting for manual rip start.")
+                    if status_tracker and not auto_rip:
+                        if status_tracker.disc_rip_requested():
+                            status_tracker.add_event("Manual rip request pending; waiting for disc rip.")
+                        else:
+                            status_tracker.add_event("Disc present; waiting for manual rip start.")
                         continue
                     local_profile = "handbrake_br"
                 elif is_dvd:

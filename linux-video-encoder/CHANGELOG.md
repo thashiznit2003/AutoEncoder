@@ -1120,3 +1120,8 @@
 - Ignore any queued auto-rip request when auto-rip is disabled.
 - Clear queued auto-rip titles when auto-rip is off to prevent unexpected starts.
 - Version bumped to 1.25.170.
+
+## 1.25.171 - 2025-12-28
+- Prevent pending manual rip requests from triggering extra disc rips during bluray file scans.
+- Keep bluray scans idle when auto-rip is off, so manual requests are handled once.
+- Version bumped to 1.25.171.
