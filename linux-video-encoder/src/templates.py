@@ -677,7 +677,7 @@ MAIN_PAGE_TEMPLATE = """
     function requestDiscInfoFetch() {
       if (discInfoFetchInFlight) return;
       discInfoFetchInFlight = true;
-      fetchJSONWithTimeout("/api/makemkv/info?force=1", {}, 120000).then((info) => {
+      fetchJSONWithTimeout("/api/makemkv/info", {}, 120000).then((info) => {
         if (info) {
           window.__discInfo = info;
           window.__discPending = true;
@@ -731,7 +731,7 @@ MAIN_PAGE_TEMPLATE = """
         let discPending = !!status.disc_pending;
         const discPresent = (status.disc_present === true) ? true : ((status.disc_present === false) ? false : null);
         if ((!discInfo || !discInfo.info) && discPresent !== false) {
-          if (!status.disc_scan_paused && !status.disc_rip_blocked) {
+          if (!status.disc_scan_paused && !status.disc_rip_blocked && !status.disc_rip_requested) {
             requestDiscInfoFetch();
           }
         }

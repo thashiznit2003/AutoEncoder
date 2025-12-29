@@ -672,7 +672,7 @@ HTML_PAGE_TEMPLATE = """
       // Apply immediately with whatever we have
       applyDiscInfo(discInfoRaw, discPending);
       // Non-blocking fallback: fetch detailed info with timeout, then update card
-      if (discPending && (!discInfoRaw || !discInfoRaw.info)) {
+      if (discPending && !status.disc_rip_requested && (!discInfoRaw || !discInfoRaw.info)) {
         fetchJSONWithTimeout("/api/makemkv/info", {}, 90000)
           .then((di) => applyDiscInfo(di || discInfoRaw, discPending))
           .catch((err) => console.warn("Fallback disc info fetch failed", err));

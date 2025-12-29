@@ -1183,3 +1183,8 @@
 ## 1.25.183 - 2025-12-29
 - Parse MakeMKV DVD title-added messages so DVD titles appear in the UI.
 - Version bumped to 1.25.183.
+
+## 1.25.184 - 2025-12-29
+- Skip auto MakeMKV info refreshes while a manual disc rip is pending.
+- Avoid forcing MakeMKV info scans on the main page auto-refresh.
+- Version bumped to 1.25.184.

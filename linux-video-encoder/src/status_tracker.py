@@ -268,6 +268,7 @@ class StatusTracker:
             disc_info = self._disc_info
             disc_pending = self._disc_pending
             disc_rip_blocked = self._disc_rip_blocked
+            disc_rip_requested = self._disc_rip_requested
             disc_scan_paused = self._disc_scan_paused
             disc_scan_inflight = self._disc_scan_inflight
             disc_present = self._disc_present
@@ -339,6 +340,7 @@ class StatusTracker:
             "disc_info": disc_info,
             "disc_pending": disc_pending,
             "disc_rip_blocked": disc_rip_blocked,
+            "disc_rip_requested": disc_rip_requested,
             "disc_scan_paused": disc_scan_paused,
             "disc_scan_inflight": disc_scan_inflight,
             "disc_present": disc_present,
