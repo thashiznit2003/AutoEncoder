@@ -1758,6 +1758,7 @@ def main():
         while True:
             manual_files = status_tracker.consume_manual_files()
             config = cfg_manager.read()
+            auto_rip = bool(config.get("makemkv_auto_rip"))
             rescan_interval = float(config.get("rescan_interval", 30))
             # Force single-file processing (FIFO) regardless of configured max_threads
             max_threads = 1
@@ -1881,6 +1882,10 @@ def main():
                 logging.debug("No candidate video files found on this pass.")
             # Handle manual rip requests even when no bluray files are present in the scan
             mode = status_tracker.consume_disc_rip_request() if status_tracker else None
+            if status_tracker and mode == "auto" and not auto_rip:
+                status_tracker.add_event("Auto-rip request ignored; auto-rip is disabled.")
+                status_tracker.clear_disc_auto_queue()
+                mode = None
             if status_tracker and mode:
                 if status_tracker.disc_rip_blocked():
                     status_tracker.add_event("Rip request ignored; Stop All Ripping is enabled.", level="error")
@@ -1994,7 +1999,6 @@ def main():
                 except Exception:
                     logging.debug("Disc presence detection failed", exc_info=True)
             busy = bool(status_tracker and status_tracker.has_active_nonqueued())
-            auto_rip = bool(config.get("makemkv_auto_rip"))
             if status_tracker and auto_rip and status_tracker.disc_scan_paused() and not status_tracker.disc_rip_blocked():
                 disc_num = get_disc_number()
                 disc_key = _get_disc_key(status_tracker, status_tracker.disc_info() or {}, disc_num, disc_source)

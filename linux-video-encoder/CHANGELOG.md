@@ -1115,3 +1115,8 @@
 ## 1.25.169 - 2025-12-28
 - Move in-app status toasts to the top center so they don't cover the Settings page button.
 - Version bumped to 1.25.169.
+
+## 1.25.170 - 2025-12-28
+- Ignore any queued auto-rip request when auto-rip is disabled.
+- Clear queued auto-rip titles when auto-rip is off to prevent unexpected starts.
+- Version bumped to 1.25.170.
