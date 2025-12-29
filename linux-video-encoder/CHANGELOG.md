@@ -1125,3 +1125,8 @@
 - Prevent pending manual rip requests from triggering extra disc rips during bluray file scans.
 - Keep bluray scans idle when auto-rip is off, so manual requests are handled once.
 - Version bumped to 1.25.171.
+
+## 1.25.172 - 2025-12-28
+- Keep main page content from clearing while MakeMKV info scans are in-flight.
+- Move MakeMKV info refresh to a background fetch so logs/events/metrics stay visible.
+- Version bumped to 1.25.172.

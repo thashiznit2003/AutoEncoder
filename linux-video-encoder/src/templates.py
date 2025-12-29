@@ -169,6 +169,8 @@ MAIN_PAGE_TEMPLATE = """
     let lastTitleHtml = "";
     let lastDiscKey = "";
     let eventsCache = [];
+    let lastEventsText = "";
+    let discInfoFetchInFlight = false;
     const smbForm = document.getElementById("smb-form");
     function connectSmb() {
       document.getElementById("smb-connect").click();
@@ -662,6 +664,20 @@ MAIN_PAGE_TEMPLATE = """
       });
     }
 
+    function requestDiscInfoFetch() {
+      if (discInfoFetchInFlight) return;
+      discInfoFetchInFlight = true;
+      fetchJSONWithTimeout("/api/makemkv/info?force=1", {}, 120000).then((info) => {
+        if (info) {
+          window.__discInfo = info;
+          window.__discPending = true;
+          updateDiscCard(info, true, window.__discPresent);
+        }
+      }).catch(() => {}).finally(() => {
+        discInfoFetchInFlight = false;
+      });
+    }
+
     async function refresh() {
       try {
         const status = await fetchJSON("/api/status");
@@ -705,25 +721,16 @@ MAIN_PAGE_TEMPLATE = """
         let discPending = !!status.disc_pending;
         const discPresent = (status.disc_present === true) ? true : ((status.disc_present === false) ? false : null);
         if ((!discInfo || !discInfo.info) && discPresent !== false) {
-          try {
-            if (!status.disc_scan_paused && !status.disc_rip_blocked) {
-              const info = await fetchJSONWithTimeout("/api/makemkv/info?force=1", {}, 120000);
-              if (info) {
-                discInfo = info;
-                discPending = true;
-              }
-            }
-          } catch (e) {
-            // ignore fetch errors
+          if (!status.disc_scan_paused && !status.disc_rip_blocked) {
+            requestDiscInfoFetch();
           }
         }
         window.__discInfo = discInfo;
         window.__discPending = discPending;
         window.__discPresent = discPresent;
+        updateDiscCard(window.__discInfo || {}, !!window.__discPending, window.__discPresent);
       } catch (e) {
         showJsError("Refresh failed: " + e);
-        document.getElementById("active").innerHTML = "<div class='muted'>Status unavailable.</div>";
-        document.getElementById("recent").innerHTML = "<div class='muted'>Status unavailable.</div>";
       }
       try {
         const logs = await fetchJSON("/api/logs");
@@ -731,7 +738,6 @@ MAIN_PAGE_TEMPLATE = """
         renderLogs(lines);
       } catch (e) {
         showJsError("Logs fetch failed: " + e);
-        document.getElementById("logs").textContent = "Logs unavailable.";
       }
       try {
         const events = await fetchJSON("/api/events");
@@ -739,10 +745,13 @@ MAIN_PAGE_TEMPLATE = """
         const lines = (eventsCache || []).map(function(ev) {
           return "[" + new Date(ev.ts * 1000).toLocaleTimeString() + "] " + ev.message;
         });
-        document.getElementById("events").textContent = lines.join("\\n") || "No recent events.";
+        lastEventsText = lines.join("\\n") || "No recent events.";
+        document.getElementById("events").textContent = lastEventsText;
       } catch (e) {
         showJsError("Events fetch failed: " + e);
-        document.getElementById("events").textContent = "Events unavailable.";
+        if (lastEventsText) {
+          document.getElementById("events").textContent = lastEventsText;
+        }
       }
       try {
         bindUsbButtons();
@@ -752,10 +761,8 @@ MAIN_PAGE_TEMPLATE = """
       try {
         const metrics = await fetchJSON("/api/metrics");
         renderMetrics(metrics);
-      updateDiscCard(window.__discInfo || {}, !!window.__discPending, window.__discPresent);
       } catch (e) {
         showJsError("Metrics fetch failed: " + e);
-        document.getElementById("metrics").textContent = "Metrics unavailable.";
       }
     }
 
