@@ -1171,3 +1171,7 @@
 ## 1.25.180 - 2025-12-29
 - Reapply disc card state after metrics redraw to prevent UI flashing.
 - Version bumped to 1.25.180.
+
+## 1.25.181 - 2025-12-29
+- Allow disc removal to clear presence after debounce even when cached disc info exists.
+- Version bumped to 1.25.181.

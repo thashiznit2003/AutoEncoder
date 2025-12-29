@@ -2031,11 +2031,11 @@ def main():
                             if status_tracker.disc_scan_inflight() or status_tracker.disc_pending():
                                 ignore_absent = True
                             else:
-                                if has_disc_info:
+                                if has_disc_info and absent_duration < 15.0:
                                     ignore_absent = True
                         except Exception:
                             ignore_absent = False
-                        if ignore_absent or absent_duration < 15.0:
+                        if ignore_absent and absent_duration < 15.0:
                             present = None
                         else:
                             stopped = 0
