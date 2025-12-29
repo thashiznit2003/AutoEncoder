@@ -436,6 +436,11 @@ MAIN_PAGE_TEMPLATE = """
         </div>`;
       el.innerHTML = '<div class="metric-grid">' + cardsHtml + usbCard + discCard + '</div>';
       bindUsbButtons();
+      try {
+        if (typeof updateDiscCard === "function") {
+          updateDiscCard(window.__discInfo || {}, !!window.__discPending, window.__discPresent);
+        }
+      } catch (e) {}
     }
 
     function renderLogs(lines) {

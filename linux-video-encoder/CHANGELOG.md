@@ -1167,3 +1167,7 @@
 - Debounce the disc info card UI so brief unknown states don't flash red.
 - Preserve the last known disc label while the drive is polling.
 - Version bumped to 1.25.179.
+
+## 1.25.180 - 2025-12-29
+- Reapply disc card state after metrics redraw to prevent UI flashing.
+- Version bumped to 1.25.180.
