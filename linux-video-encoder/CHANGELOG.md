@@ -1179,3 +1179,7 @@
 ## 1.25.182 - 2025-12-29
 - Clear cached disc UI state immediately when the backend reports disc absence.
 - Version bumped to 1.25.182.
+
+## 1.25.183 - 2025-12-29
+- Parse MakeMKV DVD title-added messages so DVD titles appear in the UI.
+- Version bumped to 1.25.183.

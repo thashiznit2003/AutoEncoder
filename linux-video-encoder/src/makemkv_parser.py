@@ -182,6 +182,10 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
         r"Title #(?P<playlist>\d+)[^\n]*length (?P<length>[0-9:]+)(?:[^\d]+(?P<chapters>\d+) chapters)?",
         re.IGNORECASE,
     )
+    msg_added_re = re.compile(
+        r"Title #(?P<id>\d+)\s+was added\s*\\((?P<cells>\d+)\\s*cell\\(s\\),\\s*(?P<length>[0-9:]+)\\)",
+        re.IGNORECASE,
+    )
 
     lines = [ln for ln in raw.splitlines() if ln]
     error_lines = [ln for ln in lines if ln.lower().startswith("error:")]
@@ -230,6 +234,25 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
             chapters_val = msg_match.group("chapters")
             if chapters_val and chapters_val.isdigit():
                 msg_entry["chapters"] = int(chapters_val)
+        msg_added_match = msg_added_re.search(ln)
+        if msg_added_match:
+            try:
+                title_id = int(msg_added_match.group("id"))
+            except Exception:
+                title_id = None
+            if title_id is not None:
+                entry = ensure_title(title_id)
+                length_val = msg_added_match.group("length")
+                dur_sec = _parse_duration_to_seconds(length_val)
+                if dur_sec:
+                    entry.setdefault("duration_seconds", dur_sec)
+                    entry.setdefault("duration", _format_duration(dur_sec))
+                cells_val = msg_added_match.group("cells")
+                if cells_val and cells_val.isdigit():
+                    cells = int(cells_val)
+                    entry.setdefault("cells", cells)
+                    if "chapters" not in entry:
+                        entry["chapters"] = cells
         if ln.startswith("TINFO:"):
             try:
                 import csv
