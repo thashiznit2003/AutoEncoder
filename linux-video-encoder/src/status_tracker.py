@@ -420,20 +420,28 @@ class StatusTracker:
             return bool(self._smb_pending)
 
     # Disc info/pending management
-    def set_disc_info(self, info: dict):
+    def set_disc_info(self, info: dict, force: bool = False):
         now = time.time()
         with self._lock:
-            if self._disc_preserve_info and self._disc_info:
+            if self._disc_preserve_info and self._disc_info and not force:
                 return
+            payload = (info.get("info") if isinstance(info, dict) else info) or {}
+            incoming_titles = payload.get("titles") or []
+            incoming_pending = bool(payload.get("scan_pending"))
+            if self._disc_info and not force:
+                existing_payload = (self._disc_info.get("info") if isinstance(self._disc_info, dict) else self._disc_info) or {}
+                existing_titles = existing_payload.get("titles") or []
+                if existing_titles and not incoming_titles:
+                    self._disc_pending = bool(incoming_pending and not existing_titles)
+                    return
             self._disc_info = info
-            self._disc_pending = True
+            self._disc_pending = bool(not incoming_titles)
             self._disc_info_last_ts = now
             self._disc_info_cleared_ts = None
             if self._disc_present and self._disc_info_first_ts is None:
                 self._disc_info_first_ts = now
             if self._disc_key is None and isinstance(info, dict):
                 disc_index = info.get("disc_index")
-                payload = (info.get("info") if isinstance(info, dict) else info) or {}
                 summary = payload.get("summary") or {}
                 label = summary.get("disc_label") or summary.get("label") or ""
                 drive = summary.get("drive") or ""
@@ -441,9 +449,7 @@ class StatusTracker:
                     self._disc_key = f"{label}|{drive}"
                 elif disc_index is not None:
                     self._disc_key = f"disc:{disc_index}"
-            payload = (info.get("info") if isinstance(info, dict) else info) or {}
-            titles = payload.get("titles") or []
-            if titles:
+            if incoming_titles:
                 self._disc_titles_last_ts = now
                 self._disc_titles_cleared_ts = None
                 if self._disc_present and self._disc_titles_first_ts is None:

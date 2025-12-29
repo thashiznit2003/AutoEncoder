@@ -13,6 +13,8 @@ EXCLUDED_SCAN_PATHS = {
     "/usr/share",
     "/linux-video-encoder/scripts",
     "/etc/vulkan",
+    "/mnt/bluray",
+    "/mnt/dvd",
     "/mnt/auto_media",
 }
 

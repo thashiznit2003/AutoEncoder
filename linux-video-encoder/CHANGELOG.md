@@ -1134,3 +1134,11 @@
 ## 1.25.173 - 2025-12-28
 - Extend optical helper timeouts for reset/eject/close tray and return clean timeout errors.
 - Version bumped to 1.25.173.
+
+## 1.25.174 - 2025-12-29
+- Make optical helper disc-present detection more conservative to avoid false positives.
+- Preserve cached MakeMKV title lists when new scans return partial/empty data.
+- Stop auto-rip from triggering until titles are available; fallback to longest titles if duration parsing is incomplete.
+- Prevent optical disc structures from being scanned as normal files.
+- Fix disc/title cache JS errors by using stable globals for MakeMKV payload caching.
+- Version bumped to 1.25.174.

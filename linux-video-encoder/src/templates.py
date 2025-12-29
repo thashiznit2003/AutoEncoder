@@ -164,10 +164,10 @@ MAIN_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     let authDirty = false;
-    let lastMkInfoText = "";
-    let lastMkInfoPayload = null;
-    let lastTitleHtml = "";
-    let lastDiscKey = "";
+    if (typeof window.lastMkInfoText === "undefined") window.lastMkInfoText = "";
+    if (typeof window.lastMkInfoPayload === "undefined") window.lastMkInfoPayload = null;
+    if (typeof window.lastTitleHtml === "undefined") window.lastTitleHtml = "";
+    if (typeof window.lastDiscKey === "undefined") window.lastDiscKey = "";
     let eventsCache = [];
     let lastEventsText = "";
     let discInfoFetchInFlight = false;
@@ -269,13 +269,11 @@ MAIN_PAGE_TEMPLATE = """
     });
 
     function getLastMkInfoPayload() {
-      return (typeof lastMkInfoPayload === "undefined") ? null : lastMkInfoPayload;
+      return (typeof window.lastMkInfoPayload === "undefined") ? null : window.lastMkInfoPayload;
     }
 
     function setLastMkInfoPayload(val) {
-      if (typeof lastMkInfoPayload !== "undefined") {
-        lastMkInfoPayload = val;
-      }
+      window.lastMkInfoPayload = val;
     }
 
     async function fetchJSON(url, opts) {
@@ -336,8 +334,8 @@ MAIN_PAGE_TEMPLATE = """
         : ((info && (info.info || info)) || {});
       const titles = parsed.titles || [];
       if (!titles.length) {
-        if (lastTitleHtml) {
-          el.innerHTML = lastTitleHtml;
+        if (window.lastTitleHtml) {
+          el.innerHTML = window.lastTitleHtml;
         } else {
           el.textContent = "No titles found yet.";
         }
@@ -356,7 +354,7 @@ MAIN_PAGE_TEMPLATE = """
         );
       }).join("");
       el.innerHTML = rows;
-      lastTitleHtml = rows;
+      window.lastTitleHtml = rows;
     }
 
     function renderMetrics(metrics) {
@@ -1301,10 +1299,10 @@ SETTINGS_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     let authDirty = false;
-    let lastMkInfoText = "";
-    let lastMkInfoPayload = null;
-    let lastTitleHtml = "";
-    let lastDiscKey = "";
+    if (typeof window.lastMkInfoText === "undefined") window.lastMkInfoText = "";
+    if (typeof window.lastMkInfoPayload === "undefined") window.lastMkInfoPayload = null;
+    if (typeof window.lastTitleHtml === "undefined") window.lastTitleHtml = "";
+    if (typeof window.lastDiscKey === "undefined") window.lastDiscKey = "";
 
     function showJsError(msg) {
       let el = document.getElementById("js-error-banner");
@@ -1359,13 +1357,11 @@ SETTINGS_PAGE_TEMPLATE = """
     });
 
     function getLastMkInfoPayload() {
-      return (typeof lastMkInfoPayload === "undefined") ? null : lastMkInfoPayload;
+      return (typeof window.lastMkInfoPayload === "undefined") ? null : window.lastMkInfoPayload;
     }
 
     function setLastMkInfoPayload(val) {
-      if (typeof lastMkInfoPayload !== "undefined") {
-        lastMkInfoPayload = val;
-      }
+      window.lastMkInfoPayload = val;
     }
 
     async function fetchJSON(url, opts) {
@@ -1430,7 +1426,11 @@ SETTINGS_PAGE_TEMPLATE = """
       const parsed = extractTitlePayload(info);
       const titles = parsed.titles || [];
       if (!titles.length) {
-        el.textContent = "No titles found yet.";
+        if (window.lastTitleHtml) {
+          el.innerHTML = window.lastTitleHtml;
+        } else {
+          el.textContent = "No titles found yet.";
+        }
         return;
       }
       const rows = titles.map(t => {
@@ -1446,6 +1446,7 @@ SETTINGS_PAGE_TEMPLATE = """
         );
       }).join("");
       el.innerHTML = rows;
+      window.lastTitleHtml = rows;
     }
 
     function updateDiscInfoPanel(status) {
@@ -1466,29 +1467,29 @@ SETTINGS_PAGE_TEMPLATE = """
       const hasTitles = !!(titlePayload.titles && titlePayload.titles.length);
       const hasSummary = !!(summary.titles_detected || summary.title_count || (summary.main_feature && summary.main_feature.duration));
       const hasRawMarkers = text && (text.indexOf("TCOUNT:") !== -1 || text.indexOf("TINFO:") !== -1);
-      if (discKey && discKey !== lastDiscKey) {
-        lastDiscKey = discKey;
-        lastMkInfoText = "";
+      if (discKey && discKey !== window.lastDiscKey) {
+        window.lastDiscKey = discKey;
+        window.lastMkInfoText = "";
         setLastMkInfoPayload(null);
-        lastTitleHtml = "";
+        window.lastTitleHtml = "";
       }
       const shouldClear = (discPresent === false && !discKey && !hasTitles && !hasSummary && !hasRawMarkers);
       if (shouldClear) {
         discInfoEl.value = "";
-        lastMkInfoText = "";
+        window.lastMkInfoText = "";
         setLastMkInfoPayload(null);
-        lastTitleHtml = "";
-        lastDiscKey = "";
+        window.lastTitleHtml = "";
+        window.lastDiscKey = "";
         if (discStatusEl) {
           discStatusEl.textContent = "Disc status: no disc";
         }
         return;
       }
-      if (text && (hasTitles || hasSummary || hasRawMarkers || !lastMkInfoText)) {
+      if (text && (hasTitles || hasSummary || hasRawMarkers || !window.lastMkInfoText)) {
         discInfoEl.value = text;
-        lastMkInfoText = text;
-      } else if (lastMkInfoText) {
-        discInfoEl.value = lastMkInfoText;
+        window.lastMkInfoText = text;
+      } else if (window.lastMkInfoText) {
+        discInfoEl.value = window.lastMkInfoText;
       }
       if (discStatusEl) {
         if (label) {
@@ -1600,6 +1601,11 @@ SETTINGS_PAGE_TEMPLATE = """
         const ripStatus = document.getElementById("mk-rip-status");
         if (ripStatus) {
           ripStatus.textContent = status.disc_rip_blocked ? "Rip status: paused" : "Rip status: active";
+        }
+        const busyEl = document.getElementById("mk-scan-busy");
+        if (busyEl) {
+          const busy = !!(status.disc_scan_inflight || status.disc_pending);
+          busyEl.style.display = busy ? "inline-flex" : "none";
         }
         if (typeof rememberTitles === "function") {
           rememberTitles(status.disc_info);
@@ -1794,7 +1800,7 @@ SETTINGS_PAGE_TEMPLATE = """
         const discStatusEl = document.getElementById("mk-disc-status");
         const discText = buildDiscInfoText(info) || "No disc info.";
         discInfoEl.value = discText;
-        lastMkInfoText = discText;
+        window.lastMkInfoText = discText;
         if (discStatusEl) {
           const idx = (info && info.disc_index !== undefined) ? info.disc_index : null;
           discStatusEl.textContent = idx !== null ? ("Disc present (index " + idx + ")") : "Disc info refreshed.";

@@ -618,7 +618,10 @@ def _resolve_optical_present() -> Optional[bool]:
         return None
     selected = status.get("selected") or {}
     if "present" in selected:
-        return bool(selected.get("present"))
+        present = selected.get("present")
+        if present is None:
+            return None
+        return bool(present)
     return None
 
 
@@ -1127,12 +1130,31 @@ def is_disc_present(devnode: str = "/dev/sr0") -> Optional[bool]:
                 devnode = helper_dev
         if not os.path.exists(devnode):
             return False
-        size_path = f"/sys/class/block/{Path(devnode).name}/size"
+        dev_name = Path(devnode).name
+        device_dir = f"/sys/class/block/{dev_name}/device"
+        medium_state_path = f"{device_dir}/medium_state"
+        if os.path.isfile(medium_state_path):
+            state = (Path(medium_state_path).read_text(encoding="utf-8").strip().lower() or "")
+            if "empty" in state or "no" in state:
+                return False
+            if "present" in state:
+                return True
+        state_path = f"{device_dir}/state"
+        if os.path.isfile(state_path):
+            state = (Path(state_path).read_text(encoding="utf-8").strip().lower() or "")
+            if "not ready" in state or "no medium" in state or "offline" in state:
+                return False
+        media_path = f"{device_dir}/media"
+        if os.path.isfile(media_path):
+            media_val = (Path(media_path).read_text(encoding="utf-8").strip() or "")
+            if media_val in {"0", "1"}:
+                return media_val == "1"
+        size_path = f"/sys/class/block/{dev_name}/size"
         if os.path.isfile(size_path):
-            with open(size_path, "r", encoding="utf-8") as f:
-                size = int(f.read().strip() or "0")
-            return size > 0
-        return True
+            size_val = (Path(size_path).read_text(encoding="utf-8").strip() or "0")
+            if size_val.isdigit() and int(size_val) == 0:
+                return False
+        return None
     except Exception:
         return None
 
@@ -1194,6 +1216,7 @@ def _select_top_titles(info: dict, count: int, min_seconds: int) -> list:
         payload = payload.get("info") or payload
     titles = (payload or {}).get("titles") or []
     candidates = []
+    fallback = []
     for t in titles:
         try:
             dur = t.get("duration_seconds") or 0
@@ -1202,12 +1225,18 @@ def _select_top_titles(info: dict, count: int, min_seconds: int) -> list:
             tid = t.get("id")
             if tid is None:
                 continue
+            fallback.append((dur, tid))
             if dur >= min_seconds:
                 candidates.append((dur, tid))
         except Exception:
             continue
-    candidates.sort(reverse=True)
-    return [str(tid) for _, tid in candidates[:count]]
+    if candidates:
+        candidates.sort(reverse=True)
+        return [str(tid) for _, tid in candidates[:count]]
+    if fallback:
+        fallback.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return [str(tid) for _, tid in fallback[:count]]
+    return []
 
 def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
     if hb_opts.get("video_bitrate_kbps"):
@@ -1946,9 +1975,11 @@ def main():
                                 disc_key = _get_disc_key(status_tracker, status_tracker.disc_info() or {}, disc_num, disc_source)
                                 status_tracker.set_disc_auto_complete(disc_key)
                                 status_tracker.add_event("Auto-rip queue complete.")
+                                status_tracker.set_disc_pending(False)
                                 status_tracker.pause_disc_scan()
                                 status_tracker.set_disc_scan_cooldown(120)
                         else:
+                            status_tracker.set_disc_pending(False)
                             status_tracker.pause_disc_scan()
                             status_tracker.set_disc_scan_cooldown(120)
                     else:
@@ -2065,6 +2096,11 @@ def main():
             # Auto-rip trigger: if enabled and no rip already running/queued, request a rip when a disc is present
             try:
                 if auto_rip and status_tracker and not busy and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused() and present is True and not status_tracker.disc_rip_requested():
+                    disc_info = status_tracker.disc_info() or {}
+                    info_payload = disc_info.get("info") if isinstance(disc_info, dict) else disc_info
+                    titles = (info_payload or {}).get("titles") or []
+                    if not titles:
+                        continue
                     has_disc_task = any(
                         (a.get("source", "") or "").startswith("disc:") or (a.get("state") in ("ripping", "starting"))
                         for a in active_snapshot.get("active", [])

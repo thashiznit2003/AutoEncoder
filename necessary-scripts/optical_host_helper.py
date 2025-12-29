@@ -20,7 +20,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
 def run(cmd, timeout: float | None = None):
-    return subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=timeout)
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(cmd, 124, "", f"timeout after {timeout}s")
 
 
 def rescan_scsi_hosts():
@@ -55,11 +58,12 @@ def _read_sys(path: str) -> str | None:
         return None
 
 
-def disc_present_for_sr(sr: str, props: dict | None = None, sg_device: str | None = None) -> bool:
+def disc_present_for_sr(sr: str, props: dict | None = None, sg_device: str | None = None) -> bool | None:
     device_dir = f"/sys/class/block/{sr}/device"
     if props is None:
         props = udev_props(f"/dev/{sr}")
     if props:
+        label = (props.get("ID_FS_LABEL") or "").strip()
         media_flag = props.get("ID_CDROM_MEDIA")
         if media_flag in {"0", "1"}:
             return media_flag == "1"
@@ -67,6 +71,8 @@ def disc_present_for_sr(sr: str, props: dict | None = None, sg_device: str | Non
         if media_state in {"no_disc", "nodisc", "none"}:
             return False
         if media_state in {"complete", "blank", "appendable"}:
+            return True
+        if label:
             return True
     medium_state = (_read_sys(f"{device_dir}/medium_state") or "").lower()
     if medium_state:
@@ -95,9 +101,9 @@ def disc_present_for_sr(sr: str, props: dict | None = None, sg_device: str | Non
     media = _read_sys(f"{device_dir}/media")
     if media in {"0", "1"}:
         return media == "1"
-    if size and size.isdigit():
-        return int(size) > 0
-    return False
+    if size and size.isdigit() and int(size) == 0:
+        return False
+    return None
 
 
 def udev_props(devnode: str):
@@ -159,7 +165,7 @@ def reset_optical_device(selected: dict) -> dict:
     errors = []
     ok = False
     if sg_device and os.path.exists(sg_device) and run(["which", "sg_reset"]).returncode == 0:
-        res = run(["sg_reset", "--device", sg_device])
+        res = run(["sg_reset", "--device", sg_device], timeout=8)
         actions.append({"cmd": "sg_reset --device", "rc": res.returncode})
         if res.returncode == 0:
             ok = True
@@ -183,7 +189,7 @@ def eject_optical_device(selected: dict, close: bool = False) -> dict:
     ok = False
     if sr_device and os.path.exists(sr_device) and run(["which", "eject"]).returncode == 0:
         cmd = ["eject", "-t", sr_device] if close else ["eject", sr_device]
-        res = run(cmd)
+        res = run(cmd, timeout=6)
         actions.append({"cmd": " ".join(cmd), "rc": res.returncode})
         if res.returncode == 0:
             ok = True
@@ -202,7 +208,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except BrokenPipeError:
+            pass
 
     def log_message(self, fmt, *args):
         logging.info("%s - %s", self.client_address[0], fmt % args)
