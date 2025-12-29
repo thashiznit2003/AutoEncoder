@@ -1782,6 +1782,7 @@ def main():
     rescan_interval = float(config.get("rescan_interval", 30))
     last_usb_state = None  # track mount/readability status to avoid noisy repeats
     usb_state_changed_to_ready = False
+    disc_absent_streak = 0
 
     logging.info("Starting continuous scanner. search_path=%s output=%s interval=%.1fs",
                  search_path if search_path else "<auto-detect>", output_dir, rescan_interval)
@@ -2003,25 +2004,53 @@ def main():
                 try:
                     present = is_disc_present()
                     prev = status_tracker.disc_present()
-                    if present is False and prev is not False:
-                        stopped = 0
+                    if present is False:
+                        disc_absent_streak += 1
+                    else:
+                        disc_absent_streak = 0
+                    if present is None:
                         try:
-                            snap = status_tracker.snapshot()
-                            for item in snap.get("active", []):
-                                src = (item.get("source") or "").strip()
-                                state = (item.get("state") or "").strip().lower()
-                                if src.startswith("disc:") or state == "ripping":
-                                    status_tracker.stop_proc(src)
-                                    stopped += 1
+                            di = status_tracker.disc_info() or {}
+                            payload = di.get("info") if isinstance(di, dict) else di
+                            summary = (payload or {}).get("summary") or {}
+                            if (payload or {}).get("titles") or summary.get("disc_label") or summary.get("label"):
+                                present = True
                         except Exception:
-                            logging.debug("Failed to stop active disc rip on removal", exc_info=True)
-                        if stopped:
-                            status_tracker.add_event(
-                                f"Disc removed; stopped {stopped} ripping task{'s' if stopped != 1 else ''}."
-                            )
-                        status_tracker.clear_disc_info()
-                        status_tracker.resume_disc_scan()
-                        status_tracker.add_event("Disc removed; status cleared.")
+                            pass
+                    if present is False and prev is not False:
+                        ignore_absent = False
+                        try:
+                            if status_tracker.disc_scan_inflight() or status_tracker.disc_pending():
+                                ignore_absent = True
+                            else:
+                                di = status_tracker.disc_info() or {}
+                                payload = di.get("info") if isinstance(di, dict) else di
+                                summary = (payload or {}).get("summary") or {}
+                                if (payload or {}).get("titles") or summary.get("disc_label") or summary.get("label"):
+                                    ignore_absent = True
+                        except Exception:
+                            ignore_absent = False
+                        if ignore_absent and disc_absent_streak < 2:
+                            present = None
+                        else:
+                            stopped = 0
+                            try:
+                                snap = status_tracker.snapshot()
+                                for item in snap.get("active", []):
+                                    src = (item.get("source") or "").strip()
+                                    state = (item.get("state") or "").strip().lower()
+                                    if src.startswith("disc:") or state == "ripping":
+                                        status_tracker.stop_proc(src)
+                                        stopped += 1
+                            except Exception:
+                                logging.debug("Failed to stop active disc rip on removal", exc_info=True)
+                            if stopped:
+                                status_tracker.add_event(
+                                    f"Disc removed; stopped {stopped} ripping task{'s' if stopped != 1 else ''}."
+                                )
+                            status_tracker.clear_disc_info()
+                            status_tracker.resume_disc_scan()
+                            status_tracker.add_event("Disc removed; status cleared.")
                     if present is True and prev is not True:
                         status_tracker.resume_disc_scan()
                         status_tracker.clear_disc_auto_complete()

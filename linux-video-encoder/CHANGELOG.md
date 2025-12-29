@@ -1152,3 +1152,8 @@
 - Cache the last MakeMKV title list so UI navigation doesn't wipe disc info during scans.
 - Reduce false disc-removal signals by treating transient "not ready" states as unknown.
 - Version bumped to 1.25.176.
+
+## 1.25.177 - 2025-12-29
+- Keep disc presence from flipping to false during scans when recent disc info exists.
+- Treat cached disc metadata as authoritative when presence checks return unknown.
+- Version bumped to 1.25.177.
