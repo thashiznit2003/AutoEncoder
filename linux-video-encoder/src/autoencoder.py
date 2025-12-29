@@ -466,7 +466,7 @@ def rip_disc(
             if not str(t).isdigit():
                 continue
             tid = int(str(t))
-            pattern = re.compile(rf"^title_t0*{tid}\\.mkv$", re.IGNORECASE)
+            pattern = re.compile(rf".*_t0*{tid}\\.mkv$", re.IGNORECASE)
             for p in existing_mkvs:
                 if pattern.match(p.name):
                     reuse_candidates.append(p)
@@ -543,7 +543,7 @@ def rip_disc(
             if not str(t).isdigit():
                 continue
             tid = int(str(t))
-            pattern = re.compile(rf"^title_t0*{tid}\\.mkv$", re.IGNORECASE)
+            pattern = re.compile(rf".*_t0*{tid}\\.mkv$", re.IGNORECASE)
             for p in mkv_files:
                 if pattern.match(p.name):
                     matched.append(p)
@@ -1610,11 +1610,12 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
             status_tracker.complete(str(src), False, dest_str, "Skipped (stopped marker present)")
         return False
 
-    # if its a bluray then rip it first
+    # if its a bluray then rip it first (only when the source is a disc/folder)
     keep_ripped = bool(config.get("makemkv_keep_ripped"))
     reused_rip = False
 
-    if is_bluray:
+    should_rip_disc = is_bluray and not src.is_file()
+    if should_rip_disc:
         logging.info("Ripping Blu-ray disc from %s", video_file)
         disc_source = _resolve_disc_source()
         disc_num = get_disc_number()

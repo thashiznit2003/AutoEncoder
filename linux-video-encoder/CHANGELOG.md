@@ -1142,3 +1142,8 @@
 - Prevent optical disc structures from being scanned as normal files.
 - Fix disc/title cache JS errors by using stable globals for MakeMKV payload caching.
 - Version bumped to 1.25.174.
+
+## 1.25.175 - 2025-12-29
+- Avoid re-ripping MKV outputs when a Blu-ray disc marker is present; encode directly with the Blu-ray profile.
+- Reuse existing MakeMKV outputs for selected titles by matching `*_tXX.mkv` names.
+- Version bumped to 1.25.175.
