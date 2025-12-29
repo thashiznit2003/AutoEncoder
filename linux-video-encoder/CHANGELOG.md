@@ -1065,6 +1065,25 @@
 - Keep disc info payload intact after ripping so titles/labels stay stable.
 - Version bumped to 1.25.162.
 
+## 1.25.158 - 2025-12-26
+- Prefer udev CDROM flags and sg_turs results over stale sysfs values for disc presence.
+- Version bumped to 1.25.158.
+
+## 1.25.159 - 2025-12-26
+- Fix main page JS duplicate declarations that blocked UI refresh.
+- Define MakeMKV title cache helpers for the Settings page to prevent missing data.
+- Version bumped to 1.25.159.
+
+## 1.25.160 - 2025-12-26
+- Remove duplicate MakeMKV cache declarations on the main page to prevent JS syntax errors.
+- Define MakeMKV cache helpers in the Settings page script to stop ReferenceError failures.
+- Version bumped to 1.25.160.
+
+## 1.25.161 - 2025-12-26
+- Fix auto-rip title selection by reading titles from nested disc info payloads.
+- Parse duration strings when duration seconds are missing for auto-rip sorting.
+- Version bumped to 1.25.161.
+
 ## 1.25.163 - 2025-12-26
 - Stop active disc rips immediately on disc removal to prevent orphaned rip loops.
 - Strengthen Stop All Ripping by clearing auto queues and pinning the disc as complete.
@@ -1087,21 +1106,8 @@
 - Include title duration/output details in Active Encodes during ripping.
 - Version bumped to 1.25.166.
 
-## 1.25.161 - 2025-12-26
-- Fix auto-rip title selection by reading titles from nested disc info payloads.
-- Parse duration strings when duration seconds are missing for auto-rip sorting.
-- Version bumped to 1.25.161.
-
-## 1.25.160 - 2025-12-26
-- Remove duplicate MakeMKV cache declarations on the main page to prevent JS syntax errors.
-- Define MakeMKV cache helpers in the Settings page script to stop ReferenceError failures.
-- Version bumped to 1.25.160.
-
-## 1.25.159 - 2025-12-26
-- Fix main page JS duplicate declarations that blocked UI refresh.
-- Define MakeMKV title cache helpers for the Settings page to prevent missing data.
-- Version bumped to 1.25.159.
-
-## 1.25.158 - 2025-12-26
-- Prefer udev CDROM flags and sg_turs results over stale sysfs values for disc presence.
-- Version bumped to 1.25.158.
+## 1.25.168 - 2025-12-28
+- Keep auto-rip blocked when Stop All Ripping is enabled to prevent re-rip loops.
+- Stabilize auto-rip disc keys across scan timeouts and clear auto-rip state on disc removal.
+- Only trigger auto-rip when disc presence is confirmed.
+- Version bumped to 1.25.168.

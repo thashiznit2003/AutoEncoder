@@ -35,6 +35,7 @@ class StatusTracker:
         self._disc_auto_queue = []
         self._disc_auto_key = None
         self._disc_auto_complete_key = None
+        self._disc_key = None
         self._smb_pending = []
         self._usb_status = {"state": "unknown", "message": "USB status unknown"}
         self._disc_scan_inflight = False
@@ -430,6 +431,16 @@ class StatusTracker:
             self._disc_info_cleared_ts = None
             if self._disc_present and self._disc_info_first_ts is None:
                 self._disc_info_first_ts = now
+            if self._disc_key is None and isinstance(info, dict):
+                disc_index = info.get("disc_index")
+                payload = (info.get("info") if isinstance(info, dict) else info) or {}
+                summary = payload.get("summary") or {}
+                label = summary.get("disc_label") or summary.get("label") or ""
+                drive = summary.get("drive") or ""
+                if label or drive:
+                    self._disc_key = f"{label}|{drive}"
+                elif disc_index is not None:
+                    self._disc_key = f"disc:{disc_index}"
             payload = (info.get("info") if isinstance(info, dict) else info) or {}
             titles = payload.get("titles") or []
             if titles:
@@ -462,6 +473,8 @@ class StatusTracker:
             self._disc_auto_key = None
             self._disc_auto_complete_key = None
             self._disc_preserve_info = False
+            if self._disc_present is False:
+                self._disc_key = None
 
     def disc_info(self):
         with self._lock:
@@ -477,13 +490,16 @@ class StatusTracker:
 
     def request_disc_rip(self, mode: str = "manual"):
         with self._lock:
+            if mode == "auto" and self._disc_rip_blocked:
+                return
             if mode == "auto" and self._disc_rip_requested and self._disc_rip_mode == "manual":
                 return
             self._disc_rip_requested = True
             self._disc_rip_mode = mode
             self._disc_pending = True
-            self._disc_rip_blocked = False
-            self._disc_scan_paused = False
+            if mode == "manual":
+                self._disc_rip_blocked = False
+                self._disc_scan_paused = False
             if mode == "manual":
                 self._disc_preserve_info = True
 
@@ -563,6 +579,7 @@ class StatusTracker:
             self._disc_present = bool(present)
             if present and prev is not True:
                 self._disc_inserted_ts = now
+                self._disc_key = None
                 self._disc_info_first_ts = None
                 self._disc_titles_first_ts = None
                 self._disc_info_last_ts = None
@@ -574,6 +591,25 @@ class StatusTracker:
                 self._disc_label_cleared_ts = None
             if not present and prev is not False:
                 self._disc_removed_ts = now
+                self._disc_key = None
+                self._disc_rip_requested = False
+                self._disc_rip_mode = None
+                self._disc_pending = False
+                self._disc_auto_queue = []
+                self._disc_auto_key = None
+                self._disc_auto_complete_key = None
+                self._disc_preserve_info = False
+
+    def set_disc_key(self, key: str, force: bool = False):
+        if not key:
+            return
+        with self._lock:
+            if force or not self._disc_key:
+                self._disc_key = key
+
+    def disc_key(self):
+        with self._lock:
+            return self._disc_key
 
     def disc_present(self):
         with self._lock:

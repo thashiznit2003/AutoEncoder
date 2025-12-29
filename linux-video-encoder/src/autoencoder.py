@@ -1147,6 +1147,24 @@ def _disc_key_from_info(info: dict, disc_index: int) -> str:
         pass
     return f"disc:{disc_index}"
 
+def _get_disc_key(status_tracker: Optional[StatusTracker], info: dict, disc_index: int, disc_source: Optional[str] = None) -> str:
+    try:
+        if status_tracker:
+            key = status_tracker.disc_key()
+            if key:
+                return key
+    except Exception:
+        pass
+    key = _disc_key_from_info(info, disc_index)
+    if (not key or key == "disc:None") and disc_source:
+        key = disc_source
+    if status_tracker and key:
+        try:
+            status_tracker.set_disc_key(key)
+        except Exception:
+            pass
+    return key
+
 def _resolve_disc_source() -> Optional[str]:
     devnode = _resolve_optical_devnode()
     if devnode:
@@ -1885,7 +1903,9 @@ def main():
                             scanned, _success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 90, force=True)
                             if scanned:
                                 disc_info = {"disc_index": disc_num, "source": disc_source, "info": scanned}
-                        disc_key = _disc_key_from_info(disc_info, disc_num)
+                        disc_key = _get_disc_key(status_tracker, disc_info, disc_num, disc_source)
+                        if status_tracker.disc_auto_complete(disc_key):
+                            continue
                         queue = status_tracker.disc_auto_queue()
                         if status_tracker.disc_auto_key() != disc_key or not queue:
                             auto_titles = _select_top_titles(disc_info, 2, mk_minlen)
@@ -1918,7 +1938,7 @@ def main():
                                 status_tracker.request_disc_rip("auto")
                                 status_tracker.add_event(f"Auto-rip queued next title: {remaining[0]}")
                             else:
-                                disc_key = _disc_key_from_info(status_tracker.disc_info() or {}, disc_num)
+                                disc_key = _get_disc_key(status_tracker, status_tracker.disc_info() or {}, disc_num, disc_source)
                                 status_tracker.set_disc_auto_complete(disc_key)
                                 status_tracker.add_event("Auto-rip queue complete.")
                                 status_tracker.pause_disc_scan()
@@ -1977,7 +1997,7 @@ def main():
             auto_rip = bool(config.get("makemkv_auto_rip"))
             if status_tracker and auto_rip and status_tracker.disc_scan_paused() and not status_tracker.disc_rip_blocked():
                 disc_num = get_disc_number()
-                disc_key = _disc_key_from_info(status_tracker.disc_info() or {}, disc_num)
+                disc_key = _get_disc_key(status_tracker, status_tracker.disc_info() or {}, disc_num, disc_source)
                 if not status_tracker.disc_auto_complete(disc_key):
                     status_tracker.resume_disc_scan()
             # Disc detection / info
@@ -2040,7 +2060,7 @@ def main():
             )
             # Auto-rip trigger: if enabled and no rip already running/queued, request a rip when a disc is present
             try:
-                if auto_rip and status_tracker and not busy and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused() and present is not False and not status_tracker.disc_rip_requested():
+                if auto_rip and status_tracker and not busy and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused() and present is True and not status_tracker.disc_rip_requested():
                     has_disc_task = any(
                         (a.get("source", "") or "").startswith("disc:") or (a.get("state") in ("ripping", "starting"))
                         for a in active_snapshot.get("active", [])
@@ -2048,7 +2068,7 @@ def main():
                     if not has_disc_task and not status_tracker.disc_rip_requested():
                         disc_source = _resolve_disc_source()
                         disc_num = get_disc_number()
-                        disc_key = _disc_key_from_info(status_tracker.disc_info() or {}, disc_num)
+                        disc_key = _get_disc_key(status_tracker, status_tracker.disc_info() or {}, disc_num, disc_source)
                         if disc_source and not status_tracker.disc_auto_complete(disc_key):
                             status_tracker.request_disc_rip("auto")
                             status_tracker.add_event(f"Auto-rip requested for {disc_source}")
