@@ -302,6 +302,7 @@ MAIN_PAGE_TEMPLATE = """
 
     let lastDiscLabel = null;
     let lastDiscType = null;
+    let lastDiscSeenAt = 0;
 
     function formatSeconds(sec) {
       const total = Math.max(0, Math.round(sec || 0));
@@ -527,6 +528,12 @@ MAIN_PAGE_TEMPLATE = """
         if (!raw && !summary.disc_label && !summary.label) {
           hasDisc = false;
         }
+      }
+      const nowMs = Date.now();
+      if (hasDisc) {
+        lastDiscSeenAt = nowMs;
+      } else if (lastDiscSeenAt && (nowMs - lastDiscSeenAt) < 8000) {
+        hasDisc = true;
       }
       if (hasDisc && discLabelText !== "Disc: unknown") {
         lastDiscLabel = discLabelText;
