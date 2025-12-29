@@ -1130,3 +1130,7 @@
 - Keep main page content from clearing while MakeMKV info scans are in-flight.
 - Move MakeMKV info refresh to a background fetch so logs/events/metrics stay visible.
 - Version bumped to 1.25.172.
+
+## 1.25.173 - 2025-12-28
+- Extend optical helper timeouts for reset/eject/close tray and return clean timeout errors.
+- Version bumped to 1.25.173.

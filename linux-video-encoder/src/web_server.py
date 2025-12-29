@@ -29,13 +29,13 @@ TIMING_PATH = STATE_ROOT / "timing.log"
 MAKEMKV_TIMEOUT_EVENT_TS = 0.0
 
 
-def _call_optical_helper(path: str, method: str = "POST") -> dict:
+def _call_optical_helper(path: str, method: str = "POST", timeout: int = 5) -> dict:
     base = os.environ.get("OPTICAL_HELPER_URL", "http://host.docker.internal:8767/optical/status")
     base_root = base.rsplit("/optical/", 1)[0]
     url = base_root + path
     req = urllib.request.Request(url, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         body = ""
@@ -51,6 +51,8 @@ def _call_optical_helper(path: str, method: str = "POST") -> dict:
         payload.setdefault("error", f"HTTP {exc.code}")
         payload["http_status"] = exc.code
         return payload
+    except Exception as exc:
+        return {"ok": False, "error": str(exc) or "timed out"}
 
 def log_timing(label: str, started_at: float, extra: str = ""):
     """Append simple timing entries for diagnostics, ignore failures."""
@@ -2371,7 +2373,7 @@ def create_app(tracker, config_manager=None):
     @require_auth
     def makemkv_reset_drive():
         try:
-            result = _call_optical_helper("/optical/reset", method="POST")
+            result = _call_optical_helper("/optical/reset", method="POST", timeout=15)
             tracker.add_event("Optical drive reset requested.")
             return jsonify(result)
         except Exception as exc:
@@ -2397,7 +2399,7 @@ def create_app(tracker, config_manager=None):
     @require_auth
     def makemkv_eject():
         try:
-            helper = _call_optical_helper("/optical/eject", method="POST")
+            helper = _call_optical_helper("/optical/eject", method="POST", timeout=10)
             if helper.get("ok"):
                 tracker.add_event("Ejected disc via optical helper.")
                 tracker.clear_disc_info()
@@ -2461,7 +2463,7 @@ def create_app(tracker, config_manager=None):
     @require_auth
     def makemkv_close_tray():
         try:
-            result = _call_optical_helper("/optical/close", method="POST")
+            result = _call_optical_helper("/optical/close", method="POST", timeout=10)
             tracker.add_event("Optical drive close requested.")
             return jsonify(result)
         except Exception as exc:
