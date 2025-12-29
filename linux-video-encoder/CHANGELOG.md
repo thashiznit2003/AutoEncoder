@@ -1111,3 +1111,7 @@
 - Stabilize auto-rip disc keys across scan timeouts and clear auto-rip state on disc removal.
 - Only trigger auto-rip when disc presence is confirmed.
 - Version bumped to 1.25.168.
+
+## 1.25.169 - 2025-12-28
+- Move in-app status toasts to the top center so they don't cover the Settings page button.
+- Version bumped to 1.25.169.

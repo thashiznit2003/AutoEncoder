@@ -192,7 +192,7 @@ MAIN_PAGE_TEMPLATE = """
       if (!stack) {
         stack = document.createElement("div");
         stack.id = "toast-stack";
-        stack.style.cssText = "position:fixed;right:16px;top:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;";
+        stack.style.cssText = "position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:480px;width:calc(100% - 32px);";
         document.body.appendChild(stack);
       }
       const el = document.createElement("div");
@@ -1317,7 +1317,7 @@ SETTINGS_PAGE_TEMPLATE = """
       if (!stack) {
         stack = document.createElement("div");
         stack.id = "toast-stack";
-        stack.style.cssText = "position:fixed;right:16px;top:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;";
+        stack.style.cssText = "position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:480px;width:calc(100% - 32px);";
         document.body.appendChild(stack);
       }
       const el = document.createElement("div");
