@@ -735,6 +735,13 @@ MAIN_PAGE_TEMPLATE = """
             requestDiscInfoFetch();
           }
         }
+        if (discPresent === false) {
+          discInfo = {};
+          discPending = false;
+          lastDiscLabel = null;
+          lastDiscType = null;
+          lastDiscSeenAt = 0;
+        }
         window.__discInfo = discInfo;
         window.__discPending = discPending;
         window.__discPresent = discPresent;

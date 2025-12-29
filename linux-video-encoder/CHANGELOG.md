@@ -1175,3 +1175,7 @@
 ## 1.25.181 - 2025-12-29
 - Allow disc removal to clear presence after debounce even when cached disc info exists.
 - Version bumped to 1.25.181.
+
+## 1.25.182 - 2025-12-29
+- Clear cached disc UI state immediately when the backend reports disc absence.
+- Version bumped to 1.25.182.
