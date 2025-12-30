@@ -1013,7 +1013,7 @@ def scan_disc_info(disc_source: str) -> Optional[dict]:
     """
     try:
         res = subprocess.run(
-            ["makemkvcon", "-r", "info", disc_source],
+            ["makemkvcon", "-r", "--cache=1", "info", disc_source],
             capture_output=True,
             text=True,
             check=False,
@@ -1039,7 +1039,7 @@ def scan_disc_info(disc_source: str) -> Optional[dict]:
 def scan_disc_info_with_timeout(disc_source: str, timeout_sec: int = 120) -> Optional[dict]:
     try:
         proc = subprocess.Popen(
-            ["makemkvcon", "-r", "info", disc_source],
+            ["makemkvcon", "-r", "--cache=1", "info", disc_source],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -2136,6 +2136,21 @@ def main():
                     disc_info = status_tracker.disc_info() or {}
                     info_payload = disc_info.get("info") if isinstance(disc_info, dict) else disc_info
                     titles = (info_payload or {}).get("titles") or []
+                    if not titles:
+                        disc_source = _resolve_disc_source()
+                        if disc_source:
+                            last_scan_ts = 0.0
+                            try:
+                                last_scan_ts, _last_timed_out = status_tracker.disc_scan_last()
+                            except Exception:
+                                last_scan_ts = 0.0
+                            if time.time() - (last_scan_ts or 0.0) > 30.0:
+                                scanned, _success, _timed_out = _guarded_disc_scan(status_tracker, disc_source, 180, force=True)
+                                if scanned:
+                                    disc_num = get_disc_number()
+                                    status_tracker.set_disc_info({"disc_index": disc_num, "source": disc_source, "info": scanned})
+                                    info_payload = scanned
+                                    titles = (info_payload or {}).get("titles") or []
                     if not titles:
                         continue
                     has_disc_task = any(

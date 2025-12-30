@@ -717,3 +717,7 @@ class StatusTracker:
     def disc_scan_inflight(self) -> bool:
         with self._lock:
             return self._disc_scan_inflight
+
+    def disc_scan_last(self):
+        with self._lock:
+            return self._disc_scan_last_ts, self._disc_scan_last_timed_out

@@ -1188,3 +1188,8 @@
 - Skip auto MakeMKV info refreshes while a manual disc rip is pending.
 - Avoid forcing MakeMKV info scans on the main page auto-refresh.
 - Version bumped to 1.25.184.
+
+## 1.25.185 - 2025-12-29
+- Use MakeMKV cache for automatic disc scans.
+- Trigger an auto-rip scan retry when titles are missing.
+- Version bumped to 1.25.185.
