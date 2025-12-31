@@ -52,7 +52,8 @@ To refresh MakeMKV tarballs explicitly:
 FORCE_MAKEMKV_DOWNLOAD=1 sudo /tmp/build_with_makemkv.sh
 ```
 
-Then deploy with the Portainer compose from `portainer/docker-compose.yml` (it uses the local `linux-video-encoder:latest` image).
+Then deploy with the non-dev compose from `dockerhub/with-makemkv/docker-compose.yml` (local `linux-video-encoder:latest` image),
+or use the Portainer stack in `portainer/docker-compose.yml`.
 
 ## Run (Users)
 

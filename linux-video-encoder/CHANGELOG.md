@@ -1193,3 +1193,8 @@
 - Use MakeMKV cache for automatic disc scans.
 - Trigger an auto-rip scan retry when titles are missing.
 - Version bumped to 1.25.185.
+
+## 1.25.186 - 2025-12-29
+- Refresh README with clearer prerequisites and helper app descriptions.
+- Add a non-dev Docker Compose file for MakeMKV overlay installs.
+- Version bumped to 1.25.186.

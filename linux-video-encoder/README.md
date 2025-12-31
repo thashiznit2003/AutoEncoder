@@ -1,215 +1,95 @@
-# Linux Video Encoder (v1.25.130)
+# Linux Video Encoder (v1.25.186)
 
-This project provides a Python-based solution for finding and encoding video files on a Linux machine using FFmpeg and HandBrakeCLI. It consists of several modules that work together to scan for video files, encode them, and provide a user-friendly interface for operation.
+Linux Video Encoder (AutoEncoder) scans local folders and discs, rips with MakeMKV, and encodes with HandBrakeCLI or FFmpeg. The web UI runs on port 5959.
 
-Logo: `assets/linux-video-encoder-icon.svg` (DVD + shrinking file motif) is used in the UI header and baked into the image.
+- Release notes: `CHANGELOG.md`
+- Third-party notices: `THIRD_PARTY_NOTICES.md`
+- Version source: `src/version.py` (shown in the UI header)
+- Logo: `assets/linux-video-encoder-icon.svg`
+- This application was entirely Vibe-Coded with ChatGPT Codex.
 
-Current release notes live in `CHANGELOG.md`. The UI header shows the running version pulled from `src/version.py`.
-Third-party notices are documented in `THIRD_PARTY_NOTICES.md`.
-This application was entirely Vibe-Coded with ChatGPT Codex.
+## Prerequisites
 
+### Docker host (recommended)
+- Ubuntu 20.04+ or similar Linux.
+- Docker Engine + Docker Compose plugin.
+- Optical drive passthrough (e.g., `/dev/sr0` and `/dev/sgX`) if ripping discs.
+- Host storage for bind mounts under `/linux-video-encoder/AutoEncoder/linux-video-encoder`.
+- Optional GPU: NVIDIA Container Toolkit for NVENC; Intel QuickSync uses `/dev/dri`.
+- `curl` and `tar` for helper scripts (git optional).
 
-## Installation
+### Bare metal (advanced / unsupported)
+- `python3`, `ffmpeg`, `handbrake-cli`, `makemkv`, `cifs-utils`, `udev`, `sg3-utils`.
+- `pip install -r ../txt/requirements.txt`
 
-To install the necessary dependencies, run:
+## Install paths
 
-```
-sudo apt-get install -y python3 ffmpeg libdvdread4 libbluray-bdj libdvdcss2 udisks2
-pip install -r ../txt/requirements.txt
-```
+### 1) Docker Hub image (no MakeMKV)
+Use this if you only need to encode files and do not need disc ripping.
+- Compose: `dockerhub/docker-compose.yml` (image `thashiznit2003/autoencoder:beta`).
 
-**MakeMKV tarballs required for Docker build**  
-The Dockerfile expects `makemkv-oss-1.18.2.tar.gz` and `makemkv-bin-1.18.2.tar.gz` to be present at the repo root (same level as `necessary-scripts`) when building from a clean checkout. If they are missing, the build will fail during the `COPY makemkv-*.tar.gz` steps. Place both tarballs there before running `docker compose build`, or let `necessary-scripts/install_and_run.sh` download them automatically.
+### 2) Docker Hub + MakeMKV overlay (recommended for ripping)
+Build a local image that layers MakeMKV on top of the public Docker Hub image.
+- Build script: `dockerhub/with-makemkv/build_with_makemkv.sh` (downloads MakeMKV tarballs from makemkv.com).
+- Compose: `dockerhub/with-makemkv/docker-compose.yml` (non-dev).
+- Resulting image tag: `linux-video-encoder:latest`.
 
-## Install Paths
+### 3) Local/Portainer build (from source)
+Full local build using the repo Dockerfile.
+- Requires MakeMKV tarballs in the repo root: `makemkv-oss-<ver>.tar.gz` and `makemkv-bin-<ver>.tar.gz`.
+- Portainer stack: `portainer/docker-compose.yml` (see `portainer/README.md`).
 
-There are two supported install paths:
+## Helper apps (host-side)
+These are optional but strongly recommended for reliable USB and optical behavior.
 
-1. **Local/Portainer (includes MakeMKV)**  
-   - Uses local builds and MakeMKV tarballs on the host.  
-   - See `portainer/README.md`.
+- USB host helper (`autoencoder-usb-helper.service`)
+  - Listens on `0.0.0.0:8765` and mounts/unmounts USB media when the UI requests a refresh.
+  - Default mountpoint: `/linux-video-encoder/AutoEncoder/linux-video-encoder/USB`.
+  - Env overrides: `HELPER_LISTEN_ADDR`, `HELPER_LISTEN_PORT`, `HELPER_MOUNTPOINT`.
+- Optical host helper (`autoencoder-optical-helper.service`)
+  - Listens on `0.0.0.0:8767` and reports optical drive presence and mapping.
+  - Env overrides: `OPTICAL_HELPER_LISTEN_ADDR`, `OPTICAL_HELPER_LISTEN_PORT`.
+- USB automount helper
+  - udev rule + script that mounts USB drives to the USB folder automatically.
+- SMB mount helper (container-side)
+  - `necessary-scripts/mount_smb_helper.py` mounts SMB shares for the UI SMB browser using temp credentials and an allowlist.
 
-2. **Docker Hub (public image, no MakeMKV)**  
-   - Public beta image that excludes MakeMKV.  
-   - See `dockerhub/README.md`.
+The host setup scripts install the helpers and systemd services:
+- `necessary-scripts/host_setup_portainer.sh`
+- `necessary-scripts/install_and_run.sh`
 
-Why two paths?  
-MakeMKV has a proprietary license that does **not** allow redistribution. A public Docker Hub image that includes MakeMKV could violate that license. To keep things legal and still support ripping:
-- The **public Docker Hub image** excludes MakeMKV (safe to distribute).
-- Users who want MakeMKV must **download it themselves** and build locally (legal).
+Compose files include a `host.docker.internal` mapping so the container can reach the host helpers.
 
-### Portainer Host Setup (Local/MakeMKV)
+## Compose files
+- `dockerhub/docker-compose.yml`: public Docker Hub image (no MakeMKV).
+- `dockerhub/with-makemkv/docker-compose.yml`: local MakeMKV overlay image (non-dev).
+- `linux-video-encoder/docker-compose.yml`: local build from source (includes optional dev bind mounts).
+- `portainer/docker-compose.yml`: Portainer stack for local images.
 
-If you want to deploy the stack via Portainer, run the host setup script first to configure the Docker host (USB automount helper, USB host helper service, optical host helper service, Samba shares, optional NVIDIA toolkit). This script downloads all required helpers directly from GitHub.
+## Web UI
+- Dashboard: `http://<host>:5959`
+- Settings: `http://<host>:5959/settings`
+- Basic auth defaults: `admin` / `changeme` (update in Settings).
 
-```
-curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/host_setup_portainer.sh -o /tmp/host_setup_portainer.sh && \
-chmod +x /tmp/host_setup_portainer.sh && \
-sudo /tmp/host_setup_portainer.sh
-```
+## Data paths and staging
+- USB: mount to `/mnt/usb`; files are copied into `/mnt/usb_staging` before encoding so originals remain untouched.
+- SMB staging: UI copies into `/mnt/smb_staging` with an allowlist; originals stay on the share.
+- State volume: `/var/lib/autoencoder/state` stores config, allowlists, and history.
 
-After that completes, paste the `docker-compose.yml` into a Portainer Stack and deploy it. The compose file expects the host directories to exist under `/linux-video-encoder/AutoEncoder/linux-video-encoder` (created by the script above).
-The compose file uses absolute host paths for Portainer compatibility and does not require a separate `.env` file.
+## MakeMKV notes
+- MakeMKV cannot be redistributed, so only local builds or overlays include it.
+- CSS/region-protected DVDs require a drive that matches the disc region or a region-free drive/firmware.
 
-Portainer Stack steps:
-1. In Portainer, go to **Stacks** → **Add stack**.
-2. Name the stack (e.g., `linux-video-encoder`).
-3. Paste the contents of `portainer/docker-compose.yml` into the editor.
-4. Click **Deploy the stack**.
-5. Open the UI at `http://<host>:5959` (use the host IP from the host setup script output).
-
-### Tarball Update (no git)
-
-Use the helper below to update a host that was installed from a tarball (download fresh repo snapshot, rebuild image, restart stack):
-
-```
-curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/update_from_tarball.sh -o /tmp/update_from_tarball.sh && \
-chmod +x /tmp/update_from_tarball.sh && \
-sudo /tmp/update_from_tarball.sh
-```
-
-If you are working with blurays you'll need 'makemkv'. Depending on your OS you will have different [installation methods](https://makemkv.com/downloads)
-
-### Host USB helper (recommended for reliable hotplug)
-On the host (not in the container), install the helper that listens on 0.0.0.0:8765 and performs USB refresh/mounts when the UI button is clicked:
-```
-curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/install_usb_host_helper.sh -o /tmp/install_usb_host_helper.sh \
-  && chmod +x /tmp/install_usb_host_helper.sh \
-  && /tmp/install_usb_host_helper.sh
-```
-This installs a systemd service (`autoencoder-usb-helper.service`) and makes it reachable from the container via `host.docker.internal:8765` (compose sets the host-gateway alias). To bind a different address/port/mountpoint, set env vars before running the installer, e.g. `HELPER_LISTEN_ADDR=0.0.0.0 HELPER_LISTEN_PORT=8765 HELPER_MOUNTPOINT=/path`.
-
-
-## Usage
-
-To find and encode video files, you can run the script using python
-
-```
-sudo python3 path/to/your/directory/autoencoder.py
-```
-
-This will initiate the scanning of connected video files and encode them using the specified settings in the `config.json` file.
-
-## Docker / Portainer
-
-You can run the app in a container (for Portainer, import the compose file below).
-
-1. Edit `config.json` so `search_path`, `output_dir`, `rip_dir`, and `final_dir` match the host paths you will mount.
-2. Build the image (Ubuntu 20.04 base with FFmpeg, HandBrakeCLI, and MakeMKV 1.18.2 baked in): `docker build -t linux-video-encoder .`
-3. Start with Docker Compose: `docker compose up -d` (uses the provided `docker-compose.yml`).
-
-Compose highlights:
-- `volumes` map host paths into `/mnt/input`, `/mnt/output`, and `/mnt/ripped`. Keep `config.json` in sync with the same paths.
-- `devices` maps the optical drive (`/dev/sr0`) and generic SCSI node (`/dev/sg0`) into the container for MakeMKV/HandBrakeCLI. Adjust if your device names differ.
-- NVIDIA GPU: install NVIDIA drivers + NVIDIA Container Toolkit on the Ubuntu VM, pass the P600 through from Proxmox to the VM, then the container will see NVENC/NVDEC via `NVIDIA_VISIBLE_DEVICES=all`. You can also uncomment explicit `/dev/nvidia*` device mappings if desired.
-- Intel GPU: uncomment the `/dev/dri` device mapping if you need Intel QuickSync (or add other GPU devices as needed).
-- If you need the container to mount/unmount drives itself, add `privileged: true`; otherwise mount your media paths from the host.
-- Web UI: port `5959` is exposed; open `http://<host>:5959` for the dashboard or `/settings` for HandBrake/MakeMKV/auth settings (logo served from baked `/assets` path).
-- USB: mount your USB stick on the host at `./USB` (binds to `/mnt/usb`), and the app copies files into `/mnt/usb_staging` before encoding so originals on the stick are never deleted; staged copies are cleaned up after successful encodes.
-
-### Proxmox -> Ubuntu VM -> Docker optical drive passthrough
-1. In Proxmox, passthrough the SATA Blu-Ray/DVD drive to the Ubuntu VM (e.g., `qm set <VMID> -scsi1 /dev/disk/by-id/<your-drive-id>`).
-2. Inside the Ubuntu VM, confirm you see the drive: `ls -l /dev/sr* /dev/sg*` and `udevadm info /dev/sr0`.
-3. In `docker-compose.yml`, leave the `devices` entries for `/dev/sr0` and `/dev/sg0` (or adjust to your actual nodes).
-4. Bring the stack up: `docker compose up -d`. The container will have MakeMKV 1.18.2 and HandBrakeCLI with access to the optical drive.
-
-### Proxmox -> Ubuntu VM -> Docker NVIDIA P600 passthrough
-1. In Proxmox, passthrough the P600 to the Ubuntu VM (e.g., add a PCIe passthrough device for the GPU).
-2. Inside the Ubuntu VM, install the NVIDIA driver and NVIDIA Container Toolkit (`nvidia-container-toolkit`), then reboot/restart Docker.
-3. Confirm GPU visibility on the host: `nvidia-smi`.
-4. Use the provided `docker-compose.yml` (it sets `NVIDIA_VISIBLE_DEVICES=all` and `NVIDIA_DRIVER_CAPABILITIES=compute,video,utility`). If you prefer explicit devices, uncomment the `/dev/nvidia*` entries.
-5. Start: `docker compose up -d`. FFmpeg in the image will see NVENC/NVDEC (e.g., `hevc_nvenc`, `h264_nvenc`).
-
-### Web UI (port 5959)
-- The app hosts a dashboard at `http://<host>:5959` (inside the container it binds to `0.0.0.0:5959`) plus a dedicated Settings page at `/settings`.
-- Dashboard layout: active encodes, recent jobs, status messages, metrics, SMB browser, and a live log tail pulled from the application log.
-- Settings page: HandBrake defaults/presets, MakeMKV options/registration/update helper, and HTTP Basic Auth credentials.
-- Basic auth is enabled by default (`admin` / `changeme`); update on the Settings page and reload with the new credentials.
-- Security posture: this app is intended for LAN/VPN access. Do not expose it directly to the public internet. If you want a friendly name/HTTPS, front it with a reverse proxy like Nginx Proxy Manager on your LAN and restrict direct port access.
-- SMB staging: files copied via the app are allowlisted; foreign files in `/mnt/smb_staging` are removed automatically. Allowlist state is stored in a named volume (`autoencoder_state`) so it survives rebuilds.
-- SMB mounts: the app uses a helper to validate SMB URLs and mount with a temporary credential file (kept in the state volume and deleted after use) to avoid leaking credentials. The helper defaults to SMB 3.0 and falls back to 2.1/2.0 if needed.
-- External subtitles: if a matching sidecar `.srt` exists (same stem or stem.lang) next to the video, it is auto-included in the encode and set as the default subtitle track. SMB queue also copies matching .srt files into staging.
-- Low-bitrate handling: optional auto-proceed or auto-skip for low bitrate vs target can be set in Settings.
-- Config persistence: config is stored in the state volume at `/var/lib/autoencoder/state/config.json` (seeded from repo `config.json` on first run), so UI settings survive pulls/rebuilds. If you want to reset, stop the stack and remove that file from the state volume.
-- USB automount: a udev helper mounts any USB partition to `./USB` (binds to `/mnt/usb`) automatically; USB files are staged to `/mnt/usb_staging` before encode so originals remain on the stick.
-- Samba shares: installer can create shares for input/output/smbstaging/usbstaging; standalone helper scripts live under `necessary-scripts/setup_smbstaging_share.sh` and `necessary-scripts/setup_usbstaging_share.sh`.
-
-### Installer script defaults
-- `necessary-scripts/install_and_run.sh` defaults `REPO_URL` to your fork (`https://github.com/thashiznit2003/AutoEncoder.git`). Override with `REPO_URL=...` if needed.
-
-### Run the installer on Ubuntu (CLI)
-1. SSH into your Ubuntu VM/host.
-2. Option A (no git required; curl only):
-   ```bash
-   curl -LO https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/install_and_run.sh
-   chmod +x install_and_run.sh
-   sudo ./install_and_run.sh
-   ```
-   - The script will download the repo tarball via curl if git is not present.
-   - To use a different fork: `REPO_URL=https://github.com/<you>/<repo>.git REPO_TARBALL_URL=https://github.com/<you>/<repo>/archive/refs/heads/main.tar.gz ./install_and_run.sh`
-3. Option B (if you have git):
-   ```bash
-   git clone https://github.com/thashiznit2003/AutoEncoder.git
-   cd AutoEncoder/linux-video-encoder
-   chmod +x necessary-scripts/install_and_run.sh
-   ./necessary-scripts/install_and_run.sh
-   ```
-4. After completion, Docker will be installed (if missing), the image built, and the stack started.
-5. Open `http://<host>:5959` to view the web UI.
-
-NVIDIA Container Toolkit (offline .deb, no apt repo)
-- The installer defaults `INSTALL_NVIDIA_TOOLKIT=1` and downloads the toolkit .deb packages from NVIDIA GitHub releases (default version: `1.14.3`) and installs via `dpkg`.
-- If `dpkg` reports missing dependencies, set `ALLOW_APT_FIX=1` to allow a one-time `apt-get -f install` to resolve them.
-- Override version with `NVIDIA_TOOLKIT_VERSION=<version>` if needed (matching filenames on https://github.com/NVIDIA/libnvidia-container/releases).
-
-MakeMKV downloads note:
-- The Dockerfile now builds MakeMKV from source tarballs. If the tarballs cannot be fetched during build, it will skip building MakeMKV and continue (FFmpeg/HandBrakeCLI will still be present). To force a specific MakeMKV version, pass `--build-arg MAKEMKV_VERSION=1.18.2` to `docker build`.
-
-## Config
-
-* __search_path__ - You can specify a specific directory to search if the scan doesn't find your files.
-* __output_dir__ - Where your videos will be encoded to
-* __rip_dir__ - Where your ripped blurays will be saved
-* __final_dir__ - Where you encoded video are sent after a sucessful run. Set to null if the output_dir if where you want them to stay.
-* __makemkv_minlength__ - Minimum title length (seconds) for MakeMKV to consider.
-* __makemkv_titles__ - Optional comma-separated list of title numbers to rip instead of all (empty = all).
-* __makemkv_audio_langs__ / __makemkv_subtitle_langs__ - Optional comma-separated language codes (e.g., `eng,fre`) to keep when ripping discs.
-* __makemkv_keep_ripped__ - When true, keep the ripped MKV after encoding (and reuse existing rips if present).
-* __max_threads__ - How many simulaneous encodes you want running
-* __rescan_interval__ - Wait time between scans in seconds
-* __min_size_mb__ - The minimum size in Megabytes for a video to be encoded
-* __video_extensions__ - A list of video extensions that will be encoded
-* __profile__ - The profile you want to use for encoding
-* __profiles__ - These are examples created that use the ffmpeg and HandBrakeCLI commands. See their docs for other parameters.
-* __auth_user__ / __auth_password__ - HTTP Basic credentials for the UI/API (set via Authentication panel).
-* HandBrake audio options now include encoder (AAC/HE-AAC/Opus/AC3/E-AC3/copy), mixdown, sample rate, DRC, gain, optional language filter, track list, and “Auto Dolby” mode (copy AC3/E-AC3 else encode to E-AC3; no upmix for sub-5.1).
-* MakeMKV: preferred audio/subtitle languages (default eng), commentary exclusion flag, surround preference, auto-rip toggle, disc info display, manual “Start rip” button when auto-rip is off, in-app registration key entry, and a UI update check/installed-version display with a helper command generator for host updates.
-* SMB staging: `smb_staging_dir` (default /mnt/smb_staging) used for SMB browser copies; exported as Samba share `smbstaging` via installer; mounted from host `./SMBStaging` in compose. A helper script `necessary-scripts/setup_smbstaging_share.sh` can add the share and restart the stack.
-
-### Defaults and profiles
-- Default HandBrake profile: x264, RF 20, 1080p output, `.mkv`, AAC audio 128 kbps (DVD uses the same, Blu-ray uses RF 25 at 2160p).
-- Profiles `ffmpeg`, `ffmpeg_nvenc`, and `ffmpeg_qsv` are sample CPU/NVIDIA/Intel QuickSync presets; pick by setting `profile` in `config.json` or via the UI.
-- RF is “constant quality” (lower number = higher quality/larger file). The HandBrake UI dropdowns include approximate bitrates as a guide.
-
-## Blu-ray drive (Proxmox passthrough)
-- The VM must see the real optical drive (not a virtual “QEMU DVD-ROM”). Pass through the physical device or its controller.
-- Best practice: attach the drive to a passthrough-capable SATA HBA such as an ASM1166-based 6-port card (PCIe x4/x8/x16; ODD/ATAPI friendly) and pass the entire PCIe device to the VM (`hostpci` in Proxmox).
-- If the drive shares the host’s boot SATA controller, passthrough won’t expose raw SCSI commands—move the drive to the HBA or use a USB Blu-ray drive with USB passthrough.
-- Proxmox checklist: enable IOMMU, identify the HBA with `lspci -nn | grep -i asm1166`, pass it with `qm set <VMID> -hostpci1 0000:XX:YY.Z,pcie=1`, remove virtual CD entries, then confirm inside the VM that `makemkvcon -r info disc:0` shows the real drive model.
-
-## Samba shares
-- Installer can optionally create SMB shares: `input` (maps to `linux-video-encoder/File`) and `output` (maps to `linux-video-encoder/Output`), prompting for SMB username/password and installing Samba if needed.
-- To update an existing host from the legacy `lv_file` share, run the provided script (on the host): \
-  `curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/update_samba_shares.sh -o /tmp/update_samba_shares.sh && sudo bash /tmp/update_samba_shares.sh`
-
-## SMB browser (in UI)
-- Connect to `smb://server/share[/path]` with username/password, browse directories, and queue files for encoding. Mounts are clickable to re-select. Selected files (and matching sidecar `.srt` files) are copied into the configured SMB staging directory (default `/mnt/smb_staging`) under an allowlist; copies defer when an encode is active or staging is busy, and originals stay on the share.
-
-## Versioning
-- Current version: 1.21.22 (defined in `src/version.py` and shown in the UI header).
-- Release notes live in `CHANGELOG.md`; when bumping, update `VERSION`, this README header, and append to the changelog (patch for any change, minor for features, major on request).
-
+## Config (config.json)
+- `search_path`: optional override for scan roots.
+- `output_dir`: encoded output.
+- `rip_dir`: MakeMKV output.
+- `final_dir`: optional move destination after encode.
+- `makemkv_minlength`: minimum title length in seconds.
+- `makemkv_titles`: list of title IDs to rip (empty = auto).
+- `makemkv_audio_langs` / `makemkv_subtitle_langs`: language filters.
+- `makemkv_keep_ripped`: keep MKV after encode.
+- `profile`: `handbrake`, `handbrake_dvd`, `handbrake_br`, `ffmpeg`, `ffmpeg_nvenc`, `ffmpeg_qsv`.
 
 ## License
-
-This project is licensed under the MIT License. See the LICENSE file for more details.
+MIT. See `LICENSE`.
