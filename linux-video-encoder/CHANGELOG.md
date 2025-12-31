@@ -1204,3 +1204,8 @@
 - Add separate optical helper installer and update host setup GPU detection summary.
 - Prevent duplicate Samba share creation in helper scripts.
 - Version bumped to 1.25.187.
+
+## 1.25.188 - 2025-12-31
+- Prompt for optical drive during host setup; only install optical helper when needed.
+- Add MakeMKV install reminder when optical ripping is enabled.
+- Version bumped to 1.25.188.

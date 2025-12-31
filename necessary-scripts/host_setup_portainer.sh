@@ -27,6 +27,7 @@ HAS_NVIDIA=0
 HAS_INTEL=0
 HAS_AMD=0
 GPU_SUMMARY="unknown"
+WANT_OPTICAL=0
 
 apt_update_once() {
   if [ "$APT_UPDATED" -eq 0 ]; then
@@ -111,6 +112,37 @@ detect_gpu() {
     GPU_SUMMARY="none"
   else
     GPU_SUMMARY="$(IFS=', '; echo "${parts[*]}")"
+  fi
+}
+
+prompt_optical_drive() {
+  printf "Do you have a Blu-ray/DVD drive attached to this host? [y/N]: "
+  local ans
+  if ! read -r ans; then
+    log "No input detected; assuming no optical drive."
+    WANT_OPTICAL=0
+    return
+  fi
+  case "$ans" in
+    [yY]|[yY][eE][sS])
+      WANT_OPTICAL=1
+      ;;
+    *)
+      WANT_OPTICAL=0
+      ;;
+  esac
+}
+
+print_optical_summary() {
+  if [ "$WANT_OPTICAL" -eq 1 ]; then
+    log "Optical drive: enabled. Optical helper installed."
+    log "MakeMKV is required for ripping. Install it separately using the MakeMKV overlay script."
+    log "Example (run on the Docker host):"
+    log "  curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/dockerhub/with-makemkv/build_with_makemkv.sh -o /tmp/build_with_makemkv.sh"
+    log "  chmod +x /tmp/build_with_makemkv.sh"
+    log "  sudo /tmp/build_with_makemkv.sh"
+  else
+    log "Optical drive: disabled. Optical helper skipped; MakeMKV not required."
   fi
 }
 
@@ -397,14 +429,20 @@ print_gpu_summary() {
 main() {
   ensure_base_tools
   detect_gpu
-  ensure_optical_tools
+  prompt_optical_drive
+  if [ "$WANT_OPTICAL" -eq 1 ]; then
+    ensure_optical_tools
+  fi
   prepare_dirs
   setup_usb_automount
   install_usb_host_helper
-  install_optical_host_helper
+  if [ "$WANT_OPTICAL" -eq 1 ]; then
+    install_optical_host_helper
+  fi
   setup_samba_shares
   maybe_install_gpu_prereqs
   print_gpu_summary
+  print_optical_summary
   log "Host setup complete. Paste the docker-compose.yml into Portainer and deploy."
 }
 
