@@ -138,86 +138,23 @@ setup_usb_automount() {
 }
 
 install_usb_host_helper() {
-  local helper_url="https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/usb_host_helper.py"
-  local target_dir="/usr/local/lib/autoencoder"
-  local helper_path="${target_dir}/usb_host_helper.py"
-  local service_path="/etc/systemd/system/autoencoder-usb-helper.service"
-  local listen_addr="${HELPER_LISTEN_ADDR:-0.0.0.0}"
-  local listen_port="${HELPER_LISTEN_PORT:-8765}"
-  local mountpoint="${HELPER_MOUNTPOINT:-$REPO_DIR/linux-video-encoder/USB}"
-
-  log "Installing USB host helper service (downloaded from GitHub)..."
-  $SUDO mkdir -p "$target_dir"
-  $SUDO curl -fsSL "$helper_url" -o "$helper_path"
-  $SUDO chmod 755 "$helper_path"
-
-  local python_bin
-  python_bin="$(command -v python3 || true)"
-  if [ -z "$python_bin" ]; then
-    log "python3 not found; skipping USB host helper install."
+  local script="$REPO_DIR/necessary-scripts/install_usb_host_helper.sh"
+  if [ ! -f "$script" ]; then
+    log "USB helper installer not found at $script; skipping."
     return
   fi
-
-  $SUDO tee "$service_path" >/dev/null <<EOF
-[Unit]
-Description=AutoEncoder USB Host Helper
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=${python_bin} ${helper_path} --listen ${listen_addr} --port ${listen_port} --mountpoint ${mountpoint}
-Restart=on-failure
-User=root
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-  $SUDO systemctl daemon-reload
-  $SUDO systemctl enable --now autoencoder-usb-helper.service
-  $SUDO systemctl status --no-pager autoencoder-usb-helper.service || true
-  log "USB host helper running on ${listen_addr}:${listen_port}"
+  log "Installing USB host helper via separate script..."
+  env HELPER_MOUNTPOINT="$REPO_DIR/linux-video-encoder/USB" $SUDO bash "$script"
 }
 
 install_optical_host_helper() {
-  local helper_url="https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/optical_host_helper.py"
-  local target_dir="/usr/local/lib/autoencoder"
-  local helper_path="${target_dir}/optical_host_helper.py"
-  local service_path="/etc/systemd/system/autoencoder-optical-helper.service"
-  local listen_addr="${OPTICAL_HELPER_LISTEN_ADDR:-0.0.0.0}"
-  local listen_port="${OPTICAL_HELPER_LISTEN_PORT:-8767}"
-
-  log "Installing optical host helper service (downloaded from GitHub)..."
-  $SUDO mkdir -p "$target_dir"
-  $SUDO curl -fsSL "$helper_url" -o "$helper_path"
-  $SUDO chmod 755 "$helper_path"
-
-  local python_bin
-  python_bin="$(command -v python3 || true)"
-  if [ -z "$python_bin" ]; then
-    log "python3 not found; skipping optical host helper install."
+  local script="$REPO_DIR/necessary-scripts/install_optical_host_helper.sh"
+  if [ ! -f "$script" ]; then
+    log "Optical helper installer not found at $script; skipping."
     return
   fi
-
-  $SUDO tee "$service_path" >/dev/null <<EOF
-[Unit]
-Description=AutoEncoder Optical Host Helper
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=${python_bin} ${helper_path} --listen ${listen_addr} --port ${listen_port}
-Restart=on-failure
-User=root
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-  $SUDO systemctl daemon-reload
-  $SUDO systemctl enable --now autoencoder-optical-helper.service
-  $SUDO systemctl status --no-pager autoencoder-optical-helper.service || true
-  log "Optical host helper running on ${listen_addr}:${listen_port}"
+  log "Installing optical host helper via separate script..."
+  $SUDO bash "$script"
 }
 
 build_and_run() {

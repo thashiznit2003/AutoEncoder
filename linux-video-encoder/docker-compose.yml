@@ -3,23 +3,27 @@ services:
     image: linux-video-encoder:latest
     container_name: linux-video-encoder
     restart: unless-stopped
-    runtime: nvidia
+    # GPU options:
+    # - CPU-only (default): leave GPU settings commented.
+    # - NVIDIA: uncomment runtime + NVIDIA_* env + deploy block; install NVIDIA drivers + NVIDIA Container Toolkit.
+    # - Intel/AMD (VAAPI): uncomment /dev/dri mapping under devices.
+    # runtime: nvidia
     ports:
       - "5959:5959"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - TZ=America/Chicago
-      # Enable NVIDIA GPU (requires NVIDIA Container Toolkit on the Docker host)
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      # NVIDIA (uncomment if using NVIDIA GPU)
+      # - NVIDIA_VISIBLE_DEVICES=all
+      # - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
     volumes:
       # Bind config and media paths (absolute for Portainer compatibility).
       - /linux-video-encoder/AutoEncoder/linux-video-encoder/config.json:/linux-video-encoder/config.json
@@ -43,7 +47,7 @@ services:
       - /dev/sg1:/dev/sg1
       # Pass USB bus for auto-mounting flash drives (requires host device access).
       - /dev/bus/usb:/dev/bus/usb
-      # Uncomment if you want Intel QuickSync or another GPU exposed to ffmpeg/HandBrakeCLI.
+      # Intel/AMD (VAAPI):
       # - /dev/dri:/dev/dri
       # Map NVIDIA device nodes if you prefer explicit devices (NVIDIA Container Toolkit handles this automatically when installed).
       # - /dev/nvidia0:/dev/nvidia0

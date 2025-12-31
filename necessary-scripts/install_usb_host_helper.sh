@@ -2,7 +2,16 @@
 set -euo pipefail
 
 # Install the host-side USB helper as a systemd service.
-# It listens on 127.0.0.1:8765 and mounts to the repo USB path by default.
+# It listens on 0.0.0.0:8765 and mounts to the repo USB path by default.
+
+SUDO=""
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+  SUDO="sudo"
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "[usb-helper] sudo not found; please run as root." >&2
+    exit 1
+  fi
+fi
 
 HELPER_URL="https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/necessary-scripts/usb_host_helper.py"
 TARGET_DIR="/usr/local/lib/autoencoder"
@@ -13,9 +22,9 @@ LISTEN_PORT="${HELPER_LISTEN_PORT:-8765}"
 MOUNTPOINT="${HELPER_MOUNTPOINT:-/linux-video-encoder/AutoEncoder/linux-video-encoder/USB}"
 
 echo "[usb-helper] Installing helper to ${HELPER_PATH}"
-sudo mkdir -p "${TARGET_DIR}"
-sudo curl -fsSL "${HELPER_URL}" -o "${HELPER_PATH}"
-sudo chmod 755 "${HELPER_PATH}"
+$SUDO mkdir -p "${TARGET_DIR}"
+$SUDO curl -fsSL "${HELPER_URL}" -o "${HELPER_PATH}"
+$SUDO chmod 755 "${HELPER_PATH}"
 
 PYTHON_BIN="$(command -v python3 || true)"
 if [[ -z "${PYTHON_BIN}" ]]; then
@@ -24,7 +33,7 @@ if [[ -z "${PYTHON_BIN}" ]]; then
 fi
 
 echo "[usb-helper] Writing systemd service ${SERVICE_PATH}"
-sudo tee "${SERVICE_PATH}" >/dev/null <<EOF
+$SUDO tee "${SERVICE_PATH}" >/dev/null <<EOF
 [Unit]
 Description=AutoEncoder USB Host Helper
 After=network.target
@@ -40,8 +49,8 @@ WantedBy=multi-user.target
 EOF
 
 echo "[usb-helper] Reloading and enabling service"
-sudo systemctl daemon-reload
-sudo systemctl enable --now autoencoder-usb-helper.service
-sudo systemctl status --no-pager autoencoder-usb-helper.service || true
+$SUDO systemctl daemon-reload
+$SUDO systemctl enable --now autoencoder-usb-helper.service
+$SUDO systemctl status --no-pager autoencoder-usb-helper.service || true
 
 echo "[usb-helper] Done. Helper listening on ${LISTEN_ADDR}:${LISTEN_PORT}"

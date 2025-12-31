@@ -64,10 +64,14 @@ setup_samba() {
     $SUDO cp /etc/samba/smb.conf /etc/samba/smb.conf.bak
   fi
 
-  # Remove existing block and append fresh one.
-  $SUDO sed -i "/^\[usbstaging\]/,/^\[/d" /etc/samba/smb.conf
+  samba_share_exists() {
+    $SUDO test -f /etc/samba/smb.conf && $SUDO grep -q "^\[$1\]" /etc/samba/smb.conf
+  }
 
-  cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
+  if samba_share_exists usbstaging; then
+    log "Samba share usbstaging already exists; leaving smb.conf unchanged."
+  else
+    cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
 
 [usbstaging]
    path = $USB_STAGING_DIR
@@ -79,10 +83,10 @@ setup_samba() {
    create mask = 0664
    directory mask = 0775
 CONFIG
-
-  log "Restarting Samba services..."
-  $SUDO systemctl restart smbd nmbd || $SUDO systemctl restart smbd || true
-  log "Samba share usbstaging configured. Access smb://<host>/usbstaging with user '$SMB_USER'."
+    log "Restarting Samba services..."
+    $SUDO systemctl restart smbd nmbd || $SUDO systemctl restart smbd || true
+    log "Samba share usbstaging configured. Access smb://<host>/usbstaging with user '$SMB_USER'."
+  fi
 }
 
 update_app() {

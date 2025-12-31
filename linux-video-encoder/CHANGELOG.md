@@ -1198,3 +1198,9 @@
 - Refresh README with clearer prerequisites and helper app descriptions.
 - Add a non-dev Docker Compose file for MakeMKV overlay installs.
 - Version bumped to 1.25.186.
+
+## 1.25.187 - 2025-12-31
+- Make compose files GPU-agnostic with clear NVIDIA/Intel/AMD comment guidance.
+- Add separate optical helper installer and update host setup GPU detection summary.
+- Prevent duplicate Samba share creation in helper scripts.
+- Version bumped to 1.25.187.

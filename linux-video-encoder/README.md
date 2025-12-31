@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.25.186)
+# Linux Video Encoder (v1.25.187)
 
 Linux Video Encoder (AutoEncoder) scans local folders and discs, rips with MakeMKV, and encodes with HandBrakeCLI or FFmpeg. The web UI runs on port 5959.
 
@@ -11,11 +11,10 @@ Linux Video Encoder (AutoEncoder) scans local folders and discs, rips with MakeM
 ## Prerequisites
 
 ### Docker host (recommended)
-- Ubuntu 20.04+ or similar Linux.
-- Docker Engine + Docker Compose plugin.
+- Linux host with Docker Engine + Docker Compose plugin (Ubuntu, Debian, etc).
 - Optical drive passthrough (e.g., `/dev/sr0` and `/dev/sgX`) if ripping discs.
 - Host storage for bind mounts under `/linux-video-encoder/AutoEncoder/linux-video-encoder`.
-- Optional GPU: NVIDIA Container Toolkit for NVENC; Intel QuickSync uses `/dev/dri`.
+- Optional GPU acceleration (NVIDIA or Intel/AMD VAAPI).
 - `curl` and `tar` for helper scripts (git optional).
 
 ### Bare metal (advanced / unsupported)
@@ -58,6 +57,10 @@ The host setup scripts install the helpers and systemd services:
 - `necessary-scripts/host_setup_portainer.sh`
 - `necessary-scripts/install_and_run.sh`
 
+Install helpers separately if desired:
+- `necessary-scripts/install_usb_host_helper.sh`
+- `necessary-scripts/install_optical_host_helper.sh`
+
 Compose files include a `host.docker.internal` mapping so the container can reach the host helpers.
 
 ## Compose files
@@ -65,6 +68,13 @@ Compose files include a `host.docker.internal` mapping so the container can reac
 - `dockerhub/with-makemkv/docker-compose.yml`: local MakeMKV overlay image (non-dev).
 - `linux-video-encoder/docker-compose.yml`: local build from source (includes optional dev bind mounts).
 - `portainer/docker-compose.yml`: Portainer stack for local images.
+
+## GPU configuration (optional)
+The compose files include commented lines for each GPU type. Uncomment the lines that match your hardware:
+- NVIDIA: uncomment `runtime: nvidia`, the `NVIDIA_*` environment variables, and the `deploy` GPU block.
+- Intel/AMD: uncomment the `/dev/dri:/dev/dri` device mapping (VAAPI).
+If GPU drivers are missing, install them on the host first (NVIDIA driver + NVIDIA Container Toolkit, or VAAPI drivers like `intel-media-va-driver` / `mesa-va-drivers`).
+The host setup script will detect your GPU and print a reminder about which lines to uncomment.
 
 ## Web UI
 - Dashboard: `http://<host>:5959`
