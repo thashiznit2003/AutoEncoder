@@ -3,6 +3,7 @@ SUDO=""
 set -euo pipefail
 
 BASE_DIR="${BASE_DIR:-/linux-video-encoder}"
+WANT_OPTICAL=0
 
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   SUDO="sudo"
@@ -78,6 +79,36 @@ ensure_optical_tools() {
     log "Installing optical tooling (sg3-utils, eject)..."
     $SUDO apt-get update
     $SUDO apt-get install -y sg3-utils eject
+  fi
+}
+
+prompt_optical_drive() {
+  printf "Do you have a Blu-ray/DVD drive attached to this host? [y/N]: "
+  local ans
+  if ! read -r ans; then
+    log "No input detected; assuming no optical drive."
+    WANT_OPTICAL=0
+    return
+  fi
+  case "$ans" in
+    [yY]|[yY][eE][sS])
+      WANT_OPTICAL=1
+      ;;
+    *)
+      WANT_OPTICAL=0
+      ;;
+  esac
+}
+
+print_optical_summary() {
+  if [ "$WANT_OPTICAL" -eq 1 ]; then
+    log "Optical drive: enabled. Optical helper installed."
+    log "MakeMKV is required for ripping. If you use the Docker Hub image, install the MakeMKV overlay with:"
+    log "  curl -fsSL https://raw.githubusercontent.com/thashiznit2003/AutoEncoder/main/dockerhub/with-makemkv/build_with_makemkv.sh -o /tmp/build_with_makemkv.sh"
+    log "  chmod +x /tmp/build_with_makemkv.sh"
+    log "  sudo /tmp/build_with_makemkv.sh"
+  else
+    log "Optical drive: disabled. Optical helper skipped; MakeMKV not required."
   fi
 }
 
@@ -161,97 +192,105 @@ build_and_run() {
   ensure_media_dirs
   setup_usb_automount
   install_usb_host_helper
-  install_optical_host_helper
+  if [ "$WANT_OPTICAL" -eq 1 ]; then
+    install_optical_host_helper
+  fi
   setup_samba_shares
   log "Stopping any existing stack (docker compose down)..."
   IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" down || true
-  # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build
-  log "Ensuring MakeMKV tarballs are present (version ${MAKEMKV_VERSION})..."
-  cd "$REPO_DIR"
-  for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
-    url="$MAKEMKV_BIN_URL"
-    if echo "$f" | grep -q "oss"; then
-      url="$MAKEMKV_OSS_URL"
-    fi
-    download_tarball() {
-      log "Downloading $f from $url"
-      if ! curl -fL --retry 3 --retry-delay 2 "$url" -o "$f"; then
-        log "Failed to download ${f} from ${url}."
-        return 1
+  if [ "$WANT_OPTICAL" -eq 1 ]; then
+    # Pre-download MakeMKV tarballs from your GitHub to ensure they are available during build
+    log "Ensuring MakeMKV tarballs are present (version ${MAKEMKV_VERSION})..."
+    cd "$REPO_DIR"
+    for f in "makemkv-bin-${MAKEMKV_VERSION}.tar.gz" "makemkv-oss-${MAKEMKV_VERSION}.tar.gz"; do
+      url="$MAKEMKV_BIN_URL"
+      if echo "$f" | grep -q "oss"; then
+        url="$MAKEMKV_OSS_URL"
       fi
-      mime="$(file -b --mime-type "$f" || true)"
-      case "$mime" in application/gzip|application/x-gzip) ;; *)
-        log "Downloaded $f has unexpected MIME type: ${mime:-unknown}"
-        return 1
-      esac
-      $SUDO chown "$TARGET_OWNER":"$TARGET_OWNER" "$f" || true
-      $SUDO chmod 644 "$f" || true
-    }
+      download_tarball() {
+        log "Downloading $f from $url"
+        if ! curl -fL --retry 3 --retry-delay 2 "$url" -o "$f"; then
+          log "Failed to download ${f} from ${url}."
+          return 1
+        fi
+        mime="$(file -b --mime-type "$f" || true)"
+        case "$mime" in application/gzip|application/x-gzip) ;; *)
+          log "Downloaded $f has unexpected MIME type: ${mime:-unknown}"
+          return 1
+        esac
+        $SUDO chown "$TARGET_OWNER":"$TARGET_OWNER" "$f" || true
+        $SUDO chmod 644 "$f" || true
+      }
 
-    # If present and valid, keep it; otherwise download and validate.
-    needs_download=1
-    if [ -s "$f" ] && tar -tzf "$f" >/dev/null 2>&1; then
-      needs_download=0
-    fi
+      # If present and valid, keep it; otherwise download and validate.
+      needs_download=1
+      if [ -s "$f" ] && tar -tzf "$f" >/dev/null 2>&1; then
+        needs_download=0
+      fi
 
-    if [ "$needs_download" -eq 1 ]; then
-      log "$f missing or invalid; fetching..."
-      rm -f "$f"
-      download_tarball || { log "Aborting build (download failed for ${f})."; exit 1; }
-    else
-      log "$f already present and gzip-valid; reusing."
-    fi
+      if [ "$needs_download" -eq 1 ]; then
+        log "$f missing or invalid; fetching..."
+        rm -f "$f"
+        download_tarball || { log "Aborting build (download failed for ${f})."; exit 1; }
+      else
+        log "$f already present and gzip-valid; reusing."
+      fi
 
-    # Force extraction test: unpack to a temp dir; if it fails, re-download once from MAKEMKV_BASE_URL and retry.
-    tmp_extract="$(mktemp -d)"
-    force_ok=0
-    if tar -xzf "$f" -C "$tmp_extract" >/dev/null 2>&1; then
-      force_ok=1
-    else
-      log "Forced extraction failed for ${f}; re-downloading from ${url} and retrying..."
-      rm -f "$f"
-      download_tarball || { log "Aborting build (second download failed for ${f})."; rm -rf "$tmp_extract"; exit 1; }
+      # Force extraction test: unpack to a temp dir; if it fails, re-download once from MAKEMKV_BASE_URL and retry.
+      tmp_extract="$(mktemp -d)"
+      force_ok=0
       if tar -xzf "$f" -C "$tmp_extract" >/dev/null 2>&1; then
         force_ok=1
-      fi
-    fi
-    if [ "$force_ok" -ne 1 ]; then
-      log "ERROR: ${f} could not be extracted even after re-download. Aborting."
-      rm -rf "$tmp_extract"
-      exit 1
-    fi
-    rm -rf "$tmp_extract"
-
-    # Best-effort content sanity: warn if expected markers are missing, but do not abort.
-    if echo "$f" | grep -q "oss"; then
-      if ! tar -tzf "$f" 2>/dev/null | grep -q "makemkv-oss-${MAKEMKV_VERSION}/configure"; then
-        log "Warning: ${f} missing expected configure inside makemkv-oss-${MAKEMKV_VERSION}; continuing."
-      fi
-    else
-      # Prefer configure, but accept Makefile or makefile.linux as fallbacks.
-      if ! tar -tzf "$f" 2>/dev/null | grep -E -q "makemkv-bin-${MAKEMKV_VERSION}/configure"; then
-        if tar -tzf "$f" 2>/dev/null | grep -E -q "makemkv-bin-${MAKEMKV_VERSION}/(Makefile|makefile\\.linux)"; then
-          log "Warning: ${f} missing configure but has Makefile/makefile.linux; continuing."
-        else
-          log "Warning: ${f} missing configure/Makefile/makefile.linux inside makemkv-bin-${MAKEMKV_VERSION}; continuing."
+      else
+        log "Forced extraction failed for ${f}; re-downloading from ${url} and retrying..."
+        rm -f "$f"
+        download_tarball || { log "Aborting build (second download failed for ${f})."; rm -rf "$tmp_extract"; exit 1; }
+        if tar -xzf "$f" -C "$tmp_extract" >/dev/null 2>&1; then
+          force_ok=1
         fi
       fi
-    fi
-  done
+      if [ "$force_ok" -ne 1 ]; then
+        log "ERROR: ${f} could not be extracted even after re-download. Aborting."
+        rm -rf "$tmp_extract"
+        exit 1
+      fi
+      rm -rf "$tmp_extract"
 
-  log "Building image $IMAGE_TAG ..."
-  build_log="$BASE_DIR/build.log"
-  if ! $SUDO docker build \
-    --build-arg MAKEMKV_VERSION="$MAKEMKV_VERSION" \
-    --build-arg MAKEMKV_BASE_URL="$MAKEMKV_BASE_URL" \
-    -f "$REPO_DIR/linux-video-encoder/Dockerfile" \
-    -t "$IMAGE_TAG" "$REPO_DIR" 2>&1 | tee "$build_log"; then
-    log "Docker build failed. Showing tail of $build_log"
-    tail -n 200 "$build_log" || true
-    exit 1
+      # Best-effort content sanity: warn if expected markers are missing, but do not abort.
+      if echo "$f" | grep -q "oss"; then
+        if ! tar -tzf "$f" 2>/dev/null | grep -q "makemkv-oss-${MAKEMKV_VERSION}/configure"; then
+          log "Warning: ${f} missing expected configure inside makemkv-oss-${MAKEMKV_VERSION}; continuing."
+        fi
+      else
+        # Prefer configure, but accept Makefile or makefile.linux as fallbacks.
+        if ! tar -tzf "$f" 2>/dev/null | grep -E -q "makemkv-bin-${MAKEMKV_VERSION}/configure"; then
+          if tar -tzf "$f" 2>/dev/null | grep -E -q "makemkv-bin-${MAKEMKV_VERSION}/(Makefile|makefile\\.linux)"; then
+            log "Warning: ${f} missing configure but has Makefile/makefile.linux; continuing."
+          else
+            log "Warning: ${f} missing configure/Makefile/makefile.linux inside makemkv-bin-${MAKEMKV_VERSION}; continuing."
+          fi
+        fi
+      fi
+    done
+
+    log "Building image $IMAGE_TAG ..."
+    build_log="$BASE_DIR/build.log"
+    if ! $SUDO docker build \
+      --build-arg MAKEMKV_VERSION="$MAKEMKV_VERSION" \
+      --build-arg MAKEMKV_BASE_URL="$MAKEMKV_BASE_URL" \
+      -f "$REPO_DIR/linux-video-encoder/Dockerfile" \
+      -t "$IMAGE_TAG" "$REPO_DIR" 2>&1 | tee "$build_log"; then
+      log "Docker build failed. Showing tail of $build_log"
+      tail -n 200 "$build_log" || true
+      exit 1
+    fi
+    log "Starting stack with docker compose..."
+    IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" up -d --no-build
+  else
+    log "Optical drive disabled; using Docker Hub image (no MakeMKV)."
+    $SUDO docker compose -f "$REPO_DIR/dockerhub/docker-compose.yml" pull
+    $SUDO docker compose -f "$REPO_DIR/dockerhub/docker-compose.yml" up -d
   fi
-  log "Starting stack with docker compose..."
-  IMAGE_TAG="$IMAGE_TAG" $SUDO docker compose -f "$REPO_DIR/linux-video-encoder/docker-compose.yml" up -d --no-build
   log "Stack is running. Web UI: http://<host>:5959"
   # Best-effort to show host IP
   host_ip="$(detect_host_ip)"
@@ -331,12 +370,15 @@ setup_samba_shares() {
     $SUDO cp /etc/samba/smb.conf /etc/samba/smb.conf.bak
   fi
 
-  # Remove existing share blocks if present, then append fresh ones.
-  for share in lv_file input output smbstaging usbstaging ripped; do
-    $SUDO sed -i "/^\[$share\]/,/^\[/d" /etc/samba/smb.conf
-  done
+  samba_share_exists() {
+    $SUDO test -f /etc/samba/smb.conf && $SUDO grep -q "^\[$1\]" /etc/samba/smb.conf
+  }
 
-  cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
+  local shares_added=0
+  if samba_share_exists input; then
+    log "Share [input] already exists; leaving as-is."
+  else
+    cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
 
 [input]
    path = $file_share_path
@@ -347,6 +389,14 @@ setup_samba_shares() {
    force user = $smb_user
    create mask = 0664
    directory mask = 0775
+CONFIG
+    shares_added=1
+  fi
+
+  if samba_share_exists output; then
+    log "Share [output] already exists; leaving as-is."
+  else
+    cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
 
 [output]
    path = $output_share_path
@@ -357,6 +407,14 @@ setup_samba_shares() {
    force user = $smb_user
    create mask = 0664
    directory mask = 0775
+CONFIG
+    shares_added=1
+  fi
+
+  if samba_share_exists smbstaging; then
+    log "Share [smbstaging] already exists; leaving as-is."
+  else
+    cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
 
 [smbstaging]
    path = $smb_staging_path
@@ -367,6 +425,14 @@ setup_samba_shares() {
    force user = $smb_user
    create mask = 0664
    directory mask = 0775
+CONFIG
+    shares_added=1
+  fi
+
+  if samba_share_exists usbstaging; then
+    log "Share [usbstaging] already exists; leaving as-is."
+  else
+    cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
 
 [usbstaging]
    path = $usb_staging_path
@@ -377,6 +443,14 @@ setup_samba_shares() {
    force user = $smb_user
    create mask = 0664
    directory mask = 0775
+CONFIG
+    shares_added=1
+  fi
+
+  if samba_share_exists ripped; then
+    log "Share [ripped] already exists; leaving as-is."
+  else
+    cat <<CONFIG | $SUDO tee -a /etc/samba/smb.conf >/dev/null
 
 [ripped]
    path = $ripped_share_path
@@ -388,9 +462,15 @@ setup_samba_shares() {
    create mask = 0664
    directory mask = 0775
 CONFIG
+    shares_added=1
+  fi
 
-  log "Restarting Samba services..."
-  $SUDO systemctl restart smbd nmbd || $SUDO systemctl restart smbd || true
+  if [ "$shares_added" -eq 1 ]; then
+    log "Restarting Samba services..."
+    $SUDO systemctl restart smbd nmbd || $SUDO systemctl restart smbd || true
+  else
+    log "Samba shares already present; skipping smb.conf update."
+  fi
   local host_ip
   host_ip="$(detect_host_ip)"
   if [ -z "$host_ip" ]; then
@@ -406,11 +486,15 @@ CONFIG
 
 main() {
   ensure_base_tools
-  ensure_optical_tools
+  prompt_optical_drive
+  if [ "$WANT_OPTICAL" -eq 1 ]; then
+    ensure_optical_tools
+  fi
   install_docker
   fetch_repo
   build_and_run
   maybe_install_nvidia_toolkit
+  print_optical_summary
 }
 
 main "$@"

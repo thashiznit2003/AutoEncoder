@@ -1209,3 +1209,8 @@
 - Prompt for optical drive during host setup; only install optical helper when needed.
 - Add MakeMKV install reminder when optical ripping is enabled.
 - Version bumped to 1.25.188.
+
+## 1.25.189 - 2025-12-31
+- Add optical-drive prompt to installer and skip optical helper when not needed.
+- Avoid duplicate Samba share creation in installer.
+- Version bumped to 1.25.189.
