@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.25.187)
+# Linux Video Encoder (v1.25.190)
 
 Linux Video Encoder (AutoEncoder) scans local folders and discs, rips with MakeMKV, and encodes with HandBrakeCLI or FFmpeg. The web UI runs on port 5959.
 
@@ -89,6 +89,9 @@ The host setup script will detect your GPU and print a reminder about which line
 ## MakeMKV notes
 - MakeMKV cannot be redistributed, so only local builds or overlays include it.
 - CSS/region-protected DVDs require a drive that matches the disc region or a region-free drive/firmware.
+
+## Proxmox VM optical passthrough note
+If you are running inside a Proxmox VM and MakeMKV cannot see the real drive or optical commands fail, you may need a dedicated SATA HBA (e.g., ASM1166) passed through to the VM. Passing through a drive that shares the host SATA controller often blocks low-level SCSI commands. Moving the drive to a passthrough-capable HBA or using a USB optical drive with USB passthrough typically resolves this.
 
 ## Config (config.json)
 - `search_path`: optional override for scan roots.

@@ -1214,3 +1214,7 @@
 - Add optical-drive prompt to installer and skip optical helper when not needed.
 - Avoid duplicate Samba share creation in installer.
 - Version bumped to 1.25.189.
+
+## 1.25.190 - 2025-12-31
+- Document Proxmox/HBA passthrough requirements for optical drives.
+- Version bumped to 1.25.190.
