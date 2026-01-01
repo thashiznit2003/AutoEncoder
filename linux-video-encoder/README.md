@@ -1,4 +1,4 @@
-# Linux Video Encoder (v1.25.191)
+# Linux Video Encoder (v1.25.192)
 
 Linux Video Encoder (AutoEncoder) scans local folders and discs, rips with MakeMKV, and encodes with HandBrakeCLI or FFmpeg. The web UI runs on port 5959.
 

@@ -1223,3 +1223,8 @@
 - Add mobile hamburger navigation to main and settings pages.
 - Filter logs on mobile to show critical/function-focused entries.
 - Version bumped to 1.25.191.
+
+## 1.25.192 - 2025-12-31
+- Fix duplicate mobile nav JS declarations that broke main page data rendering.
+- Add viewport/meta + mobile nav styling and wiring on Settings for mobile.
+- Version bumped to 1.25.192.

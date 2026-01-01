@@ -3,6 +3,7 @@ MAIN_PAGE_TEMPLATE = """
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Linux Video Encoder v__VERSION__</title>
   <style>
     :root { color-scheme: dark; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
@@ -206,82 +207,6 @@ MAIN_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     let authDirty = false;
-    const mobileMq = window.matchMedia("(max-width: 900px)");
-    let activePanelId = "";
-    const mobileNav = document.getElementById("mobile-nav");
-    const mobileBackdrop = document.getElementById("mobile-nav-backdrop");
-    const mobileToggle = document.getElementById("mobile-nav-toggle");
-    const mobileItems = document.getElementById("mobile-nav-items");
-
-    function isMobile() {
-      return !!(mobileMq && mobileMq.matches);
-    }
-
-    function closeMobileNav() {
-      if (mobileNav) mobileNav.classList.remove("open");
-      if (mobileBackdrop) mobileBackdrop.classList.remove("show");
-    }
-
-    function openMobileNav() {
-      if (mobileNav) mobileNav.classList.add("open");
-      if (mobileBackdrop) mobileBackdrop.classList.add("show");
-    }
-
-    function updatePanelVisibility() {
-      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
-      if (!panels.length) return;
-      if (!activePanelId) activePanelId = panels[0].id;
-      panels.forEach((panel) => {
-        if (isMobile()) {
-          panel.style.display = panel.id === activePanelId ? "" : "none";
-        } else {
-          panel.style.display = "";
-        }
-      });
-      if (mobileItems) {
-        mobileItems.querySelectorAll(".mobile-nav-item").forEach((item) => {
-          item.classList.toggle("active", item.dataset.target === activePanelId);
-        });
-      }
-    }
-
-    function setActivePanel(panelId) {
-      activePanelId = panelId;
-      updatePanelVisibility();
-    }
-
-    function buildMobileNav() {
-      if (!mobileItems) return;
-      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
-      mobileItems.innerHTML = "";
-      panels.forEach((panel) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "mobile-nav-item";
-        btn.textContent = panel.dataset.panelTitle || "Panel";
-        btn.dataset.target = panel.id;
-        btn.onclick = () => {
-          setActivePanel(panel.id);
-          closeMobileNav();
-        };
-        mobileItems.appendChild(btn);
-      });
-      updatePanelVisibility();
-    }
-
-    function initMobileNav() {
-      buildMobileNav();
-      if (mobileToggle) mobileToggle.onclick = openMobileNav;
-      if (mobileBackdrop) mobileBackdrop.onclick = closeMobileNav;
-      if (mobileMq && mobileMq.addEventListener) {
-        mobileMq.addEventListener("change", updatePanelVisibility);
-      } else if (mobileMq && mobileMq.addListener) {
-        mobileMq.addListener(updatePanelVisibility);
-      }
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") closeMobileNav();
-      });
-    }
     if (typeof window.lastMkInfoText === "undefined") window.lastMkInfoText = "";
     if (typeof window.lastMkInfoPayload === "undefined") window.lastMkInfoPayload = null;
     if (typeof window.lastTitleHtml === "undefined") window.lastTitleHtml = "";
@@ -289,7 +214,7 @@ MAIN_PAGE_TEMPLATE = """
     let eventsCache = [];
     let lastEventsText = "";
     let discInfoFetchInFlight = false;
-    const mobileMq = window.matchMedia("(max-width: 900px)");
+    const mobileMq = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
     let activePanelId = "";
     const mobileNav = document.getElementById("mobile-nav");
     const mobileBackdrop = document.getElementById("mobile-nav-backdrop");
@@ -298,7 +223,8 @@ MAIN_PAGE_TEMPLATE = """
     const smbForm = document.getElementById("smb-form");
 
     function isMobile() {
-      return !!(mobileMq && mobileMq.matches);
+      if (mobileMq) return !!mobileMq.matches;
+      return window.innerWidth <= 900;
     }
 
     function filterMobileLogs(lines) {
@@ -1204,7 +1130,6 @@ MAIN_PAGE_TEMPLATE = """
     smbRefreshMounts();
 
     initMobileNav();
-    initMobileNav();
     numberPanels();
     setInterval(refresh, 2000);
     setInterval(tickClock, 1000);
@@ -1220,14 +1145,26 @@ SETTINGS_PAGE_TEMPLATE = """
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Settings - Linux Video Encoder v__VERSION__</title>
   <style>
     :root { color-scheme: dark; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
     body { margin: 0; background: radial-gradient(circle at 18% 20%, rgba(59,130,246,0.12), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,0.12), transparent 32%), #0b1220; color: #e2e8f0; }
     header { padding: 14px 16px; background: linear-gradient(120deg, #0f172a, #0c1425); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+    .header-left { display:flex; align-items:center; gap:10px; }
+    .header-right { display:flex; gap:10px; align-items:center; }
     h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; display:flex; align-items:center; gap:10px; }
     .brand { display:flex; align-items:center; gap:10px; }
     .logo-img { height: 32px; width: auto; filter: drop-shadow(0 0 6px rgba(79,70,229,0.4)); }
+    .nav-toggle { display:none; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid #1f2937; background:#0b1220; color:#e2e8f0; font-size:18px; cursor:pointer; }
+    .mobile-nav-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.6); opacity:0; pointer-events:none; transition: opacity 0.2s ease; z-index:9998; }
+    .mobile-nav { position:fixed; top:0; left:0; bottom:0; width:240px; background:#0f172a; border-right:1px solid #1f2937; padding:16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateX(-110%); transition: transform 0.2s ease; z-index:9999; }
+    .mobile-nav.open { transform:translateX(0); }
+    .mobile-nav-backdrop.show { opacity:1; pointer-events:auto; }
+    .mobile-nav-title { font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#94a3b8; margin-bottom:6px; }
+    .mobile-nav-items { display:flex; flex-direction:column; gap:6px; }
+    .mobile-nav-item { text-align:left; padding:10px 12px; border-radius:10px; border:1px solid transparent; background:#111827; color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; }
+    .mobile-nav-item.active { border-color:#60a5fa; background:#0b1220; color:#93c5fd; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-auto-rows: minmax(240px, auto); gap: 12px; padding: 12px; }
     .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
     .panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #a5b4fc; letter-spacing: 0.4px; display:flex; align-items:center; gap:8px; }
@@ -1245,6 +1182,12 @@ SETTINGS_PAGE_TEMPLATE = """
     .field-display.inline .field-id { margin: 0; }
     .field-id { display:block; font-size: 11px; opacity: 0.45; line-height: 1; margin: 0; }
     .field-id { display:block; font-size: 11px; opacity: 0.45; line-height: 1; margin: 0; }
+    @media (max-width: 900px) {
+      header { flex-wrap: wrap; gap: 10px; }
+      .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+      .nav-toggle { display:inline-flex; }
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -1533,6 +1476,83 @@ SETTINGS_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     let authDirty = false;
+    const mobileMq = window.matchMedia ? window.matchMedia("(max-width: 900px)") : null;
+    let activePanelId = "";
+    const mobileNav = document.getElementById("mobile-nav");
+    const mobileBackdrop = document.getElementById("mobile-nav-backdrop");
+    const mobileToggle = document.getElementById("mobile-nav-toggle");
+    const mobileItems = document.getElementById("mobile-nav-items");
+
+    function isMobile() {
+      if (mobileMq) return !!mobileMq.matches;
+      return window.innerWidth <= 900;
+    }
+
+    function closeMobileNav() {
+      if (mobileNav) mobileNav.classList.remove("open");
+      if (mobileBackdrop) mobileBackdrop.classList.remove("show");
+    }
+
+    function openMobileNav() {
+      if (mobileNav) mobileNav.classList.add("open");
+      if (mobileBackdrop) mobileBackdrop.classList.add("show");
+    }
+
+    function updatePanelVisibility() {
+      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
+      if (!panels.length) return;
+      if (!activePanelId) activePanelId = panels[0].id;
+      panels.forEach((panel) => {
+        if (isMobile()) {
+          panel.style.display = panel.id === activePanelId ? "" : "none";
+        } else {
+          panel.style.display = "";
+        }
+      });
+      if (mobileItems) {
+        mobileItems.querySelectorAll(".mobile-nav-item").forEach((item) => {
+          item.classList.toggle("active", item.dataset.target === activePanelId);
+        });
+      }
+    }
+
+    function setActivePanel(panelId) {
+      activePanelId = panelId;
+      updatePanelVisibility();
+    }
+
+    function buildMobileNav() {
+      if (!mobileItems) return;
+      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
+      mobileItems.innerHTML = "";
+      panels.forEach((panel) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mobile-nav-item";
+        btn.textContent = panel.dataset.panelTitle || "Panel";
+        btn.dataset.target = panel.id;
+        btn.onclick = () => {
+          setActivePanel(panel.id);
+          closeMobileNav();
+        };
+        mobileItems.appendChild(btn);
+      });
+      updatePanelVisibility();
+    }
+
+    function initMobileNav() {
+      buildMobileNav();
+      if (mobileToggle) mobileToggle.onclick = openMobileNav;
+      if (mobileBackdrop) mobileBackdrop.onclick = closeMobileNav;
+      if (mobileMq && mobileMq.addEventListener) {
+        mobileMq.addEventListener("change", updatePanelVisibility);
+      } else if (mobileMq && mobileMq.addListener) {
+        mobileMq.addListener(updatePanelVisibility);
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeMobileNav();
+      });
+    }
     if (typeof window.lastMkInfoText === "undefined") window.lastMkInfoText = "";
     if (typeof window.lastMkInfoPayload === "undefined") window.lastMkInfoPayload = null;
     if (typeof window.lastTitleHtml === "undefined") window.lastTitleHtml = "";
@@ -2259,6 +2279,7 @@ SETTINGS_PAGE_TEMPLATE = """
       }
     }
 
+    initMobileNav();
     numberPanels();
     loadPresets();
     refreshSettings();
