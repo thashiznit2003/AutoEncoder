@@ -11,6 +11,28 @@ MAIN_PAGE_TEMPLATE = """
     .scan-dot { width:10px; height:10px; border:2px solid #93c5fd; border-top-color: transparent; border-radius:50%; animation: scan-spin 1s linear infinite; }
     @keyframes scan-spin { to { transform: rotate(360deg); } }
     header { padding: 14px 16px; background: linear-gradient(120deg, #0f172a, #0c1425); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+    .header-left { display:flex; align-items:center; gap:10px; }
+    .header-right { display:flex; gap:10px; align-items:center; }
+    .nav-toggle { display:none; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid #1f2937; background:#0b1220; color:#e2e8f0; font-size:18px; cursor:pointer; }
+    .mobile-nav-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.6); opacity:0; pointer-events:none; transition: opacity 0.2s ease; z-index:9998; }
+    .mobile-nav { position:fixed; top:0; left:0; bottom:0; width:240px; background:#0f172a; border-right:1px solid #1f2937; padding:16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateX(-110%); transition: transform 0.2s ease; z-index:9999; }
+    .mobile-nav.open { transform:translateX(0); }
+    .mobile-nav-backdrop.show { opacity:1; pointer-events:auto; }
+    .mobile-nav-title { font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#94a3b8; margin-bottom:6px; }
+    .mobile-nav-items { display:flex; flex-direction:column; gap:6px; }
+    .mobile-nav-item { text-align:left; padding:10px 12px; border-radius:10px; border:1px solid transparent; background:#111827; color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; }
+    .mobile-nav-item.active { border-color:#60a5fa; background:#0b1220; color:#93c5fd; }
+    .header-left { display:flex; align-items:center; gap:10px; }
+    .header-right { display:flex; gap:10px; align-items:center; }
+    .nav-toggle { display:none; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid #1f2937; background:#0b1220; color:#e2e8f0; font-size:18px; cursor:pointer; }
+    .mobile-nav-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.6); opacity:0; pointer-events:none; transition: opacity 0.2s ease; z-index:9998; }
+    .mobile-nav { position:fixed; top:0; left:0; bottom:0; width:240px; background:#0f172a; border-right:1px solid #1f2937; padding:16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateX(-110%); transition: transform 0.2s ease; z-index:9999; }
+    .mobile-nav.open { transform:translateX(0); }
+    .mobile-nav-backdrop.show { opacity:1; pointer-events:auto; }
+    .mobile-nav-title { font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#94a3b8; margin-bottom:6px; }
+    .mobile-nav-items { display:flex; flex-direction:column; gap:6px; }
+    .mobile-nav-item { text-align:left; padding:10px 12px; border-radius:10px; border:1px solid transparent; background:#111827; color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; }
+    .mobile-nav-item.active { border-color:#60a5fa; background:#0b1220; color:#93c5fd; }
     h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; display:flex; align-items:center; gap:10px; }
     .brand { display:flex; align-items:center; gap:12px; }
     .logo-img { height: 48px; width: auto; filter: drop-shadow(0 0 6px rgba(79,70,229,0.4)); }
@@ -45,6 +67,12 @@ MAIN_PAGE_TEMPLATE = """
     .field-display.inline { flex-direction: row; align-items: center; gap: 6px; margin-bottom: 0; }
     .field-display.inline .field-id { margin: 0; }
     .field-id { display:block; font-size: 11px; opacity: 0.45; line-height: 1; margin: 0; }
+    @media (max-width: 900px) {
+      header { flex-wrap: wrap; gap: 10px; }
+      .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+      .nav-toggle { display:inline-flex; }
+      .grid { grid-template-columns: 1fr; }
+    }
     .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 11px; opacity: 0.45; line-height: 1; }
     .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
     .metric-card { background: linear-gradient(145deg, #0f1b2e, #0c1626); border: 1px solid #1d2a40; border-radius: 12px; padding: 12px 14px; min-height: 78px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); }
@@ -65,24 +93,38 @@ MAIN_PAGE_TEMPLATE = """
     .smb-path { word-break: break-all; flex: 1; }
     .icon { width: 16px; height: 16px; display:inline-block; }
     .icon.mario-icon svg { width: 100%; height: 100%; image-rendering: pixelated; }
+    @media (max-width: 900px) {
+      header { flex-wrap: wrap; gap: 10px; }
+      .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+      .nav-toggle { display:inline-flex; }
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1 class="brand"><img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" /> <span>Linux Video Encoder v__VERSION__</span></h1>
-    <div style="display:flex; gap:10px; align-items:center;">
+    <div class="header-left">
+      <button class="nav-toggle" id="mobile-nav-toggle" type="button" aria-label="Open menu">☰</button>
+      <h1 class="brand"><img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" /> <span>Linux Video Encoder v__VERSION__</span></h1>
+    </div>
+    <div class="header-right">
       <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button">Settings</button></a>
       <button onclick="window.location.reload(true)">Hard Reload</button>
       <div id="clock" class="muted"></div>
     </div>
   </header>
+  <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Panel menu">
+    <div class="mobile-nav-title">Panels</div>
+    <div class="mobile-nav-items" id="mobile-nav-items"></div>
+  </nav>
   <div class="grid">
-    <div class="panel">
+    <div class="panel" id="panel-active" data-panel-title="Active Encodes">
       <h2>🟢 Active Encodes</h2>
       <div class="muted field-display" id="hb-runtime"></div>
       <div id="active" class="field-display"></div>
     </div>
-    <div class="panel">
+    <div class="panel" id="panel-recent" data-panel-title="Recent Jobs">
       <h2>🕒 Recent Jobs</h2>
       <div id="recent" class="field-display" style="max-height: 260px; overflow-y: auto;"></div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
@@ -93,7 +135,7 @@ MAIN_PAGE_TEMPLATE = """
         <button data-clear="all" class="clear-btn">Clear All</button>
       </div>
     </div>
-    <div class="panel">
+    <div class="panel" id="panel-events" data-panel-title="Status Messages">
       <div style="display:flex; align-items:center; gap:8px; justify-content: space-between; margin-bottom:6px;">
         <h2 style="margin:0;">📣 Status Messages</h2>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -103,11 +145,11 @@ MAIN_PAGE_TEMPLATE = """
       </div>
       <div id="events" class="log field-display"></div>
     </div>
-    <div class="panel">
+    <div class="panel" id="panel-metrics" data-panel-title="System Metrics">
       <h2>📊 System Metrics</h2>
       <div id="metrics" class="log field-display"></div>
     </div>
-    <div class="panel">
+    <div class="panel" id="panel-smb" data-panel-title="SMB Browser">
       <h2><span class="icon mario-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
         <rect width="16" height="16" fill="none"/>
         <rect x="2" y="0" width="12" height="1" fill="#d62828"/>
@@ -152,7 +194,7 @@ MAIN_PAGE_TEMPLATE = """
         <button class="smb-btn" id="smb-refresh">Refresh</button>
       </div>
     </div>
-    <div class="panel" style="grid-column: 1 / -1;">
+    <div class="panel" id="panel-logs" data-panel-title="Logs" style="grid-column: 1 / -1;">
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; justify-content: space-between;">
         <h2 style="margin:0;">🧾 Logs</h2>
         <button id="copy-logs" style="padding:6px 10px; background:#2563eb; color:#fff; border:0; border-radius:6px; cursor:pointer;">Copy last 300</button>
@@ -164,6 +206,82 @@ MAIN_PAGE_TEMPLATE = """
     let hbDirty = false;
     let mkDirty = false;
     let authDirty = false;
+    const mobileMq = window.matchMedia("(max-width: 900px)");
+    let activePanelId = "";
+    const mobileNav = document.getElementById("mobile-nav");
+    const mobileBackdrop = document.getElementById("mobile-nav-backdrop");
+    const mobileToggle = document.getElementById("mobile-nav-toggle");
+    const mobileItems = document.getElementById("mobile-nav-items");
+
+    function isMobile() {
+      return !!(mobileMq && mobileMq.matches);
+    }
+
+    function closeMobileNav() {
+      if (mobileNav) mobileNav.classList.remove("open");
+      if (mobileBackdrop) mobileBackdrop.classList.remove("show");
+    }
+
+    function openMobileNav() {
+      if (mobileNav) mobileNav.classList.add("open");
+      if (mobileBackdrop) mobileBackdrop.classList.add("show");
+    }
+
+    function updatePanelVisibility() {
+      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
+      if (!panels.length) return;
+      if (!activePanelId) activePanelId = panels[0].id;
+      panels.forEach((panel) => {
+        if (isMobile()) {
+          panel.style.display = panel.id === activePanelId ? "" : "none";
+        } else {
+          panel.style.display = "";
+        }
+      });
+      if (mobileItems) {
+        mobileItems.querySelectorAll(".mobile-nav-item").forEach((item) => {
+          item.classList.toggle("active", item.dataset.target === activePanelId);
+        });
+      }
+    }
+
+    function setActivePanel(panelId) {
+      activePanelId = panelId;
+      updatePanelVisibility();
+    }
+
+    function buildMobileNav() {
+      if (!mobileItems) return;
+      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
+      mobileItems.innerHTML = "";
+      panels.forEach((panel) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mobile-nav-item";
+        btn.textContent = panel.dataset.panelTitle || "Panel";
+        btn.dataset.target = panel.id;
+        btn.onclick = () => {
+          setActivePanel(panel.id);
+          closeMobileNav();
+        };
+        mobileItems.appendChild(btn);
+      });
+      updatePanelVisibility();
+    }
+
+    function initMobileNav() {
+      buildMobileNav();
+      if (mobileToggle) mobileToggle.onclick = openMobileNav;
+      if (mobileBackdrop) mobileBackdrop.onclick = closeMobileNav;
+      if (mobileMq && mobileMq.addEventListener) {
+        mobileMq.addEventListener("change", updatePanelVisibility);
+      } else if (mobileMq && mobileMq.addListener) {
+        mobileMq.addListener(updatePanelVisibility);
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeMobileNav();
+      });
+    }
     if (typeof window.lastMkInfoText === "undefined") window.lastMkInfoText = "";
     if (typeof window.lastMkInfoPayload === "undefined") window.lastMkInfoPayload = null;
     if (typeof window.lastTitleHtml === "undefined") window.lastTitleHtml = "";
@@ -171,7 +289,90 @@ MAIN_PAGE_TEMPLATE = """
     let eventsCache = [];
     let lastEventsText = "";
     let discInfoFetchInFlight = false;
+    const mobileMq = window.matchMedia("(max-width: 900px)");
+    let activePanelId = "";
+    const mobileNav = document.getElementById("mobile-nav");
+    const mobileBackdrop = document.getElementById("mobile-nav-backdrop");
+    const mobileToggle = document.getElementById("mobile-nav-toggle");
+    const mobileItems = document.getElementById("mobile-nav-items");
     const smbForm = document.getElementById("smb-form");
+
+    function isMobile() {
+      return !!(mobileMq && mobileMq.matches);
+    }
+
+    function filterMobileLogs(lines) {
+      if (!Array.isArray(lines)) return [];
+      const critical = /\\b(ERROR|CRITICAL|FATAL)\\b|Traceback|Exception/i;
+      const functional = /(Running|Starting|Stopping|Queued|Ripping|MakeMKV|HandBrake|Auto-rip|Disc|USB|SMB|Encode)/i;
+      return lines.filter((line) => critical.test(line) || functional.test(line));
+    }
+
+    function closeMobileNav() {
+      if (mobileNav) mobileNav.classList.remove("open");
+      if (mobileBackdrop) mobileBackdrop.classList.remove("show");
+    }
+
+    function openMobileNav() {
+      if (mobileNav) mobileNav.classList.add("open");
+      if (mobileBackdrop) mobileBackdrop.classList.add("show");
+    }
+
+    function updatePanelVisibility() {
+      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
+      if (!panels.length) return;
+      if (!activePanelId) activePanelId = panels[0].id;
+      panels.forEach((panel) => {
+        if (isMobile()) {
+          panel.style.display = panel.id === activePanelId ? "" : "none";
+        } else {
+          panel.style.display = "";
+        }
+      });
+      if (mobileItems) {
+        mobileItems.querySelectorAll(".mobile-nav-item").forEach((item) => {
+          item.classList.toggle("active", item.dataset.target === activePanelId);
+        });
+      }
+    }
+
+    function setActivePanel(panelId) {
+      activePanelId = panelId;
+      updatePanelVisibility();
+    }
+
+    function buildMobileNav() {
+      if (!mobileItems) return;
+      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
+      mobileItems.innerHTML = "";
+      panels.forEach((panel) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mobile-nav-item";
+        btn.textContent = panel.dataset.panelTitle || "Panel";
+        btn.dataset.target = panel.id;
+        btn.onclick = () => {
+          setActivePanel(panel.id);
+          closeMobileNav();
+        };
+        mobileItems.appendChild(btn);
+      });
+      updatePanelVisibility();
+    }
+
+    function initMobileNav() {
+      buildMobileNav();
+      if (mobileToggle) mobileToggle.onclick = openMobileNav;
+      if (mobileBackdrop) mobileBackdrop.onclick = closeMobileNav;
+      if (mobileMq && mobileMq.addEventListener) {
+        mobileMq.addEventListener("change", updatePanelVisibility);
+      } else if (mobileMq && mobileMq.addListener) {
+        mobileMq.addListener(updatePanelVisibility);
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeMobileNav();
+      });
+    }
     function connectSmb() {
       document.getElementById("smb-connect").click();
     }
@@ -446,7 +647,10 @@ MAIN_PAGE_TEMPLATE = """
     function renderLogs(lines) {
       const el = document.getElementById("logs");
       const atBottom = (el.scrollTop + el.clientHeight) >= (el.scrollHeight - 20);
-      el.textContent = (lines && lines.length ? lines : ["Ready to encode"]).join("\\n");
+      const source = Array.isArray(lines) ? lines : [];
+      const filtered = isMobile() ? filterMobileLogs(source) : source;
+      const fallback = isMobile() ? "No critical logs yet." : "Ready to encode";
+      el.textContent = (filtered && filtered.length ? filtered : [fallback]).join("\\n");
       if (atBottom) {
         el.scrollTop = el.scrollHeight;
       }
@@ -853,7 +1057,8 @@ MAIN_PAGE_TEMPLATE = """
       try {
         const logs = await fetchJSON("/api/logs");
         const lines = (logs.lines || []).slice(-300);
-        const text = lines.join("\\n");
+        const filtered = isMobile() ? filterMobileLogs(lines) : lines;
+        const text = (filtered && filtered.length) ? filtered.join("\\n") : (isMobile() ? "No critical logs yet." : "Ready to encode");
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(text);
         } else {
@@ -998,6 +1203,8 @@ MAIN_PAGE_TEMPLATE = """
 
     smbRefreshMounts();
 
+    initMobileNav();
+    initMobileNav();
     numberPanels();
     setInterval(refresh, 2000);
     setInterval(tickClock, 1000);
@@ -1042,13 +1249,21 @@ SETTINGS_PAGE_TEMPLATE = """
 </head>
 <body>
   <header>
-    <h1 class="brand"><img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" /> <span>Settings – Linux Video Encoder v__VERSION__</span></h1>
-    <div style="display:flex; gap:10px; align-items:center;">
+    <div class="header-left">
+      <button class="nav-toggle" id="mobile-nav-toggle" type="button" aria-label="Open menu">☰</button>
+      <h1 class="brand"><img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" /> <span>Settings – Linux Video Encoder v__VERSION__</span></h1>
+    </div>
+    <div class="header-right">
       <a href="/" style="color:#fff; text-decoration:none;"><button type="button">Back to Main</button></a>
     </div>
   </header>
+  <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Panel menu">
+    <div class="mobile-nav-title">Panels</div>
+    <div class="mobile-nav-items" id="mobile-nav-items"></div>
+  </nav>
   <div class="grid">
-    <div class="panel">
+    <div class="panel" id="panel-handbrake" data-panel-title="HandBrake Settings">
       <h2>🎛️ HandBrake Settings</h2>
       <div class="muted field-display" id="hb-summary" style="margin-bottom:6px;"></div>
       <form id="handbrake-form">
@@ -1225,7 +1440,7 @@ SETTINGS_PAGE_TEMPLATE = """
         <div class="muted">Applies: Default for regular files, DVD for VIDEO_TS, BR for BDMV/STREAM.</div>
       </form>
     </div>
-    <div class="panel">
+    <div class="panel" id="panel-makemkv" data-panel-title="MakeMKV Settings">
       <h2>📀 MakeMKV Settings</h2>
       <form id="makemkv-form">
         <label>Rip directory <input id="mk-ripdir" name="rip_dir" /></label>
@@ -1299,13 +1514,13 @@ SETTINGS_PAGE_TEMPLATE = """
         </label>
       </div>
     </div>
-    <div class="panel">
+    <div class="panel" id="panel-diagnostics" data-panel-title="Diagnostics">
       <h2>🐞 Diagnostics</h2>
       <div class="muted" style="margin-bottom:8px;">Push status, events, and log tail to the diagnostics repo using stored credentials.</div>
       <button type="button" id="diag-push">Push Diagnostics to GitHub</button>
       <div class="muted field-display" id="diag-status" style="margin-top:6px;">Idle.</div>
     </div>
-    <div class="panel">
+    <div class="panel" id="panel-auth" data-panel-title="Authentication">
       <h2>🔒 Authentication</h2>
       <div class="muted" style="margin-bottom:6px;">HTTP Basic auth for this UI/API.</div>
       <label>Username <input id="auth-user" placeholder="admin" /></label>

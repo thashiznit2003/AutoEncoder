@@ -1218,3 +1218,8 @@
 ## 1.25.190 - 2025-12-31
 - Document Proxmox/HBA passthrough requirements for optical drives.
 - Version bumped to 1.25.190.
+
+## 1.25.191 - 2025-12-31
+- Add mobile hamburger navigation to main and settings pages.
+- Filter logs on mobile to show critical/function-focused entries.
+- Version bumped to 1.25.191.
