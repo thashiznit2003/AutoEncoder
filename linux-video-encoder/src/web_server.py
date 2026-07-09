@@ -2373,6 +2373,7 @@ def create_app(tracker, config_manager=None):
             tracker.pause_disc_scan()
             tracker.set_disc_pending(False)
             tracker.clear_disc_auto_queue()
+            tracker.suppress_disc_auto(True)
             if disc_key:
                 tracker.set_disc_auto_complete(disc_key)
         except Exception:

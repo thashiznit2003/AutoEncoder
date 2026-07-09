@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.25.195 - 2026-07-09
+- Stop repeated auto-rip retriggers after a disc queue completes or Stop All Ripping is used by tracking explicit per-disc auto-rip suppression until the disc changes or a manual rip is requested.
+- Clear misleading auto-rip error messaging so failed automatic disc jobs are reported as auto-rip failures instead of manual rip failures.
+- Remove a duplicate `disc_rip_requested()` definition in the status tracker.
+
 ## 1.25.194 - 2026-07-09
 - Added support for additional hidden application/API credentials in `auth_additional_users` so a dedicated service account can exist alongside the primary UI login.
 - Keep secondary credentials out of the settings API response so the web UI does not expose them.

@@ -1978,6 +1978,7 @@ def main():
             if status_tracker and mode == "auto" and not auto_rip:
                 status_tracker.add_event("Auto-rip request ignored; auto-rip is disabled.")
                 status_tracker.clear_disc_auto_queue()
+                status_tracker.suppress_disc_auto(True)
                 mode = None
             if status_tracker and mode:
                 if status_tracker.disc_rip_blocked():
@@ -2038,6 +2039,7 @@ def main():
                             else:
                                 disc_key = _get_disc_key(status_tracker, status_tracker.disc_info() or {}, disc_num, disc_source)
                                 status_tracker.set_disc_auto_complete(disc_key)
+                                status_tracker.suppress_disc_auto(True)
                                 status_tracker.add_event("Auto-rip queue complete.")
                                 status_tracker.set_disc_pending(False)
                                 status_tracker.pause_disc_scan()
@@ -2047,7 +2049,12 @@ def main():
                             status_tracker.pause_disc_scan()
                             status_tracker.set_disc_scan_cooldown(120)
                     else:
-                        status_tracker.add_event("Manual MakeMKV rip failed to produce output.", level="error")
+                        label = "Auto" if mode == "auto" else "Manual"
+                        if mode == "auto":
+                            status_tracker.suppress_disc_auto(True)
+                            status_tracker.clear_disc_auto_queue()
+                            status_tracker.set_disc_pending(False)
+                        status_tracker.add_event(f"{label} MakeMKV rip failed to produce output.", level="error")
                         status_tracker.set_disc_scan_cooldown(120)
             # Pre-register queued items so they appear in Active
             for f in video_files:
@@ -2127,7 +2134,7 @@ def main():
                 except Exception:
                     logging.debug("Disc presence detection failed", exc_info=True)
             busy = bool(status_tracker and status_tracker.has_active_nonqueued())
-            if status_tracker and auto_rip and status_tracker.disc_scan_paused() and not status_tracker.disc_rip_blocked():
+            if status_tracker and auto_rip and status_tracker.disc_scan_paused() and not status_tracker.disc_rip_blocked() and not status_tracker.disc_auto_suppressed():
                 disc_num = get_disc_number()
                 disc_key = _get_disc_key(status_tracker, status_tracker.disc_info() or {}, disc_num, disc_source)
                 if not status_tracker.disc_auto_complete(disc_key):
@@ -2166,7 +2173,7 @@ def main():
                     di = status_tracker.disc_info() or {}
                     info = di.get("info") or {}
                     titles = info.get("titles") or []
-                    if not titles and status_tracker.disc_scan_paused() and not status_tracker.disc_rip_blocked():
+                    if not titles and status_tracker.disc_scan_paused() and not status_tracker.disc_rip_blocked() and not status_tracker.disc_auto_suppressed():
                         status_tracker.resume_disc_scan()
             except Exception:
                 logging.debug("Disc scan resume check failed", exc_info=True)
@@ -2192,7 +2199,7 @@ def main():
             )
             # Auto-rip trigger: if enabled and no rip already running/queued, request a rip when a disc is present
             try:
-                if auto_rip and status_tracker and not busy and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused() and present is True and not status_tracker.disc_rip_requested():
+                if auto_rip and status_tracker and not busy and not status_tracker.disc_rip_blocked() and not status_tracker.disc_scan_paused() and present is True and not status_tracker.disc_rip_requested() and not status_tracker.disc_auto_suppressed():
                     disc_info = status_tracker.disc_info() or {}
                     info_payload = disc_info.get("info") if isinstance(disc_info, dict) else disc_info
                     titles = (info_payload or {}).get("titles") or []
