@@ -39,6 +39,10 @@ LOG_FILE = LOG_DIR / "app.log"
 WEB_PORT = 5959
 SMB_MOUNT_ROOT = Path("/mnt/smb")
 USB_SEEN_PATH = STATE_DIR / "usb_seen.json"
+MAKEMKV_STATE_DIR = STATE_DIR / "makemkv"
+MAKEMKV_SETTINGS_PATH = MAKEMKV_STATE_DIR / "settings.conf"
+MAKEMKV_ROOT_DIR = Path("/root/.MakeMKV")
+MAKEMKV_ROOT_SETTINGS_PATH = MAKEMKV_ROOT_DIR / "settings.conf"
 # map staged USB path -> original source path
 USB_ORIGIN_MAP: Dict[str, str] = {}
 
@@ -199,9 +203,24 @@ class ConfigManager:
             try:
                 with self.path.open("w", encoding="utf-8") as f:
                     json.dump(cfg, f, indent=2)
+                self._mirror_fallback(cfg)
             except Exception:
                 logging.exception("Failed to write config to %s", self.path)
             return load_config(self.path)
+
+    def _mirror_fallback(self, cfg: Dict[str, Any]) -> None:
+        """Keep the host-visible config file in sync when it is bind-mounted."""
+        try:
+            if self.path.resolve() == FALLBACK_CONFIG_PATH.resolve():
+                return
+        except Exception:
+            pass
+        try:
+            FALLBACK_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with FALLBACK_CONFIG_PATH.open("w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=2)
+        except Exception:
+            logging.debug("Failed to mirror config to %s", FALLBACK_CONFIG_PATH, exc_info=True)
 
 def load_config(path: Path):
     try:
@@ -281,6 +300,31 @@ def load_usb_seen() -> Dict[str, Dict[str, float]]:
     except Exception:
         logging.debug("Failed to load USB seen file; starting fresh", exc_info=True)
     return {}
+
+
+def ensure_makemkv_settings_persistence() -> None:
+    """Persist MakeMKV registration/settings in the state volume across rebuilds."""
+    try:
+        MAKEMKV_STATE_DIR.mkdir(parents=True, exist_ok=True)
+        MAKEMKV_ROOT_DIR.mkdir(parents=True, exist_ok=True)
+
+        if MAKEMKV_ROOT_SETTINGS_PATH.exists() and not MAKEMKV_ROOT_SETTINGS_PATH.is_symlink():
+            if not MAKEMKV_SETTINGS_PATH.exists():
+                shutil.copy2(MAKEMKV_ROOT_SETTINGS_PATH, MAKEMKV_SETTINGS_PATH)
+            MAKEMKV_ROOT_SETTINGS_PATH.unlink()
+
+        if not MAKEMKV_SETTINGS_PATH.exists():
+            MAKEMKV_SETTINGS_PATH.touch()
+
+        if MAKEMKV_ROOT_SETTINGS_PATH.is_symlink():
+            current_target = MAKEMKV_ROOT_SETTINGS_PATH.resolve()
+            if current_target != MAKEMKV_SETTINGS_PATH.resolve():
+                MAKEMKV_ROOT_SETTINGS_PATH.unlink()
+                MAKEMKV_ROOT_SETTINGS_PATH.symlink_to(MAKEMKV_SETTINGS_PATH)
+        elif not MAKEMKV_ROOT_SETTINGS_PATH.exists():
+            MAKEMKV_ROOT_SETTINGS_PATH.symlink_to(MAKEMKV_SETTINGS_PATH)
+    except Exception:
+        logging.exception("Failed to prepare persistent MakeMKV settings")
 
 
 def save_usb_seen(data: Dict[str, Dict[str, float]]) -> None:
@@ -1757,6 +1801,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
 def main():
     setup_logging()
     ensure_smb_root()
+    ensure_makemkv_settings_persistence()
     status_tracker = StatusTracker(LOG_FILE)
     cfg_manager = ConfigManager(CONFIG_PATH)
     start_web_server(status_tracker, config_manager=cfg_manager, port=WEB_PORT)

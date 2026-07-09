@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.25.193 - 2026-07-09
+- Persist MakeMKV registration/settings in the state volume and link `/root/.MakeMKV/settings.conf` to that persisted file so rebuilds stop wiping the monthly beta key.
+- Make the MakeMKV registration endpoint report whether the key was persisted and save the key on successful registration as well as fallback failure cases.
+- Mirror live config updates back to the host-visible `config.json` when possible so the bind-mounted file and the state-volume config stay in sync.
+
 ## 1.0.0 - 2025-12-04
 - Stable release of Linux Video Encoder with web UI (active encodes, recent jobs, logs, metrics, HandBrake/MakeMKV settings).
 - Improved progress/ETA parsing for HandBrake output; Stop button wired to active job keys.

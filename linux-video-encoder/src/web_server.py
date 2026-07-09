@@ -26,6 +26,7 @@ DIAG_GIT_NAME = os.environ.get("DIAG_GIT_NAME", "Diagnostics Bot")
 DIAG_GIT_EMAIL = os.environ.get("DIAG_GIT_EMAIL", "diagnostics@example.com")
 STATE_ROOT = Path(os.environ.get("AE_STATE_DIR", "/var/lib/autoencoder/state"))
 TIMING_PATH = STATE_ROOT / "timing.log"
+MAKEMKV_SETTINGS_PATH = STATE_ROOT / "makemkv" / "settings.conf"
 MAKEMKV_TIMEOUT_EVENT_TS = 0.0
 
 
@@ -63,9 +64,6 @@ def log_timing(label: str, started_at: float, extra: str = ""):
             f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {label} {dur:.3f}s {extra}\n")
     except Exception:
         pass
-STATE_ROOT = Path(os.environ.get("AE_STATE_DIR", "/var/lib/autoencoder/state"))
-TIMING_PATH = STATE_ROOT / "timing.log"
-
 HTML_PAGE_TEMPLATE = """
 <!doctype html>
 <html lang="en">
@@ -1302,7 +1300,6 @@ HTML_PAGE_TEMPLATE = """
 </body>
 </html>
 """
-HTML_PAGE = HTML_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
 MAIN_PAGE = MAIN_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
 SETTINGS_PAGE = SETTINGS_PAGE_TEMPLATE.replace("__VERSION__", VERSION)
 
@@ -2483,7 +2480,7 @@ def create_app(tracker, config_manager=None):
         key = sanitize_key(raw_key)
         if not key:
             return jsonify({"error": "key required"}), 400
-        settings_path = pathlib.Path("/root/.MakeMKV/settings.conf")
+        settings_path = MAKEMKV_SETTINGS_PATH
         settings_path.parent.mkdir(parents=True, exist_ok=True)
         def write_key_to_settings(k: str):
             try:
@@ -2500,15 +2497,16 @@ def create_app(tracker, config_manager=None):
         try:
             res = subprocess.run(["makemkvcon", "reg", key], capture_output=True, text=True, check=False)
             if res.returncode == 0:
+                write_key_to_settings(key)
                 tracker.add_event("MakeMKV registered successfully.")
-                return jsonify({"registered": True})
+                return jsonify({"registered": True, "persisted": True, "settings_path": str(settings_path)})
             stderr = res.stderr.strip() if res.stderr else ""
             stdout = res.stdout.strip() if res.stdout else ""
             msg = "; ".join([p for p in [stderr, stdout] if p]) or f"exit code {res.returncode}"
             # Always persist key even if makemkvcon rejects it, but report failure
-            write_key_to_settings(key)
+            persisted = write_key_to_settings(key)
             tracker.add_event(f"MakeMKV registration failed: {msg}", level="error")
-            return jsonify({"registered": False, "error": msg}), 400
+            return jsonify({"registered": False, "error": msg, "persisted": persisted, "settings_path": str(settings_path)}), 400
         except FileNotFoundError:
             tracker.add_event("MakeMKV registration failed: makemkvcon not found", level="error")
             return jsonify({"registered": False, "error": "makemkvcon not found"}), 500
