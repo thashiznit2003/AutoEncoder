@@ -1319,9 +1319,22 @@ def create_app(tracker, config_manager=None):
             cfg = config_manager.read() if config_manager else {}
             expected_user = cfg.get("auth_user") or ""
             expected_pass = cfg.get("auth_password") or ""
+            extra_users = cfg.get("auth_additional_users") or []
             auth = request.authorization
             if expected_user and expected_pass:
-                if not auth or auth.username != expected_user or auth.password != expected_pass:
+                allowed = False
+                if auth and auth.username == expected_user and auth.password == expected_pass:
+                    allowed = True
+                elif auth:
+                    for entry in extra_users:
+                        if not isinstance(entry, dict):
+                            continue
+                        if auth.username == (entry.get("username") or "") and auth.password == (
+                            entry.get("password") or ""
+                        ):
+                            allowed = True
+                            break
+                if not allowed:
                     resp = Response("Unauthorized", 401, {"WWW-Authenticate": 'Basic realm="Login Required"'})
                     return resp
             return f(*args, **kwargs)
@@ -1359,6 +1372,7 @@ def create_app(tracker, config_manager=None):
             return {}
         safe.pop("auth_password", None)
         safe.pop("auth_user", None)
+        safe.pop("auth_additional_users", None)
         return safe
 
     def _run_git(args, cwd: Path):

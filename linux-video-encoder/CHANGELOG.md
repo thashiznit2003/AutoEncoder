@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.25.194 - 2026-07-09
+- Added support for additional hidden application/API credentials in `auth_additional_users` so a dedicated service account can exist alongside the primary UI login.
+- Keep secondary credentials out of the settings API response so the web UI does not expose them.
+
 ## 1.25.193 - 2026-07-09
 - Persist MakeMKV registration/settings in the state volume and link `/root/.MakeMKV/settings.conf` to that persisted file so rebuilds stop wiping the monthly beta key.
 - Make the MakeMKV registration endpoint report whether the key was persisted and save the key on successful registration as well as fallback failure cases.

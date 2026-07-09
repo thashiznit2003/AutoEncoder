@@ -63,6 +63,7 @@ DEFAULT_CONFIG = {
     "usb_staging_dir": "/mnt/usb_staging",
     "auth_user": "admin",
     "auth_password": "changeme",
+    "auth_additional_users": [],
     "handbrake": {
         "encoder": "x264",
         "quality": 20,
@@ -176,6 +177,7 @@ class ConfigManager:
                 "usb_staging_dir",
                 "auth_user",
                 "auth_password",
+                "auth_additional_users",
                 "makemkv_titles",
                 "makemkv_audio_langs",
                 "makemkv_subtitle_langs",
@@ -237,6 +239,19 @@ def load_config(path: Path):
     merged["usb_staging_dir"] = str(Path(merged.get("usb_staging_dir", DEFAULT_CONFIG["usb_staging_dir"])))
     merged["auth_user"] = merged.get("auth_user", DEFAULT_CONFIG["auth_user"])
     merged["auth_password"] = merged.get("auth_password", DEFAULT_CONFIG["auth_password"])
+    extra_auth_users = merged.get("auth_additional_users", [])
+    if not isinstance(extra_auth_users, list):
+        extra_auth_users = []
+    normalized_extra_auth_users = []
+    for entry in extra_auth_users:
+        if not isinstance(entry, dict):
+            continue
+        username = str(entry.get("username") or "").strip()
+        password = str(entry.get("password") or "")
+        if not username or not password:
+            continue
+        normalized_extra_auth_users.append({"username": username, "password": password})
+    merged["auth_additional_users"] = normalized_extra_auth_users
     # ensure handbrake dict exists
     for hb_key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
         if hb_key not in merged or not isinstance(merged.get(hb_key), dict):
