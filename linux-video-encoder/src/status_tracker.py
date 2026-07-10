@@ -1,7 +1,11 @@
+import json
 import threading
 import time
 from pathlib import Path
 import re
+
+
+STATE_PATH = Path("/var/lib/autoencoder/state/status_tracker_state.json")
 
 
 class StatusTracker:
@@ -9,7 +13,7 @@ class StatusTracker:
     Thread-safe tracker for active and recent encoding tasks plus log tail access.
     """
 
-    def __init__(self, log_path: Path, history_size: int = 100):
+    def __init__(self, log_path: Path, history_size: int = 100, state_path: Path = STATE_PATH):
         self._lock = threading.Lock()
         self._active = {}
         self._history = []
@@ -59,6 +63,80 @@ class StatusTracker:
         self._disc_label_first_ts = None
         self._disc_label_last_ts = None
         self._disc_label_cleared_ts = None
+        self._state_path = Path(state_path)
+        self._load_persisted_state()
+
+    def _disc_state_payload_locked(self) -> dict:
+        return {
+            "disc_info": self._disc_info,
+            "disc_info_cache": self._disc_info_cache,
+            "disc_info_cache_key": self._disc_info_cache_key,
+            "disc_pending": self._disc_pending,
+            "disc_rip_blocked": self._disc_rip_blocked,
+            "disc_scan_paused": self._disc_scan_paused,
+            "disc_preserve_info": self._disc_preserve_info,
+            "disc_present": self._disc_present,
+            "disc_auto_complete_key": self._disc_auto_complete_key,
+            "disc_auto_suppressed": self._disc_auto_suppressed,
+            "disc_key": self._disc_key,
+            "disc_inserted_ts": self._disc_inserted_ts,
+            "disc_removed_ts": self._disc_removed_ts,
+            "disc_info_first_ts": self._disc_info_first_ts,
+            "disc_titles_first_ts": self._disc_titles_first_ts,
+            "disc_info_last_ts": self._disc_info_last_ts,
+            "disc_titles_last_ts": self._disc_titles_last_ts,
+            "disc_info_cleared_ts": self._disc_info_cleared_ts,
+            "disc_titles_cleared_ts": self._disc_titles_cleared_ts,
+            "disc_label_first_ts": self._disc_label_first_ts,
+            "disc_label_last_ts": self._disc_label_last_ts,
+            "disc_label_cleared_ts": self._disc_label_cleared_ts,
+            "disc_scan_last_ts": self._disc_scan_last_ts,
+            "disc_scan_last_duration": self._disc_scan_last_duration,
+            "disc_scan_last_timed_out": self._disc_scan_last_timed_out,
+        }
+
+    def _persist_state_locked(self) -> None:
+        try:
+            self._state_path.parent.mkdir(parents=True, exist_ok=True)
+            self._state_path.write_text(json.dumps(self._disc_state_payload_locked(), indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+    def _persist_state(self) -> None:
+        with self._lock:
+            self._persist_state_locked()
+
+    def _load_persisted_state(self) -> None:
+        try:
+            raw = json.loads(self._state_path.read_text(encoding="utf-8"))
+        except Exception:
+            return
+        with self._lock:
+            self._disc_info = raw.get("disc_info")
+            self._disc_info_cache = raw.get("disc_info_cache")
+            self._disc_info_cache_key = raw.get("disc_info_cache_key")
+            self._disc_pending = bool(raw.get("disc_pending"))
+            self._disc_rip_blocked = bool(raw.get("disc_rip_blocked"))
+            self._disc_scan_paused = bool(raw.get("disc_scan_paused"))
+            self._disc_preserve_info = bool(raw.get("disc_preserve_info"))
+            self._disc_present = raw.get("disc_present")
+            self._disc_auto_complete_key = raw.get("disc_auto_complete_key")
+            self._disc_auto_suppressed = bool(raw.get("disc_auto_suppressed"))
+            self._disc_key = raw.get("disc_key")
+            self._disc_inserted_ts = raw.get("disc_inserted_ts")
+            self._disc_removed_ts = raw.get("disc_removed_ts")
+            self._disc_info_first_ts = raw.get("disc_info_first_ts")
+            self._disc_titles_first_ts = raw.get("disc_titles_first_ts")
+            self._disc_info_last_ts = raw.get("disc_info_last_ts")
+            self._disc_titles_last_ts = raw.get("disc_titles_last_ts")
+            self._disc_info_cleared_ts = raw.get("disc_info_cleared_ts")
+            self._disc_titles_cleared_ts = raw.get("disc_titles_cleared_ts")
+            self._disc_label_first_ts = raw.get("disc_label_first_ts")
+            self._disc_label_last_ts = raw.get("disc_label_last_ts")
+            self._disc_label_cleared_ts = raw.get("disc_label_cleared_ts")
+            self._disc_scan_last_ts = raw.get("disc_scan_last_ts") or 0.0
+            self._disc_scan_last_duration = raw.get("disc_scan_last_duration")
+            self._disc_scan_last_timed_out = raw.get("disc_scan_last_timed_out")
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -486,6 +564,7 @@ class StatusTracker:
                 self._disc_label_cleared_ts = None
                 if self._disc_present and self._disc_label_first_ts is None:
                     self._disc_label_first_ts = now
+            self._persist_state_locked()
 
     def clear_disc_info(self):
         now = time.time()
@@ -507,6 +586,7 @@ class StatusTracker:
             self._disc_preserve_info = False
             if self._disc_present is False:
                 self._disc_key = None
+            self._persist_state_locked()
 
     def disc_info(self):
         with self._lock:
@@ -533,6 +613,7 @@ class StatusTracker:
     def set_disc_pending(self, value: bool):
         with self._lock:
             self._disc_pending = bool(value)
+            self._persist_state_locked()
 
     def request_disc_rip(self, mode: str = "manual"):
         with self._lock:
@@ -549,6 +630,7 @@ class StatusTracker:
                 self._disc_auto_suppressed = False
             if mode == "manual":
                 self._disc_preserve_info = True
+            self._persist_state_locked()
 
     def consume_disc_rip_request(self):
         with self._lock:
@@ -556,6 +638,7 @@ class StatusTracker:
             self._disc_rip_requested = False
             mode = self._disc_rip_mode
             self._disc_rip_mode = None
+            self._persist_state_locked()
             return mode if req else None
 
     def disc_rip_requested(self) -> bool:
@@ -565,11 +648,13 @@ class StatusTracker:
     def set_disc_preserve(self, value: bool):
         with self._lock:
             self._disc_preserve_info = bool(value)
+            self._persist_state_locked()
 
     def set_disc_auto_queue(self, key: str, titles: list):
         with self._lock:
             self._disc_auto_key = key
             self._disc_auto_queue = list(titles or [])
+            self._persist_state_locked()
 
     def disc_auto_queue(self):
         with self._lock:
@@ -583,14 +668,17 @@ class StatusTracker:
         with self._lock:
             self._disc_auto_queue = []
             self._disc_auto_key = None
+            self._persist_state_locked()
 
     def set_disc_auto_complete(self, key: str):
         with self._lock:
             self._disc_auto_complete_key = key
+            self._persist_state_locked()
 
     def clear_disc_auto_complete(self):
         with self._lock:
             self._disc_auto_complete_key = None
+            self._persist_state_locked()
 
     def disc_auto_complete(self, key: str) -> bool:
         with self._lock:
@@ -599,6 +687,7 @@ class StatusTracker:
     def suppress_disc_auto(self, value: bool = True):
         with self._lock:
             self._disc_auto_suppressed = bool(value)
+            self._persist_state_locked()
 
     def disc_auto_suppressed(self) -> bool:
         with self._lock:
@@ -608,18 +697,22 @@ class StatusTracker:
         with self._lock:
             if not self._disc_auto_queue:
                 return None
-            return self._disc_auto_queue.pop(0)
+            value = self._disc_auto_queue.pop(0)
+            self._persist_state_locked()
+            return value
 
     def block_disc_rip(self):
         with self._lock:
             self._disc_rip_blocked = True
             self._disc_rip_requested = False
             self._disc_auto_suppressed = True
+            self._persist_state_locked()
 
     def allow_disc_rip(self):
         with self._lock:
             self._disc_rip_blocked = False
             self._disc_auto_suppressed = False
+            self._persist_state_locked()
 
     def disc_rip_blocked(self) -> bool:
         with self._lock:
@@ -658,6 +751,7 @@ class StatusTracker:
                 self._disc_auto_complete_key = None
                 self._disc_auto_suppressed = False
                 self._disc_preserve_info = False
+            self._persist_state_locked()
 
     def set_disc_key(self, key: str, force: bool = False):
         if not key:
@@ -665,6 +759,7 @@ class StatusTracker:
         with self._lock:
             if force or not self._disc_key:
                 self._disc_key = key
+                self._persist_state_locked()
 
     def disc_key(self):
         with self._lock:
@@ -677,10 +772,12 @@ class StatusTracker:
     def pause_disc_scan(self):
         with self._lock:
             self._disc_scan_paused = True
+            self._persist_state_locked()
 
     def resume_disc_scan(self):
         with self._lock:
             self._disc_scan_paused = False
+            self._persist_state_locked()
 
     def disc_scan_paused(self) -> bool:
         with self._lock:
@@ -715,15 +812,18 @@ class StatusTracker:
             self._disc_scan_last_timed_out = bool(timed_out)
             if success and not timed_out:
                 self._disc_scan_failures = 0
+                self._persist_state_locked()
                 return
             self._disc_scan_failures += 1
             backoff = min(300, 60 * self._disc_scan_failures)
             self._disc_scan_cooldown_until = max(self._disc_scan_cooldown_until, now + backoff)
+            self._persist_state_locked()
 
     def set_disc_scan_cooldown(self, seconds: int):
         now = time.time()
         with self._lock:
             self._disc_scan_cooldown_until = max(self._disc_scan_cooldown_until, now + max(0, int(seconds)))
+            self._persist_state_locked()
 
     def disc_scan_inflight(self) -> bool:
         with self._lock:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.25.197 - 2026-07-09
+- Persist disc suppression, completion, and cached disc-identification state in the application state volume so a container restart does not auto-rip the same inserted disc again after Stop All Ripping or queue completion.
+- Restore the persisted disc state on startup before the first presence poll so the same-disc suppression survives normal restart-time hardware detection.
+
 ## 1.25.196 - 2026-07-09
 - Harden MakeMKV overlay builds by decompressing the upstream archives before extraction, which avoids the malformed-header failure path seen with the `makemkv-bin` tarball while still using the source archive contents.
 - Tighten scanner root selection so internal state, config, and rip-output mounts are no longer treated as candidate media sources during normal discovery passes.
