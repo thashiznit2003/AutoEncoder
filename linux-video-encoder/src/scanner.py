@@ -18,6 +18,14 @@ EXCLUDED_SCAN_PATHS = {
     "/mnt/auto_media",
 }
 
+INTERNAL_SCAN_ROOTS = {
+    "/var/lib/autoencoder/state",
+    "/app/config",
+    "/mnt/output",
+    "/mnt/rips",
+    "/mnt/ripped",
+}
+
 IGNORED_DIRNAMES = {
     ".Trashes",
     ".Spotlight-V100",
@@ -171,7 +179,7 @@ class Scanner:
             # skip explicitly excluded mountpoints
             if self._is_excluded_path(mnt):
                 continue
-            if mnt in EXCLUDED_SCAN_PATHS:
+            if mnt in EXCLUDED_SCAN_PATHS or mnt in INTERNAL_SCAN_ROOTS:
                 continue
             devname = dev.rsplit('/', 1)[-1]
             # skip loop devices, ram, boot mount and optical device nodes
@@ -198,7 +206,11 @@ class Scanner:
         #         pass
 
         # unique, stable ordering and log candidates
-        result = sorted({c for c in candidates if c not in EXCLUDED_SCAN_PATHS}, key=len, reverse=True)
+        result = sorted(
+            {c for c in candidates if c not in EXCLUDED_SCAN_PATHS and c not in INTERNAL_SCAN_ROOTS},
+            key=len,
+            reverse=True,
+        )
         import logging
         logger = logging.getLogger(__name__)
         logger.info("Candidate mountpoints: %s", result if result else "<none>")
@@ -368,7 +380,7 @@ class Scanner:
         seen = set()
         filtered = []
         for r in scan_roots:
-            if r in EXCLUDED_SCAN_PATHS:
+            if r in EXCLUDED_SCAN_PATHS or r in INTERNAL_SCAN_ROOTS:
                 continue
             if r in seen:
                 continue
@@ -404,7 +416,7 @@ class Scanner:
         logger.info("Scanner will walk these roots: %s", ", ".join(search_paths) if search_paths else "<none>")
 
         for search_root in search_paths:
-            if search_root in EXCLUDED_SCAN_PATHS:
+            if search_root in EXCLUDED_SCAN_PATHS or search_root in INTERNAL_SCAN_ROOTS:
                 continue
             # first check for optical disc structures and prefer them over generic walk
             try:

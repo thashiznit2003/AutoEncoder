@@ -1887,7 +1887,12 @@ def main():
                 # unique preserving order
                 seen = set()
                 scan_roots = [x for x in scan_roots if not (x in seen or seen.add(x))]
-            scan_roots = [r for r in scan_roots if r != "/mnt/output" and r not in EXCLUDED_SCAN_PATHS]
+            scan_roots = [
+                r
+                for r in scan_roots
+                if r not in EXCLUDED_SCAN_PATHS
+                and r not in {"/mnt/output", "/var/lib/autoencoder/state", "/app/config", "/mnt/rips", "/mnt/ripped"}
+            ]
 
             logging.info("Scanning directories: %s", ", ".join(scan_roots) if scan_roots else "<none>")
             # debug: show mount status and a sample of contents for each scan root

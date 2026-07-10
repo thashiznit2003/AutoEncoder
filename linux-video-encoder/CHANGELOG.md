@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.25.196 - 2026-07-09
+- Harden MakeMKV overlay builds by decompressing the upstream archives before extraction, which avoids the malformed-header failure path seen with the `makemkv-bin` tarball while still using the source archive contents.
+- Tighten scanner root selection so internal state, config, and rip-output mounts are no longer treated as candidate media sources during normal discovery passes.
+
 ## 1.25.195 - 2026-07-09
 - Stop repeated auto-rip retriggers after a disc queue completes or Stop All Ripping is used by tracking explicit per-disc auto-rip suppression until the disc changes or a manual rip is requested.
 - Clear misleading auto-rip error messaging so failed automatic disc jobs are reported as auto-rip failures instead of manual rip failures.

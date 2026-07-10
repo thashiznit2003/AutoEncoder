@@ -38,8 +38,10 @@ COPY makemkv-bin-${MAKEMKV_VERSION}.tar.gz /tmp/makemkv/makemkv-bin.tar.gz
 RUN set -eux; \
     mkdir -p /tmp/makemkv; \
     cd /tmp/makemkv; \
-    tar --ignore-zeros -xzf makemkv-oss.tar.gz; \
-    tar --ignore-zeros -xzf makemkv-bin.tar.gz; \
+    gzip -dc makemkv-oss.tar.gz > makemkv-oss.tar; \
+    tar --ignore-zeros -xf makemkv-oss.tar; \
+    gzip -dc makemkv-bin.tar.gz > makemkv-bin.tar; \
+    tar --ignore-zeros -xf makemkv-bin.tar; \
     cd makemkv-oss-"${MAKEMKV_VERSION}"; \
     ./configure --prefix=/usr; \
     make -s -j"$(nproc)"; \
