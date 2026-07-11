@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.25.200 - 2026-07-11
+- Persist MakeMKV registration state more defensibly by writing the key to both the state-backed settings path and the root MakeMKV settings path, then surface masked key/persistence status in the Settings UI.
+- Isolate MakeMKV rip output into per-job workspaces under `.makemkv` so stale MKVs in the main rip directory no longer interfere with new disc jobs, then finalize only the fresh output back into the rip directory.
+- Add a runtime diagnostics API and Settings panel surface that shows MakeMKV version, saved-key status, scanner roots/exclusions, optical-helper state, and the active output/staging paths.
+- Tighten scanner noise filtering by ignoring hidden directories/files and common partial-download suffixes to reduce false positives from staging and foreign filesystem metadata.
+
 ## 1.25.199 - 2026-07-11
 - Update the pinned MakeMKV Linux build inputs from `1.18.2` to `1.18.4` so fresh official tarballs can be downloaded and used for reproducible image builds again.
 - Detect physical optical media swaps even when the drive never transitions through an explicit "no disc" state, and reset blocked/preserved disc state when the mounted disc identity changes.

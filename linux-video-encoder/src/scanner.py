@@ -32,7 +32,19 @@ IGNORED_DIRNAMES = {
     ".fseventsd",
     ".Trash",
     ".Trash-1000",
+    ".TemporaryItems",
+    ".DS_Store",
+    "@eaDir",
 }
+
+IGNORED_FILE_SUFFIXES = (
+    ".part",
+    ".partial",
+    ".download",
+    ".tmp",
+    ".temp",
+    ".stopped",
+)
 class Scanner:
     def __init__(self, search_path='/'):
         self.search_path = search_path
@@ -189,8 +201,9 @@ class Scanner:
             # non-removable block-device mounts (e.g. SATA SSDs) unless they're
             # explicitly excluded or are loop/ram/sr device types.
             if (self._is_removable_device(dev)
-                    or mnt.startswith('/media') or mnt.startswith('/run/media') or mnt.startswith('/mnt')
-                    or (dev.startswith('/dev/') and not devname.startswith(('loop', 'ram', 'sr')))):
+                    or mnt.startswith('/media') or mnt.startswith('/run/media')
+                    or (mnt.startswith('/mnt') and mnt not in ('/mnt', '/mnt/usb', '/mnt/output', '/mnt/ripped'))
+                    or (dev.startswith('/dev/') and mnt.startswith('/media') and not devname.startswith(('loop', 'ram', 'sr')))):
                 candidates.append(mnt)
 
         # THIS WAS CAUSING ISSUES WITH NFS/SMB MOUNTS; COMMENTING OUT FOR NOW
@@ -445,7 +458,7 @@ class Scanner:
                 # Prune only directories that are explicitly excluded, otherwise descend into all subdirectories
                 good_dirs = []
                 for d in dirs:
-                    if d in IGNORED_DIRNAMES:
+                    if d in IGNORED_DIRNAMES or d.startswith('.'):
                         continue
                     full = os.path.join(root, d)
                     if not self._is_excluded_path(full) and full not in EXCLUDED_SCAN_PATHS:
@@ -454,9 +467,12 @@ class Scanner:
 
                 for file in files:
                     try:
-                        if file.startswith("._"):
+                        if file.startswith("._") or file.startswith("."):
                             continue
-                        if file.lower().endswith(video_extensions_lower):
+                        lower_name = file.lower()
+                        if lower_name.endswith(IGNORED_FILE_SUFFIXES):
+                            continue
+                        if lower_name.endswith(video_extensions_lower):
                             full = os.path.join(root, file)
                             try:
                                 st = os.stat(full)

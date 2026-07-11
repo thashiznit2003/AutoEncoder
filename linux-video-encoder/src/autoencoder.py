@@ -342,6 +342,49 @@ def ensure_makemkv_settings_persistence() -> None:
         logging.exception("Failed to prepare persistent MakeMKV settings")
 
 
+def sanitize_path_component(value: Optional[str], fallback: str = "item") -> str:
+    text = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or "").strip())
+    text = text.strip("._-")
+    return text or fallback
+
+
+def build_disc_workspace_name(disc_source: str, disc_index: Optional[int], title_list: list) -> str:
+    parts = []
+    if disc_index is not None:
+        parts.append(f"disc{int(disc_index)}")
+    elif disc_source:
+        parts.append(sanitize_path_component(disc_source.replace(":", "_"), "disc"))
+    if len(title_list) == 1 and str(title_list[0]).isdigit():
+        parts.append(f"title{int(title_list[0]):02d}")
+    elif title_list:
+        parts.append(f"titles{len(title_list)}")
+    return "-".join(parts) or f"disc-{uuid.uuid4().hex[:8]}"
+
+
+def build_rip_basename(
+    status_tracker: Optional[StatusTracker],
+    disc_source: str,
+    disc_index: Optional[int],
+    single_title_id: Optional[int] = None,
+) -> str:
+    label = ""
+    try:
+        payload = (status_tracker.disc_info() or {}) if status_tracker else {}
+        info = (payload.get("info") if isinstance(payload, dict) else payload) or {}
+        summary = info.get("summary") or {}
+        label = summary.get("disc_label") or summary.get("label") or ""
+    except Exception:
+        label = ""
+    if not label and disc_index is not None:
+        label = f"disc_{int(disc_index)}"
+    if not label:
+        label = sanitize_path_component(disc_source.replace(":", "_"), "disc")
+    base = sanitize_path_component(label, "disc")
+    if single_title_id is not None:
+        base = f"{base}_t{int(single_title_id):02d}"
+    return base
+
+
 def save_usb_seen(data: Dict[str, Dict[str, float]]) -> None:
     try:
         USB_SEEN_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -417,6 +460,7 @@ def rip_disc(
     Returns (path, reused_existing) where path is the first output file if successful, or (None, False) on failure.
     """
     logger = logging.getLogger(__name__)
+    output_dir_path.mkdir(parents=True, exist_ok=True)
     output_dir = output_dir_path.as_posix()
     base_key = f"disc:{disc_index}" if disc_index is not None else (disc_source or "disc:unknown")
     disc_type = None
@@ -470,6 +514,23 @@ def rip_disc(
         title_arg = ",".join(title_list)
     else:
         title_arg = "all"
+    workspace_root = output_dir_path / ".makemkv"
+    workspace_root.mkdir(parents=True, exist_ok=True)
+    workspace_name = build_disc_workspace_name(disc_source, disc_index, title_list)
+    workspace_dir = workspace_root / workspace_name
+    if workspace_dir.exists():
+        shutil.rmtree(workspace_dir, ignore_errors=True)
+    workspace_dir.mkdir(parents=True, exist_ok=True)
+    rip_target_dir = workspace_dir.as_posix()
+    expected_base = build_rip_basename(status_tracker, disc_source, disc_index, single_title_id)
+    expected_ext = ".mkv"
+    expected_dest = output_dir_path / f"{expected_base}{expected_ext}"
+    if expected_dest.exists() and single_title_id is not None:
+        latest = expected_dest.resolve()
+        if status_tracker:
+            status_tracker.add_event(f"Using existing ripped MKV: {latest}")
+            status_tracker.complete(job_key, True, str(latest), "Reused existing rip")
+        return str(latest), True
     if status_tracker:
         disc_titles = []
         try:
@@ -507,38 +568,11 @@ def rip_disc(
         "mkv",
         disc_source,
         title_arg,
-        output_dir,
+        rip_target_dir,
     ]
     if not title_list:
         cmd.append(f"--minlength={min_length}")
     # MakeMKV CLI doesn't accept audio/subtitle language selectors in this build; skip them to avoid errors.
-
-    # Check for existing MKVs; reuse only when they match the requested title(s).
-    existing_mkvs = sorted(
-        [p for p in output_dir_path.glob("*.mkv") if not p.name.startswith("._")],
-        key=os.path.getmtime,
-    )
-    reuse_candidates = existing_mkvs
-    if title_list:
-        reuse_candidates = []
-        for t in title_list:
-            if not str(t).isdigit():
-                continue
-            tid = int(str(t))
-            pattern = re.compile(rf".*_t0*{tid}\\.mkv$", re.IGNORECASE)
-            for p in existing_mkvs:
-                if pattern.match(p.name):
-                    reuse_candidates.append(p)
-        reuse_candidates = sorted(set(reuse_candidates), key=os.path.getmtime)
-    if reuse_candidates:
-        latest = reuse_candidates[-1].resolve()
-        msg_existing = f"⚠️  Found existing MKV file: {latest}\nReusing existing rip."
-        print(msg_existing)
-        logging.info("Reusing existing MKV: %s", latest)
-        if status_tracker:
-            status_tracker.add_event(f"Using existing ripped MKV: {latest}")
-            status_tracker.complete(job_key, True, str(latest), "Reused existing rip")
-        return str(latest), True
 
     msg = f"📀 Running: {' '.join(cmd)}"
     print(msg)
@@ -593,7 +627,7 @@ def rip_disc(
 
     # Look for any .mkv files in the output directory
     mkv_files = sorted(
-        [p for p in output_dir_path.glob("*.mkv") if not p.name.startswith("._")],
+        [p for p in workspace_dir.glob("*.mkv") if not p.name.startswith("._")],
         key=os.path.getmtime,
     )
     if title_list:
@@ -615,38 +649,49 @@ def rip_disc(
             status_tracker.complete(job_key, False, dest_hint, "Rip produced no MKVs")
         return None, False
 
-    # Return the most recent or first MKV file path
-    first_file_path = mkv_files[-1].resolve()
-    # Apply rename target if provided
+    # Move fresh MakeMKV output out of the isolated workspace and into rip_dir.
+    finalized_paths = []
     if status_tracker:
         rename_to = status_tracker.get_rename(job_key)
     else:
         rename_to = None
-    if rename_to:
+    for idx, mkv_path in enumerate(mkv_files, start=1):
         try:
-            base = Path(rename_to).name
-            if not base:
-                base = first_file_path.name
-            dest = first_file_path.with_name(base)
-            if dest.suffix.lower() != first_file_path.suffix.lower():
-                dest = dest.with_suffix(first_file_path.suffix)
-            idx = 1
-            while dest.exists() and dest != first_file_path:
-                dest = dest.with_name(f"{dest.stem}({idx}){dest.suffix}")
-                idx += 1
-            first_file_path.rename(dest)
-            first_file_path = dest.resolve()
+            if rename_to and len(mkv_files) == 1:
+                base = sanitize_path_component(Path(rename_to).stem, expected_base)
+            elif single_title_id is not None:
+                base = expected_base
+            elif len(mkv_files) > 1:
+                base = f"{build_rip_basename(status_tracker, disc_source, disc_index)}_part{idx:02d}"
+            else:
+                base = sanitize_path_component(mkv_path.stem, expected_base)
+            dest = output_dir_path / f"{base}{mkv_path.suffix}"
+            counter = 1
+            while dest.exists():
+                dest = output_dir_path / f"{base}({counter}){mkv_path.suffix}"
+                counter += 1
+            if not safe_move(mkv_path, dest):
+                raise RuntimeError(f"Failed to move {mkv_path} to {dest}")
+            finalized_paths.append(dest.resolve())
         except Exception:
-            logging.debug("Failed to apply rename_to for %s", job_key, exc_info=True)
+            logging.debug("Failed to finalize ripped MKV %s", mkv_path, exc_info=True)
     if status_tracker:
         status_tracker.clear_rename(job_key)
+    try:
+        shutil.rmtree(workspace_dir, ignore_errors=True)
+    except Exception:
+        logging.debug("Failed to remove rip workspace %s", workspace_dir, exc_info=True)
+    if not finalized_paths:
+        if status_tracker:
+            status_tracker.complete(job_key, False, dest_hint, "Rip produced no finalized MKVs")
+        return None, False
     if disc_type:
         try:
             marker = output_dir_path / ".disc_type"
             marker.write_text(str(disc_type), encoding="utf-8")
         except Exception:
             logging.debug("Failed to write disc_type marker", exc_info=True)
-    first_file = str(first_file_path)
+    first_file = str(finalized_paths[-1])
     print(f"🎬 Output file: {first_file}")
     if status_tracker:
         status_tracker.complete(job_key, True, first_file, "Rip complete")

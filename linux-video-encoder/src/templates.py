@@ -1447,10 +1447,12 @@ SETTINGS_PAGE_TEMPLATE = """
           <button type="button" id="mk-update-check">Check for MakeMKV update</button>
           <span class="muted field-display" id="mk-update-status">Update status: unknown</span>
         </div>
-        <div class="muted">Installed MakeMKV: <span id="mk-installed" class="field-display">unknown</span></div>
-        <label>Latest MakeMKV version (from makemkv.com)
-          <input id="mk-latest" placeholder="e.g., 1.18.3" />
-        </label>
+      <div class="muted">Installed MakeMKV: <span id="mk-installed" class="field-display">unknown</span></div>
+      <div class="muted">Saved key: <span id="mk-saved-key" class="field-display">unknown</span></div>
+      <div class="muted">Key persistence: <span id="mk-persist-status" class="field-display">unknown</span></div>
+      <label>Latest MakeMKV version (from makemkv.com)
+        <input id="mk-latest" placeholder="e.g., 1.18.3" />
+      </label>
         <label>Host update command (run on Ubuntu host)
           <textarea id="mk-update-cmd" class="log" style="height:70px;" readonly></textarea>
           <button type="button" id="mk-copy-update">Copy update command</button>
@@ -1460,7 +1462,12 @@ SETTINGS_PAGE_TEMPLATE = """
     <div class="panel" id="panel-diagnostics" data-panel-title="Diagnostics">
       <h2>🐞 Diagnostics</h2>
       <div class="muted" style="margin-bottom:8px;">Push status, events, and log tail to the diagnostics repo using stored credentials.</div>
-      <button type="button" id="diag-push">Push Diagnostics to GitHub</button>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+        <button type="button" id="diag-refresh-runtime">Refresh Runtime</button>
+        <button type="button" id="diag-copy-runtime">Copy Runtime</button>
+        <button type="button" id="diag-push">Push Diagnostics to GitHub</button>
+      </div>
+      <textarea id="diag-runtime" class="log" style="height:220px; width:100%; box-sizing:border-box;" readonly placeholder="Runtime diagnostics will appear here."></textarea>
       <div class="muted field-display" id="diag-status" style="margin-top:6px;">Idle.</div>
     </div>
     <div class="panel" id="panel-auth" data-panel-title="Authentication">
@@ -1820,6 +1827,7 @@ SETTINGS_PAGE_TEMPLATE = """
       try {
         const cfg = await fetchJSON("/api/config");
         const status = await fetchJSON("/api/status");
+        const runtime = await fetchJSON("/api/diagnostics/runtime");
         if (!hbDirty) {
           populateHandbrakeForm(cfg);
         }
@@ -1876,6 +1884,17 @@ SETTINGS_PAGE_TEMPLATE = """
           debugEl.textContent = "Titles: " + titlesCount + " (cached: " + cachedCount + ", disc present: " + (status.disc_present === true ? "yes" : (status.disc_present === false ? "no" : "unknown")) + ")";
         }
         updateDiscInfoPanel(status);
+        const mkStatus = (runtime && runtime.makemkv) || {};
+        document.getElementById("mk-installed").textContent = mkStatus.installed_version || "unknown";
+        document.getElementById("mk-saved-key").textContent = mkStatus.saved_key_masked || "not saved";
+        const persistText = mkStatus.state_key_present
+          ? ((mkStatus.root_key_present && mkStatus.keys_match) ? "state + root synced" : "state only")
+          : "not persisted";
+        document.getElementById("mk-persist-status").textContent = persistText;
+        const diagRuntimeEl = document.getElementById("diag-runtime");
+        if (diagRuntimeEl) {
+          diagRuntimeEl.value = JSON.stringify(runtime, null, 2);
+        }
         if (!authDirty) {
           document.getElementById("auth-user").value = cfg.auth_user || "";
           document.getElementById("auth-pass").value = cfg.auth_password || "";
@@ -2114,10 +2133,11 @@ SETTINGS_PAGE_TEMPLATE = """
         const res = await fetch("/api/makemkv/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
         const data = await res.json();
         if (data.registered) {
-          alert("MakeMKV registered");
+          alert("MakeMKV registered and persisted.");
         } else {
-          alert("Registration failed: " + (data.error || "unknown error"));
+          alert("Registration failed: " + (data.error || "unknown error") + (data.persisted ? " (key still persisted)" : ""));
         }
+        refreshSettings();
       } catch (e) {
         alert("Failed to register: " + e);
       }
@@ -2225,6 +2245,35 @@ SETTINGS_PAGE_TEMPLATE = """
     });
 
     const diagStatus = document.getElementById("diag-status");
+    document.getElementById("diag-refresh-runtime").addEventListener("click", async () => {
+      try {
+        const runtime = await fetchJSON("/api/diagnostics/runtime");
+        const diagRuntimeEl = document.getElementById("diag-runtime");
+        if (diagRuntimeEl) diagRuntimeEl.value = JSON.stringify(runtime, null, 2);
+        if (diagStatus) diagStatus.textContent = "Runtime refreshed.";
+      } catch (e) {
+        if (diagStatus) diagStatus.textContent = "Runtime refresh failed: " + e;
+      }
+    });
+    document.getElementById("diag-copy-runtime").addEventListener("click", async () => {
+      const text = (document.getElementById("diag-runtime").value || "").trim();
+      if (!text) { alert("No runtime diagnostics to copy."); return; }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+        alert("Runtime diagnostics copied.");
+      } catch (e) {
+        alert("Failed to copy runtime diagnostics: " + e);
+      }
+    });
     document.getElementById("diag-push").addEventListener("click", async () => {
       if (diagStatus) diagStatus.textContent = "Pushing diagnostics...";
       try {

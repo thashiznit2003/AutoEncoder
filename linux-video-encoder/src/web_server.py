@@ -4,6 +4,7 @@ import json
 import subprocess
 import os
 import sys
+import re
 from version import VERSION
 import uuid
 import pathlib
@@ -13,9 +14,11 @@ from functools import wraps
 import logging
 import urllib.request
 import urllib.error
+import hashlib
 from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
 from smb_allowlist import save_smb_allowlist, load_smb_allowlist, remove_from_allowlist
 from makemkv_parser import parse_makemkv_info_output
+from scanner import EXCLUDED_SCAN_PATHS, INTERNAL_SCAN_ROOTS
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
@@ -27,7 +30,110 @@ DIAG_GIT_EMAIL = os.environ.get("DIAG_GIT_EMAIL", "diagnostics@example.com")
 STATE_ROOT = Path(os.environ.get("AE_STATE_DIR", "/var/lib/autoencoder/state"))
 TIMING_PATH = STATE_ROOT / "timing.log"
 MAKEMKV_SETTINGS_PATH = STATE_ROOT / "makemkv" / "settings.conf"
+MAKEMKV_ROOT_SETTINGS_PATH = Path("/root/.MakeMKV/settings.conf")
 MAKEMKV_TIMEOUT_EVENT_TS = 0.0
+
+
+def _sanitize_makemkv_key(value: str) -> str:
+    text = (value or "").strip()
+    if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
+        text = text[1:-1].strip()
+    return text
+
+
+def _mask_makemkv_key(value: str) -> str:
+    key = _sanitize_makemkv_key(value)
+    if len(key) <= 8:
+        return key[:2] + "..." if key else ""
+    return f"{key[:4]}...{key[-4:]}"
+
+
+def _read_makemkv_settings_key(path: Path) -> str:
+    try:
+        if not path.exists():
+            return ""
+        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if line.startswith("app_Key"):
+                _, _, remainder = line.partition("=")
+                return _sanitize_makemkv_key(remainder.strip())
+    except Exception:
+        return ""
+    return ""
+
+
+def _write_makemkv_settings_key(path: Path, key: str) -> bool:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        lines = []
+        if path.exists():
+            for ln in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                if not ln.strip().startswith("app_Key"):
+                    lines.append(ln)
+        lines.append(f'app_Key = "{key}"')
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
+def _read_makemkv_installed_version() -> str:
+    try:
+        res = subprocess.run(
+            ["makemkvcon", "-r", "--cache=1", "info", "disc:9999"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        combined = "\n".join([res.stdout or "", res.stderr or ""])
+        match = re.search(r"MakeMKV v([0-9.]+)", combined)
+        if match:
+            return match.group(1)
+    except Exception:
+        return ""
+    return ""
+
+
+def _makemkv_runtime_status(config_manager=None) -> dict:
+    cfg = config_manager.read() if config_manager else {}
+    state_key = _read_makemkv_settings_key(MAKEMKV_SETTINGS_PATH)
+    root_key = _read_makemkv_settings_key(MAKEMKV_ROOT_SETTINGS_PATH)
+    effective_key = state_key or root_key
+    root_is_symlink = MAKEMKV_ROOT_SETTINGS_PATH.is_symlink()
+    root_target = ""
+    if root_is_symlink:
+        try:
+            root_target = str(MAKEMKV_ROOT_SETTINGS_PATH.resolve())
+        except Exception:
+            root_target = ""
+    scan_roots = []
+    search_path = cfg.get("search_path")
+    if search_path and str(search_path).strip():
+        scan_roots = [str(search_path).strip()]
+    else:
+        scan_roots = ["/media/*", "/run/media/*", "/mnt/*"]
+    return {
+        "installed_version": _read_makemkv_installed_version(),
+        "settings_path": str(MAKEMKV_SETTINGS_PATH),
+        "root_settings_path": str(MAKEMKV_ROOT_SETTINGS_PATH),
+        "root_settings_symlink": root_is_symlink,
+        "root_settings_target": root_target,
+        "state_key_present": bool(state_key),
+        "root_key_present": bool(root_key),
+        "keys_match": bool(state_key and root_key and state_key == root_key),
+        "saved_key_masked": _mask_makemkv_key(effective_key),
+        "saved_key_fingerprint": hashlib.sha256(effective_key.encode("utf-8")).hexdigest()[:12] if effective_key else "",
+        "scan_roots": scan_roots,
+        "excluded_scan_paths": sorted(EXCLUDED_SCAN_PATHS),
+        "internal_scan_roots": sorted(INTERNAL_SCAN_ROOTS),
+        "output_dir": str(cfg.get("output_dir") or "/mnt/output"),
+        "rip_dir": str(cfg.get("rip_dir") or "/mnt/ripped"),
+        "smb_staging_dir": str(cfg.get("smb_staging_dir") or "/mnt/smb_staging"),
+        "usb_staging_dir": str(cfg.get("usb_staging_dir") or "/mnt/usb_staging"),
+        "makemkv_keep_ripped": bool(cfg.get("makemkv_keep_ripped")),
+        "makemkv_auto_rip": bool(cfg.get("makemkv_auto_rip")),
+    }
 
 
 def _call_optical_helper(path: str, method: str = "POST", timeout: int = 5) -> dict:
@@ -1672,6 +1778,29 @@ def create_app(tracker, config_manager=None):
         log_timing("api/events", t0, f"events={len(ev)}")
         return resp
 
+    @app.route("/api/diagnostics/runtime")
+    @require_auth
+    def diagnostics_runtime():
+        cfg = config_manager.read() if config_manager else {}
+        output_dir = str(cfg.get("output_dir") or "/mnt/output")
+        rip_dir = str(cfg.get("rip_dir") or "/mnt/ripped")
+        smb_staging_dir = str(cfg.get("smb_staging_dir") or "/mnt/smb_staging")
+        usb_staging_dir = str(cfg.get("usb_staging_dir") or "/mnt/usb_staging")
+        payload = {
+            "version": VERSION,
+            "makemkv": _makemkv_runtime_status(config_manager=config_manager),
+            "optical_helper": _call_optical_helper("/optical/status", method="GET", timeout=5),
+            "paths": {
+                "output": {"path": output_dir, "fs": read_fs(output_dir)},
+                "ripped": {"path": rip_dir, "fs": read_fs(rip_dir)},
+                "smb_staging": {"path": smb_staging_dir, "fs": read_fs(smb_staging_dir)},
+                "usb_staging": {"path": usb_staging_dir, "fs": read_fs(usb_staging_dir)},
+            },
+            "disc": tracker.snapshot().get("disc_info"),
+            "usb_status": tracker.get_usb_status(),
+        }
+        return jsonify(payload)
+
     @app.route("/api/diagnostics/push", methods=["POST"])
     @require_auth
     def push_diagnostics():
@@ -1691,6 +1820,17 @@ def create_app(tracker, config_manager=None):
                 cfg = config_manager.read()
                 status["config"] = _sanitize_config(cfg)
             (dest / "status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
+            (dest / "runtime_diagnostics.json").write_text(
+                json.dumps(
+                    {
+                        "version": VERSION,
+                        "makemkv": _makemkv_runtime_status(config_manager=config_manager),
+                        "optical_helper": _call_optical_helper("/optical/status", method="GET", timeout=5),
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
             events_data = tracker.events()
             (dest / "events.json").write_text(json.dumps(events_data, indent=2), encoding="utf-8")
             logs = tracker.tail_logs(lines=400)
@@ -2487,41 +2627,51 @@ def create_app(tracker, config_manager=None):
     def makemkv_register():
         payload = request.get_json(force=True) or {}
         raw_key = (payload.get("key") or "")
-        def sanitize_key(k: str) -> str:
-            s = (k or "").strip()
-            if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
-                s = s[1:-1].strip()
-            return s
-        key = sanitize_key(raw_key)
+        key = _sanitize_makemkv_key(raw_key)
         if not key:
             return jsonify({"error": "key required"}), 400
         settings_path = MAKEMKV_SETTINGS_PATH
         settings_path.parent.mkdir(parents=True, exist_ok=True)
-        def write_key_to_settings(k: str):
-            try:
-                lines = []
-                if settings_path.exists():
-                    for ln in settings_path.read_text(encoding="utf-8", errors="ignore").splitlines():
-                        if not ln.strip().startswith("app_Key"):
-                            lines.append(ln)
-                lines.append(f'app_Key = "{k}"')
-                settings_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-                return True
-            except Exception:
-                return False
+
+        def persist_key(k: str) -> dict:
+            persisted_state = _write_makemkv_settings_key(MAKEMKV_SETTINGS_PATH, k)
+            persisted_root = _write_makemkv_settings_key(MAKEMKV_ROOT_SETTINGS_PATH, k)
+            state_saved = _read_makemkv_settings_key(MAKEMKV_SETTINGS_PATH)
+            root_saved = _read_makemkv_settings_key(MAKEMKV_ROOT_SETTINGS_PATH)
+            return {
+                "persisted_state": persisted_state,
+                "persisted_root": persisted_root,
+                "state_key_present": bool(state_saved),
+                "root_key_present": bool(root_saved),
+                "keys_match": bool(state_saved and root_saved and state_saved == root_saved),
+                "saved_key_masked": _mask_makemkv_key(state_saved or root_saved),
+            }
         try:
             res = subprocess.run(["makemkvcon", "reg", key], capture_output=True, text=True, check=False)
+            persistence = persist_key(key)
             if res.returncode == 0:
-                write_key_to_settings(key)
                 tracker.add_event("MakeMKV registered successfully.")
-                return jsonify({"registered": True, "persisted": True, "settings_path": str(settings_path)})
+                return jsonify(
+                    {
+                        "registered": True,
+                        "persisted": bool(persistence["persisted_state"] or persistence["persisted_root"]),
+                        "settings_path": str(settings_path),
+                        **persistence,
+                    }
+                )
             stderr = res.stderr.strip() if res.stderr else ""
             stdout = res.stdout.strip() if res.stdout else ""
             msg = "; ".join([p for p in [stderr, stdout] if p]) or f"exit code {res.returncode}"
-            # Always persist key even if makemkvcon rejects it, but report failure
-            persisted = write_key_to_settings(key)
             tracker.add_event(f"MakeMKV registration failed: {msg}", level="error")
-            return jsonify({"registered": False, "error": msg, "persisted": persisted, "settings_path": str(settings_path)}), 400
+            return jsonify(
+                {
+                    "registered": False,
+                    "error": msg,
+                    "persisted": bool(persistence["persisted_state"] or persistence["persisted_root"]),
+                    "settings_path": str(settings_path),
+                    **persistence,
+                }
+            ), 400
         except FileNotFoundError:
             tracker.add_event("MakeMKV registration failed: makemkvcon not found", level="error")
             return jsonify({"registered": False, "error": "makemkvcon not found"}), 500
