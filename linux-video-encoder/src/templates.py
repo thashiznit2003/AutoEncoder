@@ -843,6 +843,10 @@ MAIN_PAGE_TEMPLATE = """
         const lbNote = (hbCfg.low_bitrate_auto_skip ? "Low bitrate: auto-skip" : (hbCfg.low_bitrate_auto_proceed ? "Low bitrate: auto-proceed" : "Low bitrate: ask"));
         const audioModeLabel = (hb.audio_mode === "auto_dolby") ? "Auto Dolby" : (hb.audio_mode === "copy" ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
         const audioOffsetLabel = (hb.audio_offset_ms !== undefined && hb.audio_offset_ms !== null) ? (hb.audio_offset_ms + " ms (single)") : "0 ms (single)";
+        const nvStatus = status.nvidia || {};
+        const nvRuntimeLabel = nvStatus.handbrake_nvenc_available
+          ? "NVENC=HandBrake"
+          : (nvStatus.ffmpeg_nvenc_available ? "NVENC=ffmpeg fallback" : "NVENC=unavailable");
         document.getElementById("hb-runtime").textContent =
           "Runtime HB settings: Encoder=" + (hb.encoder || "x264") +
           " | Default RF=" + (hb.quality ?? 20) +
@@ -851,7 +855,8 @@ MAIN_PAGE_TEMPLATE = """
           " | Ext=" + hbExt +
           " | " + lbNote +
           " | Audio=" + audioModeLabel +
-          " | Offset=" + audioOffsetLabel;
+          " | Offset=" + audioOffsetLabel +
+          " | " + nvRuntimeLabel;
         // Disc card update (main page, no eject)
         let discInfo = status.disc_info || {};
         const busyEl = document.getElementById("mk-scan-busy");
@@ -1892,13 +1897,19 @@ SETTINGS_PAGE_TEMPLATE = """
           ? ((mkStatus.root_key_present && mkStatus.keys_match) ? "state + root synced" : "state only")
           : "not persisted";
         document.getElementById("mk-persist-status").textContent = persistText;
-        document.getElementById("hb-runtime").textContent =
-          "Runtime HB settings: Encoder=" + (hb.encoder || "x264") +
-          " | Default RF=" + (hb.quality !== undefined && hb.quality !== null ? hb.quality : 20) +
-          " | DVD RF=" + (hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20) +
-          " | BR RF=" + (hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25) +
-          " | Ext=" + (hb.extension || ".mkv") +
-          " | NVENC=" + (nvStatus.available ? "ready" : ("unavailable: " + (nvStatus.reason || "unknown")));
+        const hbRuntimeEl = document.getElementById("hb-runtime");
+        const nvRuntimeLabel = nvStatus.handbrake_nvenc_available
+          ? "HandBrake"
+          : (nvStatus.ffmpeg_nvenc_available ? "ffmpeg fallback" : "unavailable");
+        if (hbRuntimeEl) {
+          hbRuntimeEl.textContent =
+            "Runtime HB settings: Encoder=" + (hb.encoder || "x264") +
+            " | Default RF=" + (hb.quality !== undefined && hb.quality !== null ? hb.quality : 20) +
+            " | DVD RF=" + (hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20) +
+            " | BR RF=" + (hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25) +
+            " | Ext=" + (hb.extension || ".mkv") +
+            " | NVENC=" + (nvStatus.available ? nvRuntimeLabel : ("unavailable: " + (nvStatus.reason || "unknown")));
+        }
         const diagRuntimeEl = document.getElementById("diag-runtime");
         if (diagRuntimeEl) {
           diagRuntimeEl.value = JSON.stringify(runtime, null, 2);

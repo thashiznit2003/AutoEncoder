@@ -1,6 +1,7 @@
 FROM ubuntu:24.04
 
-ARG DOCKERFILE_REV=3
+ARG DOCKERFILE_REV=4
+ARG HANDBRAKE_VERSION=1.11.2
 ARG MAKEMKV_VERSION=1.18.4
 ARG MAKEMKV_BASE_URL=https://www.makemkv.com/download
 ARG MAKEMKV_BIN_URL=${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz
@@ -18,7 +19,7 @@ WORKDIR /linux-video-encoder
 COPY makemkv-oss-${MAKEMKV_VERSION}.tar.gz /tmp/makemkv/makemkv-oss.tar.gz
 COPY makemkv-bin-${MAKEMKV_VERSION}.tar.gz /tmp/makemkv/makemkv-bin.tar.gz
 
-# Base tools, Python, FFmpeg/HandBrakeCLI
+# Base tools, Python, FFmpeg
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends software-properties-common; \
@@ -34,17 +35,43 @@ RUN set -eux; \
       python3-pip \
       python3-venv \
       ffmpeg \
-      handbrake-cli \
       cifs-utils; \
     rm -rf /var/lib/apt/lists/*
 
-# Build/runtime dependencies and MakeMKV ${MAKEMKV_VERSION}
+# Build/runtime dependencies, MakeMKV ${MAKEMKV_VERSION}, and HandBrake ${HANDBRAKE_VERSION}
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
+      autoconf \
+      automake \
       build-essential \
+      clang \
+      cmake \
+      curl \
+      libass-dev \
+      libbz2-dev \
+      libfontconfig-dev \
+      libfreetype-dev \
+      libfribidi-dev \
+      libharfbuzz-dev \
+      libjansson-dev \
+      liblzma-dev \
+      libmp3lame-dev \
+      libnuma-dev \
+      libogg-dev \
+      libopus-dev \
+      libsamplerate0-dev \
       pkg-config \
+      libspeex-dev \
       libssl-dev \
+      libtheora-dev \
+      libtool \
+      libtool-bin \
+      libturbojpeg0-dev \
+      libvorbis-dev \
+      libx264-dev \
+      libxml2-dev \
+      libvpx-dev \
       zlib1g-dev \
       libexpat1-dev \
       qtbase5-dev \
@@ -63,6 +90,12 @@ RUN set -eux; \
       libqt5gui5 \
       libqt5network5 \
       libqt5widgets5 \
+      m4 \
+      make \
+      meson \
+      nasm \
+      ninja-build \
+      patch \
       exfat-fuse \
       exfatprogs \
       sg3-utils \
@@ -106,7 +139,15 @@ RUN set -eux; \
     make -s -f Makefile install; \
     ldconfig; \
     command -v makemkvcon >/dev/null 2>&1; \
+    rm -rf /tmp/handbrake-src; \
+    git clone --branch "${HANDBRAKE_VERSION}" --depth 1 https://github.com/HandBrake/HandBrake.git /tmp/handbrake-src; \
+    cd /tmp/handbrake-src; \
+    ./configure --launch-jobs="$(nproc)" --launch --disable-gtk; \
+    make --directory=build install; \
+    ldconfig; \
+    command -v HandBrakeCLI >/dev/null 2>&1; \
     rm -rf /tmp/makemkv; \
+    rm -rf /tmp/handbrake-src; \
     rm -rf /var/lib/apt/lists/*
 
 COPY txt/requirements.txt ./requirements.txt

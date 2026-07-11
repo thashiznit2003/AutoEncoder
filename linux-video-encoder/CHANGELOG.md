@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.25.203 - 2026-07-11
+- Rebuild the Ubuntu image against upstream HandBrake `1.11.2` from source instead of the distro `handbrake-cli` package so native NVENC encoders are available in the shipped runtime.
+- Update NVIDIA runtime detection to probe the upstream HandBrakeCLI help output, which correctly reports native NVENC support in the rebuilt image.
+- Fix the Settings page runtime refresh handler so it no longer throws when the page lacks the main-dashboard-only `hb-runtime` element.
+- Clarify the UI runtime banner so it explicitly distinguishes native HandBrake NVENC from the ffmpeg fallback path.
+
 ## 1.25.202 - 2026-07-11
 - Add explicit NVIDIA runtime diagnostics so the UI and diagnostics API can report whether `libcuda`, `nvidia-smi`, and HandBrake NVENC are actually available inside the container.
 - Short-circuit NVENC jobs before launch when the container runtime is missing GPU libraries, so failures surface immediately and cleanly fall back.

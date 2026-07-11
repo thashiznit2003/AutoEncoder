@@ -390,7 +390,7 @@ def detect_nvidia_runtime() -> Dict[str, Any]:
         status["nvidia_smi_available"] = False
     try:
         hb = subprocess.run(
-            ["HandBrakeCLI", "--encoders"],
+            ["HandBrakeCLI", "--help"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
