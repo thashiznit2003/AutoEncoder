@@ -348,6 +348,90 @@ def sanitize_path_component(value: Optional[str], fallback: str = "item") -> str
     return text or fallback
 
 
+def detect_nvidia_runtime() -> Dict[str, Any]:
+    status: Dict[str, Any] = {
+        "device_nodes_present": False,
+        "libcuda_present": False,
+        "nvidia_smi_available": False,
+        "handbrake_nvenc_available": False,
+        "ffmpeg_nvenc_available": False,
+        "available": False,
+        "reason": "",
+    }
+    try:
+        device_nodes = list(pathlib.Path("/dev").glob("nvidia*"))
+        status["device_nodes_present"] = any(p.name not in {"nvidia-caps"} for p in device_nodes)
+    except Exception:
+        status["device_nodes_present"] = False
+    try:
+        ldconfig = subprocess.run(
+            ["ldconfig", "-p"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        libcuda_output = ldconfig.stdout or ""
+        status["libcuda_present"] = "libcuda.so.1" in libcuda_output or "libcuda.so" in libcuda_output
+    except Exception:
+        status["libcuda_present"] = False
+    try:
+        smi = subprocess.run(
+            ["nvidia-smi", "-L"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        status["nvidia_smi_available"] = smi.returncode == 0
+    except Exception:
+        status["nvidia_smi_available"] = False
+    try:
+        hb = subprocess.run(
+            ["HandBrakeCLI", "--encoders"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        hb_out = (hb.stdout or "").lower()
+        status["handbrake_nvenc_available"] = "nvenc_h265" in hb_out or "nvenc_h264" in hb_out
+    except Exception:
+        status["handbrake_nvenc_available"] = False
+    try:
+        ff = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-encoders"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        ff_out = (ff.stdout or "").lower()
+        status["ffmpeg_nvenc_available"] = "hevc_nvenc" in ff_out or "h264_nvenc" in ff_out
+    except Exception:
+        status["ffmpeg_nvenc_available"] = False
+
+    if status["handbrake_nvenc_available"]:
+        status["available"] = True
+        status["reason"] = "HandBrake NVENC encoders available"
+    elif status["ffmpeg_nvenc_available"]:
+        status["available"] = True
+        status["reason"] = "ffmpeg NVENC encoders available"
+    elif not status["device_nodes_present"]:
+        status["reason"] = "No /dev/nvidia* device nodes are visible inside the container"
+    elif not status["libcuda_present"]:
+        status["reason"] = "libcuda.so.1 is unavailable inside the container"
+    elif not status["nvidia_smi_available"]:
+        status["reason"] = "nvidia-smi is unavailable inside the container"
+    else:
+        status["reason"] = "HandBrakeCLI does not list NVENC encoders"
+    return status
+
+
 def build_disc_workspace_name(disc_source: str, disc_index: Optional[int], title_list: list) -> str:
     parts = []
     if disc_index is not None:
@@ -359,6 +443,26 @@ def build_disc_workspace_name(disc_source: str, disc_index: Optional[int], title
     elif title_list:
         parts.append(f"titles{len(title_list)}")
     return "-".join(parts) or f"disc-{uuid.uuid4().hex[:8]}"
+
+
+def build_ffmpeg_nvenc_opts_from_handbrake(opts: dict) -> dict:
+    width = opts.get("width", 1920) or 1920
+    height = opts.get("height", 1080) or 1080
+    hb_encoder = str(opts.get("encoder", "nvenc_h265")).lower()
+    ff_encoder = "hevc_nvenc" if "265" in hb_encoder else "h264_nvenc"
+    ff_profile = "main" if ff_encoder == "hevc_nvenc" else "high"
+    mapped = {
+        "encoder": ff_encoder,
+        "quality": opts.get("quality", 23),
+        "width": width,
+        "height": height,
+        "video": f"scale={width}:{height},format=yuv420p",
+        "profile": ff_profile,
+        "audio": "copy",
+        "extension": opts.get("extension", ".mkv"),
+        "_nvenc_source": hb_encoder,
+    }
+    return mapped
 
 
 def build_rip_basename(
@@ -1428,11 +1532,21 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
     #audio_bitrate_kbps = opts.get("audio_bitrate_kbps", 128)
     extra = opts.get("extra_args", []) or []
 
+    if "nvenc" in str(encoder).lower():
+        nv_status = detect_nvidia_runtime()
+        if not nv_status.get("available"):
+            reason = nv_status.get("reason") or "NVENC runtime unavailable"
+            logger.warning("Skipping NVENC launch because runtime is unavailable: %s", reason)
+            if status_tracker:
+                status_tracker.add_event(f"NVENC unavailable: {reason}")
+            return False
+
     if ffmpeg:
         cmd = [
             "ffmpeg",
             "-y",  # overwrite output
             "-i", str(input_path),
+            "-map", "0",
             "-c:v", str(encoder),
             "-vf", str(video)
         ]
@@ -1443,14 +1557,18 @@ def run_encoder(input_path: str, output_path: str, opts: dict, ffmpeg: bool, sta
             cmd.insert(1, "-init_hw_device")
             cmd.insert(2, str(hwdev))
         if quality != "":
-            cmd.append("-global_quality")
-            cmd.append(str(quality))
+            if "nvenc" in str(encoder).lower():
+                cmd.extend(["-cq", str(quality)])
+            else:
+                cmd.append("-global_quality")
+                cmd.append(str(quality))
         if profile != "":
             cmd.append("-profile:v")
             cmd.append(str(profile))
         if audio != "":
             cmd.append("-c:a")
             cmd.append(str(audio))
+        cmd.extend(["-c:s", "copy"])
         cmd.append(str(output_path))
         logger.info("Running ffmpeg: %s", " ".join(cmd))
     else:
@@ -1803,7 +1921,20 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     # prefer HandBrakeCLI; if it fails, fall back to encoder.encode_video if available
     if single_job_mode:
         hb_opts["_apply_audio_offset"] = True
+    selected_encoder = str(hb_opts.get("encoder") or "")
     use_ffmpeg = str(config_str).startswith("ffmpeg")
+    if not use_ffmpeg and selected_encoder.lower().startswith("nvenc_"):
+        hb_opts = build_ffmpeg_nvenc_opts_from_handbrake(hb_opts)
+        use_ffmpeg = True
+        logging.info(
+            "Routing requested HandBrake NVENC encoder through ffmpeg: %s -> %s",
+            selected_encoder,
+            hb_opts.get("encoder"),
+        )
+        if status_tracker:
+            status_tracker.add_event(
+                f"Routing {selected_encoder} through ffmpeg NVENC because HandBrake NVENC is unavailable in this image"
+            )
     logging.info("Selected profile=%s encoder=%s ext=%s out=%s use_ffmpeg=%s audio_mode=%s audio_kbps=%s",
                  config_str, hb_opts.get("encoder"), extension, out_path, use_ffmpeg,
                  hb_opts.get("audio_mode"), hb_opts.get("audio_bitrate_kbps"))

@@ -95,6 +95,85 @@ def _read_makemkv_installed_version() -> str:
     return ""
 
 
+def _nvidia_runtime_status() -> dict:
+    status = {
+        "device_nodes_present": False,
+        "libcuda_present": False,
+        "nvidia_smi_available": False,
+        "handbrake_nvenc_available": False,
+        "ffmpeg_nvenc_available": False,
+        "available": False,
+        "reason": "",
+    }
+    try:
+        device_nodes = list(Path("/dev").glob("nvidia*"))
+        status["device_nodes_present"] = any(p.name not in {"nvidia-caps"} for p in device_nodes)
+    except Exception:
+        status["device_nodes_present"] = False
+    try:
+        ldconfig = subprocess.run(
+            ["ldconfig", "-p"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        combined = "\n".join([ldconfig.stdout or "", ldconfig.stderr or ""])
+        status["libcuda_present"] = "libcuda.so.1" in combined or "libcuda.so" in combined
+    except Exception:
+        status["libcuda_present"] = False
+    try:
+        smi = subprocess.run(
+            ["nvidia-smi", "-L"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        status["nvidia_smi_available"] = smi.returncode == 0
+    except Exception:
+        status["nvidia_smi_available"] = False
+    try:
+        hb = subprocess.run(
+            ["HandBrakeCLI", "--encoders"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        combined = "\n".join([hb.stdout or "", hb.stderr or ""]).lower()
+        status["handbrake_nvenc_available"] = "nvenc_h265" in combined or "nvenc_h264" in combined
+    except Exception:
+        status["handbrake_nvenc_available"] = False
+    try:
+        ff = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-encoders"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        combined = "\n".join([ff.stdout or "", ff.stderr or ""]).lower()
+        status["ffmpeg_nvenc_available"] = "hevc_nvenc" in combined or "h264_nvenc" in combined
+    except Exception:
+        status["ffmpeg_nvenc_available"] = False
+    if status["handbrake_nvenc_available"]:
+        status["available"] = True
+        status["reason"] = "HandBrake NVENC encoders available"
+    elif status["ffmpeg_nvenc_available"]:
+        status["available"] = True
+        status["reason"] = "ffmpeg NVENC encoders available"
+    elif not status["device_nodes_present"]:
+        status["reason"] = "No /dev/nvidia* device nodes are visible inside the container"
+    elif not status["libcuda_present"]:
+        status["reason"] = "libcuda.so.1 is unavailable inside the container"
+    elif not status["nvidia_smi_available"]:
+        status["reason"] = "nvidia-smi is unavailable inside the container"
+    else:
+        status["reason"] = "HandBrakeCLI does not list NVENC encoders"
+    return status
+
+
 def _makemkv_runtime_status(config_manager=None) -> dict:
     cfg = config_manager.read() if config_manager else {}
     state_key = _read_makemkv_settings_key(MAKEMKV_SETTINGS_PATH)
@@ -1789,6 +1868,7 @@ def create_app(tracker, config_manager=None):
         payload = {
             "version": VERSION,
             "makemkv": _makemkv_runtime_status(config_manager=config_manager),
+            "nvidia": _nvidia_runtime_status(),
             "optical_helper": _call_optical_helper("/optical/status", method="GET", timeout=5),
             "paths": {
                 "output": {"path": output_dir, "fs": read_fs(output_dir)},

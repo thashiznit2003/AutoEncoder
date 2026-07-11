@@ -1885,12 +1885,20 @@ SETTINGS_PAGE_TEMPLATE = """
         }
         updateDiscInfoPanel(status);
         const mkStatus = (runtime && runtime.makemkv) || {};
+        const nvStatus = (runtime && runtime.nvidia) || {};
         document.getElementById("mk-installed").textContent = mkStatus.installed_version || "unknown";
         document.getElementById("mk-saved-key").textContent = mkStatus.saved_key_masked || "not saved";
         const persistText = mkStatus.state_key_present
           ? ((mkStatus.root_key_present && mkStatus.keys_match) ? "state + root synced" : "state only")
           : "not persisted";
         document.getElementById("mk-persist-status").textContent = persistText;
+        document.getElementById("hb-runtime").textContent =
+          "Runtime HB settings: Encoder=" + (hb.encoder || "x264") +
+          " | Default RF=" + (hb.quality !== undefined && hb.quality !== null ? hb.quality : 20) +
+          " | DVD RF=" + (hbDvd.quality !== undefined && hbDvd.quality !== null ? hbDvd.quality : 20) +
+          " | BR RF=" + (hbBr.quality !== undefined && hbBr.quality !== null ? hbBr.quality : 25) +
+          " | Ext=" + (hb.extension || ".mkv") +
+          " | NVENC=" + (nvStatus.available ? "ready" : ("unavailable: " + (nvStatus.reason || "unknown")));
         const diagRuntimeEl = document.getElementById("diag-runtime");
         if (diagRuntimeEl) {
           diagRuntimeEl.value = JSON.stringify(runtime, null, 2);

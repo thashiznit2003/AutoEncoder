@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.25.202 - 2026-07-11
+- Add explicit NVIDIA runtime diagnostics so the UI and diagnostics API can report whether `libcuda`, `nvidia-smi`, and HandBrake NVENC are actually available inside the container.
+- Short-circuit NVENC jobs before launch when the container runtime is missing GPU libraries, so failures surface immediately and cleanly fall back.
+- Add dedicated `docker-compose.gpu.yml` override files for local, Portainer, and Docker Hub deployments so GPU-enabled hosts can request the NVIDIA runtime without forcing it on CPU-only installs.
+- Route `nvenc_h264` and `nvenc_h265` selections through `ffmpeg` NVENC automatically when the image's packaged HandBrake build does not expose NVENC encoders.
+
 ## 1.25.200 - 2026-07-11
 - Persist MakeMKV registration state more defensibly by writing the key to both the state-backed settings path and the root MakeMKV settings path, then surface masked key/persistence status in the Settings UI.
 - Isolate MakeMKV rip output into per-job workspaces under `.makemkv` so stale MKVs in the main rip directory no longer interfere with new disc jobs, then finalize only the fresh output back into the rip directory.
