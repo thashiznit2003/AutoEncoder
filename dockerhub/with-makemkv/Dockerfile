@@ -1,6 +1,6 @@
 FROM thashiznit2003/autoencoder:beta
 
-ARG MAKEMKV_VERSION=1.18.2
+ARG MAKEMKV_VERSION=1.18.4
 
 ENV DEBIAN_FRONTEND=noninteractive
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.25.199 - 2026-07-11
+- Update the pinned MakeMKV Linux build inputs from `1.18.2` to `1.18.4` so fresh official tarballs can be downloaded and used for reproducible image builds again.
+- Detect physical optical media swaps even when the drive never transitions through an explicit "no disc" state, and reset blocked/preserved disc state when the mounted disc identity changes.
+
+## 1.25.198 - 2026-07-11
+- Detect physical optical media swaps even when the drive never transitions through an explicit "no disc" state, and reset blocked/preserved disc state when the mounted disc identity changes.
+
 ## 1.25.197 - 2026-07-09
 - Persist disc suppression, completion, and cached disc-identification state in the application state volume so a container restart does not auto-rip the same inserted disc again after Stop All Ripping or queue completion.
 - Restore the persisted disc state on startup before the first presence poll so the same-disc suppression survives normal restart-time hardware detection.

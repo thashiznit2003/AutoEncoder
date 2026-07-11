@@ -44,7 +44,7 @@ $SUDO mv "$extracted" "$REPO_DIR"
 
 log "Building image $IMAGE_TAG from repo root..."
 $SUDO docker build \
-  --build-arg MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}" \
+  --build-arg MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.4}" \
   --build-arg MAKEMKV_BASE_URL="${MAKEMKV_BASE_URL:-https://www.makemkv.com/download}" \
   -f "$REPO_DIR/linux-video-encoder/Dockerfile" \
   -t "$IMAGE_TAG" "$REPO_DIR"

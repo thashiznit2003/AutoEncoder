@@ -12,7 +12,7 @@ fi
 
 WORKDIR="${WORKDIR:-/linux-video-encoder}"
 REPO_DIR="${REPO_DIR:-$WORKDIR/AutoEncoder}"
-MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}"
+MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.4}"
 MAKEMKV_BASE_URL="${MAKEMKV_BASE_URL:-https://www.makemkv.com/download}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
 BASE_IMAGE_TAG="${BASE_IMAGE_TAG:-thashiznit2003/autoencoder:beta}"

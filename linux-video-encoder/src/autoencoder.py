@@ -1219,6 +1219,38 @@ def is_disc_present(devnode: str = "/dev/sr0") -> Optional[bool]:
     except Exception:
         return None
 
+def _read_disc_identity(devnode: str = "/dev/sr0") -> Optional[str]:
+    try:
+        if devnode == "/dev/sr0":
+            helper_dev = _resolve_optical_devnode()
+            if helper_dev:
+                devnode = helper_dev
+        if not os.path.exists(devnode):
+            return None
+        blkid = subprocess.run(
+            ["blkid", devnode],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+        blkid_text = (blkid.stdout or blkid.stderr or "").strip()
+        label = ""
+        if blkid_text:
+            match = re.search(r'LABEL="([^"]+)"', blkid_text)
+            if match:
+                label = match.group(1).strip()
+        dev_name = Path(devnode).name
+        model = ""
+        model_path = Path(f"/sys/class/block/{dev_name}/device/model")
+        if model_path.is_file():
+            model = (model_path.read_text(encoding="utf-8").strip() or "")
+        if label or model:
+            return f"{label}|{model}"
+    except Exception:
+        return None
+    return None
+
 def _disc_key_from_info(info: dict, disc_index: int) -> str:
     try:
         summary = (info or {}).get("summary") or {}
@@ -2144,6 +2176,26 @@ def main():
                 disc_key = _get_disc_key(status_tracker, status_tracker.disc_info() or {}, disc_num, disc_source)
                 if not status_tracker.disc_auto_complete(disc_key):
                     status_tracker.resume_disc_scan()
+            try:
+                if status_tracker and present is True:
+                    current_disc_identity = _read_disc_identity()
+                    tracked_disc_key = status_tracker.disc_key()
+                    if (
+                        current_disc_identity
+                        and tracked_disc_key
+                        and current_disc_identity != tracked_disc_key
+                    ):
+                        status_tracker.clear_disc_info()
+                        status_tracker.allow_disc_rip()
+                        status_tracker.resume_disc_scan()
+                        status_tracker.clear_disc_auto_complete()
+                        status_tracker.set_disc_key(current_disc_identity, force=True)
+                        status_tracker.add_event(
+                            f"Disc changed; reset state from {tracked_disc_key} to {current_disc_identity}."
+                        )
+                        disc_present_changed = True
+            except Exception:
+                logging.debug("Disc identity comparison failed", exc_info=True)
             # Disc detection / info
             try:
                 if status_tracker and not busy and not status_tracker.disc_pending() and not status_tracker.disc_scan_paused() and present is not False:

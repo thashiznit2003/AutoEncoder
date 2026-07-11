@@ -5,7 +5,7 @@ set -euo pipefail
 # Defaults:
 #   BASE_DIR=/linux-video-encoder
 #   REPO_DIR=$BASE_DIR/AutoEncoder/linux-video-encoder
-#   MAKEMKV_VERSION (env override, default 1.18.2)
+#   MAKEMKV_VERSION (env override, default 1.18.4)
 #   IMAGE_TAG=linux-video-encoder:latest
 
 SUDO=""
@@ -19,7 +19,7 @@ fi
 
 BASE_DIR="${BASE_DIR:-/linux-video-encoder}"
 REPO_DIR="${REPO_DIR:-$BASE_DIR/AutoEncoder/linux-video-encoder}"
-MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}"
+MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.4}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
 
 log() { printf '[update-makemkv] %s\n' "$*"; }

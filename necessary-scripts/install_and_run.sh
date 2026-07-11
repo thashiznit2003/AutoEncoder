@@ -36,14 +36,14 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 #   IMAGE_TAG - image name:tag to build
 #
 # MakeMKV tarballs:
-#   MAKEMKV_VERSION (default 1.18.2)
+#   MAKEMKV_VERSION (default 1.18.4)
 #   MAKEMKV_BASE_URL (default raw link to your repo)
 
 REPO_URL="${REPO_URL:-https://github.com/thashiznit2003/AutoEncoder.git}"
 REPO_TARBALL_URL="${REPO_TARBALL_URL:-https://github.com/thashiznit2003/AutoEncoder/archive/refs/heads/main.tar.gz}"
 REPO_DIR="${REPO_DIR:-$BASE_DIR/AutoEncoder}"
 IMAGE_TAG="${IMAGE_TAG:-linux-video-encoder:latest}"
-MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.2}"
+MAKEMKV_VERSION="${MAKEMKV_VERSION:-1.18.4}"
 MAKEMKV_BASE_URL="${MAKEMKV_BASE_URL:-https://www.makemkv.com/download}"
 # Explicit tarball URLs (override if hosting elsewhere)
 MAKEMKV_BIN_URL="${MAKEMKV_BIN_URL:-${MAKEMKV_BASE_URL}/makemkv-bin-${MAKEMKV_VERSION}.tar.gz}"
