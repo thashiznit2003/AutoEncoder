@@ -473,10 +473,18 @@ MAIN_PAGE_TEMPLATE = """
         const id = t.id !== undefined ? t.id : "?";
         const dur = t.duration || (t.duration_seconds ? formatSeconds(t.duration_seconds) : "unknown");
         const pl = t.playlist ? (" (pl " + t.playlist + ")") : "";
+        const score = (t.title_score !== undefined && t.title_score !== null) ? ("score " + t.title_score) : "";
+        const confidence = t.title_confidence || "";
+        const reasons = (t.title_score_reasons || []).slice(0, 3).join(", ");
+        const badges = [score, confidence].filter(Boolean).join(" | ");
         return (
-          '<label style="display:flex; gap:8px; align-items:center; margin:2px 0;">' +
+          '<label style="display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; margin:4px 0; padding:6px 8px; border:1px solid rgba(148,163,184,0.18); border-radius:8px;">' +
             '<input type="checkbox" class="mk-title-check" data-title="' + id + '"/>' +
-            '<span>Title ' + id + pl + '</span>' +
+            '<span>' +
+              '<div>Title ' + id + pl + '</div>' +
+              (badges ? '<div class="muted" style="font-size:11px;">' + badges + '</div>' : '') +
+              (reasons ? '<div class="muted" style="font-size:11px;">' + reasons + '</div>' : '') +
+            '</span>' +
             '<span class="muted" style="margin-left:auto;">' + dur + '</span>' +
           '</label>'
         );

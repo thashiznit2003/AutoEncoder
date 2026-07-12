@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.25.204 - 2026-07-11
+- Replace the old longest-title-only MakeMKV title selection with a weighted scoring model that considers runtime, chapter count, preferred audio/subtitle languages, surround audio presence, commentary markers, and duplicate-length playlist variants.
+- Use the scored title ranking for auto-rip selection so the app prefers likely main-feature titles instead of simply taking the longest candidates above the minimum length.
+- Surface title score, confidence, and selection reasons in the disc title list and summary so the UI shows why a title is considered the best movie candidate.
+
 ## 1.25.203 - 2026-07-11
 - Rebuild the Ubuntu image against upstream HandBrake `1.11.2` from source instead of the distro `handbrake-cli` package so native NVENC encoders are available in the shipped runtime.
 - Update NVIDIA runtime detection to probe the upstream HandBrakeCLI help output, which correctly reports native NVENC support in the rebuilt image.

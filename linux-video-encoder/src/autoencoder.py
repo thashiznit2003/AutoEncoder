@@ -28,7 +28,7 @@ from encoder import Encoder  # kept as a fallback if needed
 from status_tracker import StatusTracker
 from smb_allowlist import enforce_smb_allowlist, load_smb_allowlist, save_smb_allowlist, remove_from_allowlist
 from web_server import start_web_server
-from makemkv_parser import parse_makemkv_info_output, _parse_duration_to_seconds
+from makemkv_parser import parse_makemkv_info_output, _parse_duration_to_seconds, apply_title_scores
 
 # locate config in the state volume (seeded from repo config.json on first run)
 STATE_DIR = Path("/var/lib/autoencoder/state")
@@ -1452,10 +1452,22 @@ def _guarded_disc_scan(status_tracker: Optional[StatusTracker], disc_source: str
         status_tracker.finish_disc_scan(success=success, timed_out=timed_out)
     return info, success, timed_out
 
-def _select_top_titles(info: dict, count: int, min_seconds: int) -> list:
+def _build_title_score_preferences(config: Optional[dict]) -> dict:
+    cfg = config or {}
+    return {
+        "preferred_audio_langs": cfg.get("makemkv_audio_langs") or cfg.get("makemkv_preferred_audio_langs", ["eng"]),
+        "preferred_subtitle_langs": cfg.get("makemkv_subtitle_langs") or cfg.get("makemkv_preferred_subtitle_langs", ["eng"]),
+        "prefer_surround": bool(cfg.get("makemkv_prefer_surround", True)),
+        "exclude_commentary": bool(cfg.get("makemkv_exclude_commentary", False)),
+    }
+
+
+def _select_top_titles(info: dict, count: int, min_seconds: int, config: Optional[dict] = None) -> list:
     payload = info or {}
     if isinstance(payload, dict) and payload.get("info"):
         payload = payload.get("info") or payload
+    if isinstance(payload, dict):
+        payload = apply_title_scores(payload, preferences=_build_title_score_preferences(config))
     titles = (payload or {}).get("titles") or []
     candidates = []
     fallback = []
@@ -1467,17 +1479,19 @@ def _select_top_titles(info: dict, count: int, min_seconds: int) -> list:
             tid = t.get("id")
             if tid is None:
                 continue
-            fallback.append((dur, tid))
+            score = t.get("title_score", 0)
+            chapters = int(t.get("chapters") or 0)
+            fallback.append((score, dur, chapters, tid))
             if dur >= min_seconds:
-                candidates.append((dur, tid))
+                candidates.append((score, dur, chapters, tid))
         except Exception:
             continue
     if candidates:
         candidates.sort(reverse=True)
-        return [str(tid) for _, tid in candidates[:count]]
+        return [str(tid) for _, _, _, tid in candidates[:count]]
     if fallback:
-        fallback.sort(key=lambda item: (item[0], item[1]), reverse=True)
-        return [str(tid) for _, tid in fallback[:count]]
+        fallback.sort(reverse=True)
+        return [str(tid) for _, _, _, tid in fallback[:count]]
     return []
 
 def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
@@ -2220,7 +2234,7 @@ def main():
                             continue
                         queue = status_tracker.disc_auto_queue()
                         if status_tracker.disc_auto_key() != disc_key or not queue:
-                            auto_titles = _select_top_titles(disc_info, 2, mk_minlen)
+                            auto_titles = _select_top_titles(disc_info, 2, mk_minlen, config=config)
                             status_tracker.set_disc_auto_queue(disc_key, auto_titles)
                             if auto_titles:
                                 status_tracker.add_event(f"Auto-rip selected titles: {', '.join(auto_titles)}")

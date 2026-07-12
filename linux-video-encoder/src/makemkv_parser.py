@@ -2,6 +2,14 @@ import re
 from typing import Any, Dict, List, Optional
 
 
+DEFAULT_SCORE_PREFERENCES: Dict[str, Any] = {
+    "preferred_audio_langs": ["eng"],
+    "preferred_subtitle_langs": ["eng"],
+    "prefer_surround": True,
+    "exclude_commentary": False,
+}
+
+
 def _parse_duration_to_seconds(val: str) -> Optional[float]:
     """Parse duration strings like 1:23:45 or PT1H23M45S into seconds."""
     if not val:
@@ -53,6 +61,228 @@ def _dedup(seq: List[str]) -> List[str]:
     return out
 
 
+def _normalize_langs(values: Any) -> List[str]:
+    out: List[str] = []
+    for value in values or []:
+        text = str(value or "").strip().lower()
+        if not text:
+            continue
+        out.append(text[:3])
+    return _dedup(out)
+
+
+def _stream_list(title: Dict[str, Any], prefix: str) -> List[Dict[str, Any]]:
+    streams = title.get("streams") or {}
+    return [
+        stream
+        for stream in streams.values()
+        if str(stream.get("type", "")).lower().startswith(prefix)
+    ]
+
+
+def _stream_lang(stream: Dict[str, Any]) -> str:
+    return str(stream.get("lang_code") or stream.get("lang_name") or "").strip().lower()[:3]
+
+
+def _commentary_present(title: Dict[str, Any]) -> bool:
+    haystacks = []
+    haystacks.extend(title.get("audio_tracks") or [])
+    haystacks.extend(title.get("subtitle_tracks") or [])
+    source = title.get("source")
+    if source:
+        haystacks.append(source)
+    for item in haystacks:
+        low = str(item or "").lower()
+        if "commentary" in low or "director" in low and "commentary" in low:
+            return True
+    return False
+
+
+def _duplicate_signature(title: Dict[str, Any]) -> tuple:
+    dur = int(round(float(title.get("duration_seconds") or 0)))
+    video_streams = _stream_list(title, "video")
+    resolution = ""
+    aspect = ""
+    if video_streams:
+        resolution = str(video_streams[0].get("resolution") or "")
+        aspect = str(video_streams[0].get("aspect") or "")
+    return (
+        dur,
+        int(title.get("chapters") or 0),
+        resolution,
+        aspect,
+    )
+
+
+def apply_title_scores(parsed: Dict[str, Any], preferences: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    if not isinstance(parsed, dict):
+        return parsed
+    titles = parsed.get("titles") or []
+    if not titles:
+        return parsed
+
+    prefs = dict(DEFAULT_SCORE_PREFERENCES)
+    if preferences:
+        prefs.update({k: v for k, v in preferences.items() if v is not None})
+    pref_audio = _normalize_langs(prefs.get("preferred_audio_langs") or [])
+    pref_subs = _normalize_langs(prefs.get("preferred_subtitle_langs") or [])
+    prefer_surround = bool(prefs.get("prefer_surround", True))
+    exclude_commentary = bool(prefs.get("exclude_commentary", False))
+
+    durations = [float(t.get("duration_seconds") or 0) for t in titles]
+    max_duration = max(durations) if durations else 0.0
+    duplicate_counts: Dict[tuple, int] = {}
+    for title in titles:
+        sig = _duplicate_signature(title)
+        duplicate_counts[sig] = duplicate_counts.get(sig, 0) + 1
+
+    for title in titles:
+        reasons: List[str] = []
+        score = 0
+        dur = float(title.get("duration_seconds") or 0)
+        chapters = int(title.get("chapters") or 0)
+        audio_streams = _stream_list(title, "audio")
+        video_streams = _stream_list(title, "video")
+        subtitle_streams = _stream_list(title, "subtitle")
+        audio_langs = _dedup(
+            _normalize_langs(title.get("audio_langs") or [])
+            + [_stream_lang(s) for s in audio_streams if _stream_lang(s)]
+        )
+        subtitle_langs = _dedup(
+            _normalize_langs(title.get("subtitle_langs") or [])
+            + [_stream_lang(s) for s in subtitle_streams if _stream_lang(s)]
+        )
+        surround_streams = [s for s in audio_streams if str(s.get("channels") or "").isdigit() and int(s.get("channels")) >= 6]
+        pref_audio_match = any(lang in pref_audio for lang in audio_langs) if pref_audio else bool(audio_langs)
+        pref_sub_match = any(lang in pref_subs for lang in subtitle_langs) if pref_subs else bool(subtitle_langs)
+        commentary = _commentary_present(title)
+        duplicate_size = duplicate_counts.get(_duplicate_signature(title), 1)
+
+        if max_duration > 0 and dur >= max_duration * 0.95:
+            score += 40
+            reasons.append("near-longest runtime")
+        elif max_duration > 0 and dur >= max_duration * 0.80:
+            score += 24
+            reasons.append("long runtime")
+        elif dur >= 1800:
+            score += 12
+            reasons.append("feature-length runtime")
+        elif dur < 900:
+            score -= 28
+            reasons.append("short runtime")
+        else:
+            score -= 8
+            reasons.append("middling runtime")
+
+        if chapters >= 18:
+            score += 14
+            reasons.append("many chapters")
+        elif chapters >= 10:
+            score += 8
+            reasons.append("movie-like chapter count")
+        elif chapters and chapters <= 4:
+            score -= 8
+            reasons.append("few chapters")
+
+        if pref_audio_match:
+            score += 18
+            reasons.append("preferred audio language")
+        elif pref_audio:
+            score -= 10
+            reasons.append("missing preferred audio")
+
+        if pref_sub_match:
+            score += 6
+            reasons.append("preferred subtitle language")
+
+        if surround_streams:
+            score += 10 if prefer_surround else 6
+            reasons.append("surround audio present")
+        elif audio_streams and prefer_surround:
+            score -= 4
+            reasons.append("no surround audio")
+
+        if commentary:
+            score -= 12
+            reasons.append("commentary markers present")
+            if exclude_commentary:
+                score -= 10
+                reasons.append("commentary deprioritized")
+
+        if duplicate_size > 1:
+            if pref_audio_match:
+                score += 8
+                reasons.append("best match among duplicate-length titles")
+            else:
+                score -= 4
+                reasons.append("duplicate-length title variant")
+
+        if video_streams:
+            resolution = str(video_streams[0].get("resolution") or "")
+            aspect = str(video_streams[0].get("aspect") or "")
+            if resolution.startswith("1920x1080") or resolution.startswith("3840x2160"):
+                score += 4
+                reasons.append("full feature resolution")
+            if aspect == "16:9":
+                score += 2
+                reasons.append("standard feature aspect")
+
+        title["title_score"] = score
+        title["title_score_reasons"] = reasons
+        title["title_duplicate_group_size"] = duplicate_size
+
+    ranked = sorted(
+        titles,
+        key=lambda t: (
+            t.get("title_score", 0),
+            t.get("duration_seconds", 0) or 0,
+            t.get("chapters", 0) or 0,
+        ),
+        reverse=True,
+    )
+    top_score = ranked[0].get("title_score", 0)
+    second_score = ranked[1].get("title_score", top_score) if len(ranked) > 1 else top_score
+    for idx, title in enumerate(ranked, start=1):
+        title["title_rank"] = idx
+        gap = top_score - (ranked[1].get("title_score", top_score) if len(ranked) > 1 else top_score)
+        if idx == 1 and gap >= 15:
+            confidence = "high"
+        elif idx == 1 and gap >= 8:
+            confidence = "medium"
+        elif idx == 1:
+            confidence = "low"
+        else:
+            confidence = "alternate"
+        title["title_confidence"] = confidence
+
+    parsed["titles"] = ranked
+    summary = parsed.setdefault("summary", {})
+    best = ranked[0]
+    summary["main_feature"] = {
+        "id": best.get("id"),
+        "playlist": best.get("playlist"),
+        "duration": best.get("duration"),
+        "chapters": best.get("chapters"),
+        "score": best.get("title_score"),
+        "confidence": best.get("title_confidence"),
+        "reasons": best.get("title_score_reasons", [])[:3],
+    }
+    summary["top_candidates"] = [
+        {
+            "id": t.get("id"),
+            "playlist": t.get("playlist"),
+            "duration": t.get("duration"),
+            "chapters": t.get("chapters"),
+            "score": t.get("title_score"),
+            "confidence": t.get("title_confidence"),
+            "reasons": t.get("title_score_reasons", [])[:3],
+        }
+        for t in ranked[:3]
+    ]
+    summary["title_count"] = len(ranked)
+    return parsed
+
+
 def format_disc_overview(parsed: Dict[str, Any]) -> str:
     """Build a human-friendly overview string from parsed MakeMKV info."""
     if not parsed:
@@ -82,19 +312,18 @@ def format_disc_overview(parsed: Dict[str, Any]) -> str:
     if head_parts:
         lines.append(" | ".join(head_parts))
     titles = parsed.get("titles") or []
-    # Prefer titles >=10 minutes; otherwise show top 3 by duration
-    def title_duration(t):
-        return t.get("duration_seconds") or 0
+    selected = titles[:3]
 
-    long_titles = [t for t in titles if title_duration(t) >= 600]
-    selected = long_titles if long_titles else sorted(titles, key=title_duration, reverse=True)[:3]
-
-    for t in sorted(selected, key=title_duration, reverse=True):
+    for t in selected:
         parts = []
         label = f"Title {t.get('id', '?')}"
         if t.get("playlist"):
             label += f" ({t['playlist']})"
         parts.append(label)
+        if t.get("title_score") is not None:
+            parts.append(f"score {t.get('title_score')}")
+        if t.get("title_confidence"):
+            parts.append(t.get("title_confidence"))
         if t.get("duration"):
             parts.append(t["duration"])
         if t.get("chapters") is not None:
@@ -162,11 +391,14 @@ def format_disc_overview(parsed: Dict[str, Any]) -> str:
             sub_list = t["subtitle_tracks"]
             suffix = "…" if len(sub_list) > 2 else ""
             parts.append("subs: " + "; ".join(sub_list[:2]) + suffix)
+        reasons = t.get("title_score_reasons") or []
+        if reasons:
+            parts.append("why: " + ", ".join(reasons[:3]))
         lines.append(" | ".join(parts))
     return "\n".join([ln for ln in lines if ln])
 
 
-def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
+def parse_makemkv_info_output(raw: str, preferences: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Parse makemkvcon info output into structured data while keeping raw text.
     Returns a dict with keys: raw, titles, summary, formatted.
@@ -370,21 +602,10 @@ def parse_makemkv_info_output(raw: str) -> Dict[str, Any]:
     parsed["titles"] = titles_out
     if titles_out and "titles_detected" not in summary:
         summary["titles_detected"] = len(titles_out)
-    if titles_out:
-        try:
-            main = max(titles_out, key=lambda t: t.get("duration_seconds") or 0)
-        except Exception:
-            main = None
-        if main and main.get("duration_seconds"):
-            summary["main_feature"] = {
-                "id": main.get("id"),
-                "playlist": main.get("playlist"),
-                "duration": main.get("duration"),
-                "chapters": main.get("chapters"),
-            }
-        summary["title_count"] = len(titles_out)
     if summary:
         parsed["summary"] = summary
+    if titles_out:
+        apply_title_scores(parsed, preferences=preferences)
     formatted = format_disc_overview(parsed)
     if formatted:
         parsed["formatted"] = formatted
