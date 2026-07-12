@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.25.205 - 2026-07-11
+- Fix the Settings page title list so the newer scored MakeMKV renderer is no longer overridden by an older plain checkbox list later in the script.
+- Highlight the highest-ranked title directly in the UI with a `Likely Main Feature` badge plus score, confidence, and top reasons.
+
 ## 1.25.204 - 2026-07-11
 - Replace the old longest-title-only MakeMKV title selection with a weighted scoring model that considers runtime, chapter count, preferred audio/subtitle languages, surround audio presence, commentary markers, and duplicate-length playlist variants.
 - Use the scored title ranking for auto-rip selection so the app prefers likely main-feature titles instead of simply taking the longest candidates above the minimum length.

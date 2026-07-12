@@ -1707,14 +1707,24 @@ SETTINGS_PAGE_TEMPLATE = """
         }
         return;
       }
+      const bestId = parsed.summary && parsed.summary.main_feature ? parsed.summary.main_feature.id : null;
       const rows = titles.map(t => {
         const id = t.id !== undefined ? t.id : "?";
         const dur = t.duration || (t.duration_seconds ? formatSeconds(t.duration_seconds) : "unknown");
         const pl = t.playlist ? (" (pl " + t.playlist + ")") : "";
+        const score = (t.title_score !== undefined && t.title_score !== null) ? ("score " + t.title_score) : "";
+        const confidence = t.title_confidence || "";
+        const reasons = (t.title_score_reasons || []).slice(0, 3).join(", ");
+        const isBest = (t.title_rank === 1) || (bestId !== null && bestId === t.id);
+        const badges = [isBest ? "Likely Main Feature" : "", score, confidence].filter(Boolean).join(" | ");
         return (
-          '<label style="display:flex; gap:8px; align-items:center; margin:2px 0;">' +
+          '<label style="display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; margin:4px 0; padding:6px 8px; border:1px solid ' + (isBest ? 'rgba(96,165,250,0.45)' : 'rgba(148,163,184,0.18)') + '; border-radius:8px; background:' + (isBest ? 'rgba(59,130,246,0.08)' : 'transparent') + ';">' +
             '<input type="checkbox" class="mk-title-check" data-title="' + id + '"/>' +
-            '<span>Title ' + id + pl + '</span>' +
+            '<span>' +
+              '<div>Title ' + id + pl + '</div>' +
+              (badges ? '<div class="muted" style="font-size:11px;">' + badges + '</div>' : '') +
+              (reasons ? '<div class="muted" style="font-size:11px;">' + reasons + '</div>' : '') +
+            '</span>' +
             '<span class="muted" style="margin-left:auto;">' + dur + '</span>' +
           '</label>'
         );
