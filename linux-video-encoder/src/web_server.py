@@ -2760,29 +2760,20 @@ def create_app(tracker, config_manager=None):
     @require_auth
     def makemkv_update_check():
         try:
-            res = subprocess.run(
-                ["makemkvcon", "-r", "--cache=1", "info", "disc:0"],
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=15,
+            installed_version = _read_makemkv_installed_version()
+            ok = bool(installed_version)
+            msg = (
+                f"Installed MakeMKV version detected: {installed_version}"
+                if installed_version
+                else "Unable to determine installed MakeMKV version"
             )
-            stdout = res.stdout.strip() if res.stdout else ""
-            stderr = res.stderr.strip() if res.stderr else ""
-            version_line = ""
-            for ln in (stdout.splitlines() if stdout else []):
-                if "MakeMKV v" in ln:
-                    version_line = ln
-                    break
-            msg = version_line or (stderr or "") or (stdout or "") or f"exit code {res.returncode}"
-            ok = res.returncode == 0 and bool(version_line)
-            installed_version = None
-            if version_line:
-                try:
-                    installed_version = version_line.split("MakeMKV")[1].strip().split()[0]
-                except Exception:
-                    installed_version = None
-            return jsonify({"ok": ok, "stdout": stdout, "stderr": stderr, "message": msg, "returncode": res.returncode, "installed_version": installed_version})
+            return jsonify(
+                {
+                    "ok": ok,
+                    "message": msg,
+                    "installed_version": installed_version or None,
+                }
+            )
         except FileNotFoundError:
             return jsonify({"ok": False, "error": "makemkvcon not found"}), 500
         except Exception as e:

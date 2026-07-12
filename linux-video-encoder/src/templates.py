@@ -1892,6 +1892,12 @@ SETTINGS_PAGE_TEMPLATE = """
         const mkStatus = (runtime && runtime.makemkv) || {};
         const nvStatus = (runtime && runtime.nvidia) || {};
         document.getElementById("mk-installed").textContent = mkStatus.installed_version || "unknown";
+        const mkUpdateStatusEl = document.getElementById("mk-update-status");
+        if (mkUpdateStatusEl) {
+          mkUpdateStatusEl.textContent = mkStatus.installed_version
+            ? ("Update status: installed " + mkStatus.installed_version)
+            : "Update status: unable to detect installed version";
+        }
         document.getElementById("mk-saved-key").textContent = mkStatus.saved_key_masked || "not saved";
         const persistText = mkStatus.state_key_present
           ? ((mkStatus.root_key_present && mkStatus.keys_match) ? "state + root synced" : "state only")
@@ -2180,11 +2186,12 @@ SETTINGS_PAGE_TEMPLATE = """
       try {
         const res = await fetch("/api/makemkv/update_check");
         const data = await res.json();
-        const msg = data.message || data.stdout || data.error || "";
         if (data.installed_version) {
           document.getElementById("mk-installed").textContent = data.installed_version;
+          statusEl.textContent = "Update status: installed " + data.installed_version;
+        } else {
+          statusEl.textContent = "Update status: unable to detect installed version";
         }
-        statusEl.textContent = "MakeMKV installed version checked.";
       } catch (e) {
         statusEl.textContent = "Update status: failed to check";
       }
