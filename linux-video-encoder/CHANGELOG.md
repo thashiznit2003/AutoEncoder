@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.25.206 - 2026-07-16
+- Add a broader quality-of-life pass across the app: job details, queue controls, pause-after-current, retry-last-failed, notification history, browser notifications, preview/sample actions, output move/delete actions, disc preflight summaries, remembered disc history, and cleanup utilities.
+- Add richer tracker state for stages, queue ordering/holds, classified failures, notification history, and remembered disc profiles so the UI can explain what each job is doing and why it failed.
+- Add settings-side QoL controls for naming templates, library destinations, audio/subtitle presets, disc-profile presets, disc title preference overrides, and advanced-mode panel hiding.
+
 ## 1.25.205 - 2026-07-11
 - Fix the Settings page title list so the newer scored MakeMKV renderer is no longer overridden by an older plain checkbox list later in the script.
 - Highlight the highest-ranked title directly in the UI with a `Likely Main Feature` badge plus score, confidence, and top reasons.

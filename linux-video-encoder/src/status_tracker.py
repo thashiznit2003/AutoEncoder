@@ -8,6 +8,29 @@ import re
 STATE_PATH = Path("/var/lib/autoencoder/state/status_tracker_state.json")
 
 
+def classify_message(message: str = "", source: str = "", destination: str = "") -> str:
+    text = " ".join([message or "", source or "", destination or ""]).lower()
+    if any(token in text for token in ["makemkv", "disc:", "optical", "/dev/sr", "blu-ray", "dvd"]):
+        if any(token in text for token in ["key", "register", "beta"]):
+            return "makemkv-key"
+        if any(token in text for token in ["scan", "title", "playlist"]):
+            return "disc-scan"
+        return "optical-drive"
+    if any(token in text for token in ["nvenc", "nvidia", "cuda", "gpu"]):
+        return "gpu-runtime"
+    if any(token in text for token in ["mount", "usb", "smb", "network share", "/mnt/"]):
+        return "mount-path"
+    if any(token in text for token in ["subtitle", ".srt"]):
+        return "subtitle-processing"
+    if any(token in text for token in ["output", "destination", "disk full", "no space", "permission denied"]):
+        return "output-path"
+    if any(token in text for token in ["handbrake", "ffmpeg", "encoder", "encode"]):
+        return "encoder-run"
+    if any(token in text for token in ["auth", "unauthorized", "forbidden"]):
+        return "authentication"
+    return "general"
+
+
 class StatusTracker:
     """
     Thread-safe tracker for active and recent encoding tasks plus log tail access.
@@ -63,6 +86,13 @@ class StatusTracker:
         self._disc_label_first_ts = None
         self._disc_label_last_ts = None
         self._disc_label_cleared_ts = None
+        self._queue_rank = {}
+        self._queue_holds = set()
+        self._queue_seq = 0
+        self._pause_after_current = False
+        self._notifications = []
+        self._disc_profiles = {}
+        self._last_failed_source = None
         self._state_path = Path(state_path)
         self._load_persisted_state()
 
@@ -93,6 +123,13 @@ class StatusTracker:
             "disc_scan_last_ts": self._disc_scan_last_ts,
             "disc_scan_last_duration": self._disc_scan_last_duration,
             "disc_scan_last_timed_out": self._disc_scan_last_timed_out,
+            "queue_rank": self._queue_rank,
+            "queue_holds": sorted(self._queue_holds),
+            "queue_seq": self._queue_seq,
+            "pause_after_current": self._pause_after_current,
+            "notifications": self._notifications[-500:],
+            "disc_profiles": self._disc_profiles,
+            "last_failed_source": self._last_failed_source,
         }
 
     def _persist_state_locked(self) -> None:
@@ -137,6 +174,13 @@ class StatusTracker:
             self._disc_scan_last_ts = raw.get("disc_scan_last_ts") or 0.0
             self._disc_scan_last_duration = raw.get("disc_scan_last_duration")
             self._disc_scan_last_timed_out = raw.get("disc_scan_last_timed_out")
+            self._queue_rank = dict(raw.get("queue_rank") or {})
+            self._queue_holds = set(raw.get("queue_holds") or [])
+            self._queue_seq = int(raw.get("queue_seq") or 0)
+            self._pause_after_current = bool(raw.get("pause_after_current"))
+            self._notifications = list(raw.get("notifications") or [])[-500:]
+            self._disc_profiles = dict(raw.get("disc_profiles") or {})
+            self._last_failed_source = raw.get("last_failed_source")
 
     def add_event(self, message: str, level: str = "info"):
         with self._lock:
@@ -144,8 +188,18 @@ class StatusTracker:
             if len(self._events) > self._history_size:
                 self._events = self._events[-self._history_size :]
 
+    def add_notification(self, message: str, level: str = "info", kind: str = "general", source: str = ""):
+        with self._lock:
+            self._notifications.append({"message": message, "level": level, "kind": kind, "source": source, "ts": time.time()})
+            if len(self._notifications) > 500:
+                self._notifications = self._notifications[-500:]
+            self._persist_state_locked()
+
     def start(self, src: str, dest: str, info=None, state: str = "running"):
         with self._lock:
+            if src not in self._queue_rank:
+                self._queue_seq += 1
+                self._queue_rank[src] = self._queue_seq
             self._active[src] = {
                 "source": src,
                 "destination": dest,
@@ -153,7 +207,9 @@ class StatusTracker:
                 "started_at": time.time(),
                 "progress": 0.0,
                 "info": info,
+                "stage": "queued" if state == "queued" else "preparing",
             }
+            self._persist_state_locked()
 
     def register_proc(self, src: str, proc):
         with self._lock:
@@ -182,6 +238,10 @@ class StatusTracker:
             item = self._active.get(src)
             if item:
                 item["state"] = state
+                if state == "queued":
+                    item["stage"] = "queued"
+                elif state in ("running", "ripping", "starting"):
+                    item["stage"] = "processing"
                 if state != "confirm":
                     self._confirm_required.discard(src)
 
@@ -240,6 +300,7 @@ class StatusTracker:
             })
             if len(self._history) > self._history_size:
                 self._history = self._history[-self._history_size :]
+            self.add_notification(f"Job canceled: {Path(src).name}", level="info", kind="job-canceled", source=src)
 
     def update_eta(self, src: str, eta_seconds: float):
         with self._lock:
@@ -282,12 +343,14 @@ class StatusTracker:
             self._confirm_ok.discard(src)
 
     def complete(self, src: str, success: bool, dest: str, message: str = ""):
+        notification = None
         with self._lock:
             start = self._active.pop(src, None)
             self._procs.pop(src, None)
             self._rename.pop(src, None)
             self._confirm_required.discard(src)
             self._confirm_ok.discard(src)
+            self._queue_holds.discard(src)
             now = time.time()
             record = {
                 "source": src,
@@ -299,7 +362,11 @@ class StatusTracker:
                 "info": start.get("info") if start else None,
                 "eta_sec": self._etas.pop(src, None),
                 "progress": 100.0 if success else start.get("progress") if start else None,
+                "error_class": classify_message(message, src, dest),
+                "stage": start.get("stage") if start else None,
             }
+            if not success:
+                self._last_failed_source = src
             if self._history:
                 last = self._history[-1]
                 same = (
@@ -314,6 +381,13 @@ class StatusTracker:
             self._history.append(record)
             if len(self._history) > self._history_size:
                 self._history = self._history[-self._history_size :]
+            self._persist_state_locked()
+            if success:
+                notification = (f"Job complete: {Path(dest).name if dest else src}", "success", "job-complete", src)
+            else:
+                notification = (f"Job failed: {Path(src).name} ({record['error_class']})", "error", "job-failed", src)
+        if notification:
+            self.add_notification(*notification)
 
     def update_progress(self, src: str, progress: float):
         with self._lock:
@@ -330,6 +404,86 @@ class StatusTracker:
                     except Exception:
                         pass
 
+    def set_stage(self, src: str, stage: str):
+        with self._lock:
+            item = self._active.get(src)
+            if item:
+                item["stage"] = stage
+
+    def pause_after_current(self, value: bool = None):
+        with self._lock:
+            if value is not None:
+                self._pause_after_current = bool(value)
+                self._persist_state_locked()
+            return self._pause_after_current
+
+    def set_queue_hold(self, src: str, hold: bool):
+        with self._lock:
+            if hold:
+                self._queue_holds.add(src)
+            else:
+                self._queue_holds.discard(src)
+            self._persist_state_locked()
+
+    def move_queue_item(self, src: str, direction: int):
+        with self._lock:
+            queued = [item["source"] for item in self._active.values() if item.get("state") == "queued"]
+            ordered = sorted(queued, key=lambda key: self._queue_rank.get(key, 0))
+            if src not in ordered:
+                return False
+            idx = ordered.index(src)
+            new_idx = max(0, min(len(ordered) - 1, idx + direction))
+            if new_idx == idx:
+                return False
+            ordered.insert(new_idx, ordered.pop(idx))
+            for pos, key in enumerate(ordered, start=1):
+                self._queue_rank[key] = pos
+            self._queue_seq = max(self._queue_seq, len(ordered))
+            self._persist_state_locked()
+            return True
+
+    def sort_candidate_paths(self, paths):
+        with self._lock:
+            def key_fn(path):
+                rank = self._queue_rank.get(path)
+                held = path in self._queue_holds
+                return (1 if held else 0, rank if rank is not None else 10**9, path.lower())
+            return sorted(paths, key=key_fn)
+
+    def is_queue_held(self, src: str) -> bool:
+        with self._lock:
+            return src in self._queue_holds
+
+    def notifications(self):
+        with self._lock:
+            return list(self._notifications)[::-1]
+
+    def clear_notifications(self):
+        with self._lock:
+            self._notifications = []
+            self._persist_state_locked()
+
+    def last_failed_source(self):
+        with self._lock:
+            return self._last_failed_source
+
+    def record_disc_profile(self, disc_key: str, payload: dict):
+        if not disc_key:
+            return
+        with self._lock:
+            history = list((self._disc_profiles.get(disc_key) or {}).get("history") or [])
+            history.append({**payload, "ts": time.time()})
+            history = history[-10:]
+            self._disc_profiles[disc_key] = {
+                "last": history[-1],
+                "history": history,
+            }
+            self._persist_state_locked()
+
+    def disc_profile(self, disc_key: str):
+        with self._lock:
+            return self._disc_profiles.get(disc_key)
+
     def snapshot(self):
         now = time.time()
         with self._lock:
@@ -341,8 +495,11 @@ class StatusTracker:
                         "duration_sec": now - item.get("started_at", now),
                         "eta_sec": self._etas.get(key),
                         "rename_to": self._rename.get(key),
+                        "queue_rank": self._queue_rank.get(key),
+                        "queue_held": key in self._queue_holds,
                     }
                 )
+            active.sort(key=lambda item: (0 if item.get("state") != "queued" else 1, item.get("queue_rank") or 10**9, item.get("source", "")))
             history = list(self._history)
             disc_info = self._disc_info
             disc_pending = self._disc_pending
@@ -426,6 +583,9 @@ class StatusTracker:
             "disc_titles_count": titles_count,
             "disc_timing": disc_timing,
             "usb_status": usb_status,
+            "notifications": list(self._notifications)[-50:][::-1],
+            "pause_after_current": self._pause_after_current,
+            "last_failed_source": self._last_failed_source,
         }
 
     def tail_logs(self, lines: int = 400):
@@ -469,6 +629,7 @@ class StatusTracker:
                 self._history = [h for h in self._history if h.get("state") != state]
             if state == "canceled":
                 self._canceled.clear()
+            self._persist_state_locked()
 
     # SMB mount tracking helpers
     def add_smb_mount(self, mount_id: str, path: str, label: str = None):

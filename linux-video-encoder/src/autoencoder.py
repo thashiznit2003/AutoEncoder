@@ -138,6 +138,24 @@ DEFAULT_CONFIG = {
     "makemkv_exclude_commentary": False,
     "makemkv_prefer_surround": True,
     "makemkv_auto_rip": False,
+    "advanced_mode": False,
+    "queue_pause_after_current": False,
+    "naming_template_movie": "{title}",
+    "naming_template_disc": "{disc_label}",
+    "final_destinations": {"movies": "", "tv": "", "extras": ""},
+    "notifications": {"browser": True, "job_start": True, "job_complete": True, "job_failed": True},
+    "audio_subtitle_presets": {
+        "english_only": {"audio_langs": ["eng"], "subtitle_langs": [], "subtitle_mode": "none"},
+        "english_forced": {"audio_langs": ["eng"], "subtitle_langs": ["eng"], "subtitle_mode": "burn_forced"},
+        "all_audio_eng_subs": {"audio_langs": [], "subtitle_langs": ["eng"], "subtitle_mode": "copy_all"},
+        "original_plus_english": {"audio_langs": [], "subtitle_langs": ["eng"], "subtitle_mode": "copy_all"},
+    },
+    "disc_profile_presets": {
+        "balanced": {"min_length": 1200, "prefer_surround": True, "exclude_commentary": False},
+        "movie_only": {"min_length": 3000, "prefer_surround": True, "exclude_commentary": True},
+        "episodes": {"min_length": 1200, "prefer_surround": False, "exclude_commentary": True},
+    },
+    "disc_title_preferences": {},
 }
 
 class ConfigManager:
@@ -191,6 +209,15 @@ class ConfigManager:
                 "low_bitrate_auto_skip",
                 "search_path",
                 "profile",
+                "advanced_mode",
+                "queue_pause_after_current",
+                "naming_template_movie",
+                "naming_template_disc",
+                "final_destinations",
+                "notifications",
+                "audio_subtitle_presets",
+                "disc_profile_presets",
+                "disc_title_preferences",
             ]:
                 if field in data and data[field] is not None:
                     cfg[field] = data[field]
@@ -302,6 +329,26 @@ def load_config(path: Path):
     merged["makemkv_auto_rip"] = bool(merged.get("makemkv_auto_rip"))
     merged["low_bitrate_auto_proceed"] = bool(merged.get("low_bitrate_auto_proceed"))
     merged["low_bitrate_auto_skip"] = bool(merged.get("low_bitrate_auto_skip"))
+    merged["advanced_mode"] = bool(merged.get("advanced_mode"))
+    merged["queue_pause_after_current"] = bool(merged.get("queue_pause_after_current"))
+    if not isinstance(merged.get("final_destinations"), dict):
+        merged["final_destinations"] = DEFAULT_CONFIG["final_destinations"].copy()
+    else:
+        tmp = DEFAULT_CONFIG["final_destinations"].copy()
+        tmp.update({k: str(v or "") for k, v in merged.get("final_destinations", {}).items()})
+        merged["final_destinations"] = tmp
+    if not isinstance(merged.get("notifications"), dict):
+        merged["notifications"] = DEFAULT_CONFIG["notifications"].copy()
+    else:
+        tmp = DEFAULT_CONFIG["notifications"].copy()
+        tmp.update({k: bool(v) for k, v in merged.get("notifications", {}).items()})
+        merged["notifications"] = tmp
+    if not isinstance(merged.get("audio_subtitle_presets"), dict):
+        merged["audio_subtitle_presets"] = DEFAULT_CONFIG["audio_subtitle_presets"].copy()
+    if not isinstance(merged.get("disc_profile_presets"), dict):
+        merged["disc_profile_presets"] = DEFAULT_CONFIG["disc_profile_presets"].copy()
+    if not isinstance(merged.get("disc_title_preferences"), dict):
+        merged["disc_title_preferences"] = {}
     return merged
 
 def load_usb_seen() -> Dict[str, Dict[str, float]]:
@@ -612,6 +659,7 @@ def rip_disc(
             status_tracker.start(job_key, dest_hint, info=None, state="ripping")
         else:
             status_tracker.set_state(job_key, "ripping")
+        status_tracker.set_stage(job_key, "preflight")
         status_tracker.set_message(job_key, f"Ripping {disc_source}")
         status_tracker.pause_disc_scan()
     if title_list:
@@ -654,6 +702,7 @@ def rip_disc(
         if disc_type:
             info_parts.append(f"Disc type: {disc_type}")
         status_tracker.update_fields(job_key, {"info": " | ".join(info_parts)})
+        status_tracker.set_stage(job_key, "title-selection")
     # Normalize language selectors (currently only used for logging)
     lang_list_audio = []
     lang_list_subs = []
@@ -690,6 +739,7 @@ def rip_disc(
         result = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         if status_tracker:
             status_tracker.register_proc(job_key, result)
+            status_tracker.set_stage(job_key, "ripping-disc")
         # Iterate lines as they arrive and log them
         if result.stdout is not None:
             for line in result.stdout:
@@ -798,6 +848,23 @@ def rip_disc(
     first_file = str(finalized_paths[-1])
     print(f"🎬 Output file: {first_file}")
     if status_tracker:
+        try:
+            di = status_tracker.disc_info() or {}
+            disc_key = _get_disc_key(status_tracker, di, disc_index, disc_source)
+            status_tracker.record_disc_profile(
+                disc_key,
+                {
+                    "disc_source": disc_source,
+                    "disc_index": disc_index,
+                    "titles": title_list,
+                    "rename_to": rename_to,
+                    "output": first_file,
+                    "audio_langs": lang_list_audio,
+                    "subtitle_langs": lang_list_subs,
+                },
+            )
+        except Exception:
+            logging.debug("Failed to record disc profile for %s", disc_source, exc_info=True)
         status_tracker.complete(job_key, True, first_file, "Rip complete")
     return first_file, False
 
@@ -1468,6 +1535,17 @@ def _select_top_titles(info: dict, count: int, min_seconds: int, config: Optiona
         payload = payload.get("info") or payload
     if isinstance(payload, dict):
         payload = apply_title_scores(payload, preferences=_build_title_score_preferences(config))
+    summary = (payload or {}).get("summary") or {}
+    disc_key = ""
+    if summary:
+        disc_key = "|".join([summary.get("disc_label") or "", summary.get("drive") or ""]).strip("|")
+    title_prefs = {}
+    if isinstance(config, dict):
+        title_prefs = (config.get("disc_title_preferences") or {}).get(disc_key, {}) if disc_key else {}
+    preferred_titles = [str(v) for v in (title_prefs.get("prefer_titles") or []) if str(v).strip()]
+    blocked_titles = {str(v) for v in (title_prefs.get("blocked_titles") or []) if str(v).strip()}
+    if preferred_titles:
+        return preferred_titles[:count]
     titles = (payload or {}).get("titles") or []
     candidates = []
     fallback = []
@@ -1478,6 +1556,8 @@ def _select_top_titles(info: dict, count: int, min_seconds: int, config: Optiona
                 dur = _parse_duration_to_seconds(t.get("duration") or "") or 0
             tid = t.get("id")
             if tid is None:
+                continue
+            if str(tid) in blocked_titles:
                 continue
             score = t.get("title_score", 0)
             chapters = int(t.get("chapters") or 0)
@@ -1861,6 +1941,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         status_tracker.start(str(src), dest_str, info=source_info, state="queued")
     if status_tracker:
         status_tracker.update_fields(str(src), {"encoder": hb_opts.get("encoder"), "profile": config_str})
+        status_tracker.set_stage(str(src), "queued")
 
     # skip if output already exists
     if out_path.exists():
@@ -1887,6 +1968,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
     should_rip_disc = is_bluray and not src.is_file()
     if should_rip_disc:
         logging.info("Ripping Blu-ray disc from %s", video_file)
+        if status_tracker:
+            status_tracker.set_stage(str(src), "disc-rip-preflight")
         disc_source = _resolve_disc_source()
         disc_num = get_disc_number()
         if disc_source:
@@ -1954,6 +2037,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                  hb_opts.get("audio_mode"), hb_opts.get("audio_bitrate_kbps"))
     if status_tracker:
         status_tracker.set_state(str(src), "running")
+        status_tracker.set_stage(str(src), "encoding")
     success = run_encoder(video_file, str(out_path), hb_opts, use_ffmpeg, status_tracker=status_tracker, job_id=str(src))
     if success:
         try:
@@ -1969,6 +2053,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         logging.warning("Encoding failed for %s -> %s; attempting Software Encoder fallback", video_file, out_path)
         if status_tracker:
             status_tracker.add_event("HandBrake failed; falling back to ffmpeg")
+            status_tracker.set_stage(str(src), "fallback-encode")
         try:
             ffmpeg_opts = config.get("ffmpeg_fallback", {})
             try:
@@ -1994,6 +2079,8 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         # move final file to final_dir if specified
         if final_dir != "":
             try:
+                if status_tracker:
+                    status_tracker.set_stage(str(src), "moving-final-output")
                 final_path = Path(final_dir).expanduser() / out_path.name
                 if safe_move(out_path, final_path):
                     # create a blank file at the original location to indicate completion
@@ -2195,6 +2282,8 @@ def main():
                     staged_video_files.append(f)
             video_files = staged_video_files
             video_files.extend(manual_files)
+            if status_tracker:
+                video_files = status_tracker.sort_candidate_paths(video_files)
             for f in video_files:
                 if status_tracker:
                     status_tracker.add_event(f"Detected new file: {f}")
@@ -2483,6 +2572,11 @@ def main():
             single_job_mode = len(video_files) == 1 and queued_active == 1
             # Process sequentially (FIFO)
             for video_file in video_files:
+                if status_tracker and status_tracker.is_queue_held(str(video_file)):
+                    continue
+                if status_tracker and status_tracker.pause_after_current() and not status_tracker.has_active_nonqueued():
+                    status_tracker.add_event("Queue paused after current job; waiting for resume.")
+                    break
                 # Determine profile for this file
                 local_profile = config.get("profile", "handbrake")
                 is_dvd = any(s in video_file.lower() for s in ["video_ts"])
@@ -2527,8 +2621,12 @@ def main():
                 try:
                     if status_tracker:
                         status_tracker.set_state(str(video_file), "starting")
+                        status_tracker.set_stage(str(video_file), "preflight")
                     out = process_video(video_file, config, output_dir, rip_dir, encoder, status_tracker, single_job_mode=single_job_mode)
                     print(f"✅ {video_file} → {out}")
+                    if status_tracker and status_tracker.pause_after_current():
+                        status_tracker.add_event("Pause-after-current engaged.")
+                        break
                 except Exception as e:
                     print(f"❌ {video_file}: {e}")
 

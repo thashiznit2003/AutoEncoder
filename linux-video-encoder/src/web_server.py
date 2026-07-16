@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, Response, request
+from flask import Flask, jsonify, Response, request, send_file
 import time
 import json
 import subprocess
@@ -19,6 +19,7 @@ from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
 from smb_allowlist import save_smb_allowlist, load_smb_allowlist, remove_from_allowlist
 from makemkv_parser import parse_makemkv_info_output
 from scanner import EXCLUDED_SCAN_PATHS, INTERNAL_SCAN_ROOTS
+from status_tracker import classify_message
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
@@ -1560,6 +1561,83 @@ def create_app(tracker, config_manager=None):
         safe.pop("auth_additional_users", None)
         return safe
 
+    def _find_job(source: str):
+        snap = tracker.snapshot()
+        for item in snap.get("active", []):
+            if item.get("source") == source:
+                return item, "active"
+        for item in snap.get("recent", []):
+            if item.get("source") == source:
+                return item, "recent"
+        return None, None
+
+    def _build_job_details(source: str):
+        item, scope = _find_job(source)
+        if not item:
+            return None
+        details = dict(item)
+        details["scope"] = scope
+        details["error_class"] = details.get("error_class") or classify_message(
+            details.get("message") or "",
+            details.get("source") or "",
+            details.get("destination") or "",
+        )
+        details["exists"] = os.path.exists(details.get("destination") or "")
+        details["source_exists"] = os.path.exists(details.get("source") or "")
+        return details
+
+    def _build_disc_preflight(cfg: dict):
+        snap = tracker.snapshot()
+        disc = snap.get("disc_info") or {}
+        payload = (disc.get("info") if isinstance(disc, dict) else disc) or {}
+        summary = payload.get("summary") or {}
+        titles = payload.get("titles") or []
+        main = summary.get("main_feature") or {}
+        remembered = None
+        disc_key = "|".join([summary.get("disc_label") or "", summary.get("drive") or ""]).strip("|")
+        if disc_key:
+            remembered = tracker.disc_profile(disc_key)
+        hb = cfg.get("handbrake", {})
+        return {
+            "disc_key": disc_key,
+            "disc_label": summary.get("disc_label") or summary.get("label") or "",
+            "disc_type": payload.get("disc_type") or summary.get("disc_type") or "",
+            "titles_detected": len(titles),
+            "main_feature": main,
+            "top_candidates": summary.get("top_candidates") or [],
+            "selected_titles": cfg.get("makemkv_titles") or ([str(main.get("id"))] if main.get("id") is not None else []),
+            "audio_langs": cfg.get("makemkv_audio_langs") or cfg.get("makemkv_preferred_audio_langs") or [],
+            "subtitle_langs": cfg.get("makemkv_subtitle_langs") or cfg.get("makemkv_preferred_subtitle_langs") or [],
+            "encoder": hb.get("encoder"),
+            "audio_mode": hb.get("audio_mode"),
+            "subtitle_mode": hb.get("subtitle_mode"),
+            "output_dir": cfg.get("output_dir"),
+            "rip_dir": cfg.get("rip_dir"),
+            "remembered": remembered,
+        }
+
+    def _safe_path(path_value: str):
+        if not path_value:
+            return None
+        try:
+            return Path(path_value).expanduser().resolve()
+        except Exception:
+            return None
+
+    def _build_name_suggestion(source: str, cfg: dict, library_type: str = "movies"):
+        item, _scope = _find_job(source)
+        target = item or {"source": source}
+        path = Path(target.get("destination") or target.get("source") or "output.mkv")
+        base_title = path.stem
+        disc = tracker.snapshot().get("disc_info") or {}
+        payload = (disc.get("info") if isinstance(disc, dict) else disc) or {}
+        summary = payload.get("summary") or {}
+        title = target.get("rename_to") or summary.get("disc_label") or summary.get("label") or base_title
+        template = cfg.get("naming_template_movie") if library_type == "movies" else cfg.get("naming_template_disc")
+        template = template or "{title}"
+        safe_title = re.sub(r"[\\\\/:*?\"<>|]+", "", title).strip() or base_title
+        return template.replace("{title}", safe_title).replace("{disc_label}", safe_title).replace("{source}", base_title)
+
     def _run_git(args, cwd: Path):
         return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=False)
 
@@ -1834,6 +1912,12 @@ def create_app(tracker, config_manager=None):
                 "handbrake_br": cfg.get("handbrake_br", {}),
                 "low_bitrate_auto_proceed": cfg.get("low_bitrate_auto_proceed", False),
                 "low_bitrate_auto_skip": cfg.get("low_bitrate_auto_skip", False),
+                "notifications": cfg.get("notifications", {}),
+                "final_destinations": cfg.get("final_destinations", {}),
+                "queue_pause_after_current": cfg.get("queue_pause_after_current", False),
+                "advanced_mode": cfg.get("advanced_mode", False),
+                "naming_template_movie": cfg.get("naming_template_movie", "{title}"),
+                "naming_template_disc": cfg.get("naming_template_disc", "{disc_label}"),
             }
         resp = jsonify(data)
         log_timing("api/status", t0)
@@ -1856,6 +1940,208 @@ def create_app(tracker, config_manager=None):
         resp = jsonify(ev)
         log_timing("api/events", t0, f"events={len(ev)}")
         return resp
+
+    @app.route("/api/notifications")
+    @require_auth
+    def notifications():
+        return jsonify(tracker.notifications())
+
+    @app.route("/api/job_details")
+    @require_auth
+    def job_details():
+        source = (request.args.get("source") or "").strip()
+        if not source:
+            return jsonify({"error": "source required"}), 400
+        details = _build_job_details(source)
+        if not details:
+            return jsonify({"error": "job not found"}), 404
+        return jsonify(details)
+
+    @app.route("/api/retry_last_failed", methods=["POST"])
+    @require_auth
+    def retry_last_failed():
+        source = tracker.last_failed_source()
+        if not source:
+            return jsonify({"error": "no failed job recorded"}), 404
+        if source.startswith("disc:"):
+            tracker.request_disc_rip("manual")
+            return jsonify({"queued": True, "source": source})
+        if not os.path.exists(source):
+            return jsonify({"error": "source missing"}), 400
+        tracker.add_manual_file(source)
+        return jsonify({"queued": True, "source": source})
+
+    @app.route("/api/queue/control", methods=["POST"])
+    @require_auth
+    def queue_control():
+        payload = request.get_json(silent=True) or {}
+        source = str(payload.get("source") or "")
+        action = str(payload.get("action") or "")
+        if action == "pause_after_current":
+            tracker.pause_after_current(bool(payload.get("value")))
+            return jsonify({"ok": True, "pause_after_current": tracker.pause_after_current()})
+        if not source:
+            return jsonify({"error": "source required"}), 400
+        if action == "hold":
+            tracker.set_queue_hold(source, True)
+        elif action == "resume":
+            tracker.set_queue_hold(source, False)
+        elif action == "up":
+            tracker.move_queue_item(source, -1)
+        elif action == "down":
+            tracker.move_queue_item(source, 1)
+        else:
+            return jsonify({"error": "unsupported action"}), 400
+        return jsonify({"ok": True})
+
+    @app.route("/api/makemkv/preflight")
+    @require_auth
+    def makemkv_preflight():
+        cfg = config_manager.read() if config_manager else {}
+        return jsonify(_build_disc_preflight(cfg))
+
+    @app.route("/api/makemkv/title_preference", methods=["POST"])
+    @require_auth
+    def makemkv_title_preference():
+        if not config_manager:
+            return jsonify({"error": "config unavailable"}), 500
+        payload = request.get_json(silent=True) or {}
+        title_id = str(payload.get("title_id") or "").strip()
+        action = str(payload.get("action") or "").strip()
+        if not title_id or action not in {"prefer", "block", "clear"}:
+            return jsonify({"error": "title_id and valid action are required"}), 400
+        cfg = config_manager.read()
+        preflight = _build_disc_preflight(cfg)
+        disc_key = preflight.get("disc_key") or ""
+        if not disc_key:
+            return jsonify({"error": "no active disc context"}), 400
+        prefs = dict(cfg.get("disc_title_preferences") or {})
+        disc_prefs = dict(prefs.get(disc_key) or {})
+        preferred = [str(v) for v in (disc_prefs.get("prefer_titles") or []) if str(v).strip()]
+        blocked = [str(v) for v in (disc_prefs.get("blocked_titles") or []) if str(v).strip()]
+        if action == "prefer":
+            preferred = [title_id]
+            blocked = [v for v in blocked if v != title_id]
+        elif action == "block":
+            blocked = sorted(set(blocked + [title_id]))
+            preferred = [v for v in preferred if v != title_id]
+        else:
+            blocked = [v for v in blocked if v != title_id]
+            preferred = [v for v in preferred if v != title_id]
+        prefs[disc_key] = {"prefer_titles": preferred, "blocked_titles": blocked}
+        config_manager.update({"disc_title_preferences": prefs})
+        return jsonify({"ok": True, "disc_key": disc_key, "preferences": prefs[disc_key]})
+
+    @app.route("/api/disc/history")
+    @require_auth
+    def disc_history():
+        cfg = config_manager.read() if config_manager else {}
+        disc_key = (request.args.get("disc_key") or "").strip()
+        if not disc_key:
+            disc_key = _build_disc_preflight(cfg).get("disc_key") or ""
+        if not disc_key:
+            return jsonify({"history": []})
+        profile = tracker.disc_profile(disc_key) or {}
+        return jsonify(profile)
+
+    @app.route("/api/files/delete", methods=["POST"])
+    @require_auth
+    def files_delete():
+        payload = request.get_json(silent=True) or {}
+        target = _safe_path(str(payload.get("path") or ""))
+        if not target or not target.exists() or target.is_dir():
+            return jsonify({"error": "file not found"}), 404
+        target.unlink()
+        return jsonify({"ok": True})
+
+    @app.route("/api/files/move", methods=["POST"])
+    @require_auth
+    def files_move():
+        if not config_manager:
+            return jsonify({"error": "config unavailable"}), 500
+        payload = request.get_json(silent=True) or {}
+        src = _safe_path(str(payload.get("path") or ""))
+        if not src or not src.exists() or src.is_dir():
+            return jsonify({"error": "source not found"}), 404
+        cfg = config_manager.read()
+        library_type = str(payload.get("library_type") or "movies")
+        root = str((cfg.get("final_destinations") or {}).get(library_type) or cfg.get("final_dir") or "")
+        if not root:
+            return jsonify({"error": f"no configured destination for {library_type}"}), 400
+        dest_root = Path(root).expanduser()
+        dest_root.mkdir(parents=True, exist_ok=True)
+        suggested = _build_name_suggestion(str(src), cfg, library_type=library_type)
+        dest = dest_root / f"{suggested}{src.suffix}"
+        counter = 1
+        while dest.exists():
+            dest = dest_root / f"{suggested}({counter}){src.suffix}"
+            counter += 1
+        shutil.move(str(src), str(dest))
+        return jsonify({"ok": True, "destination": str(dest)})
+
+    @app.route("/api/files/preview")
+    @require_auth
+    def files_preview():
+        source = _safe_path(request.args.get("path") or "")
+        if not source or not source.exists() or source.is_dir():
+            return jsonify({"error": "path not found"}), 404
+        jpg = STATE_ROOT / "preview.jpg"
+        cmd = [
+            "ffmpeg", "-y", "-ss", "00:00:30", "-i", str(source), "-frames:v", "1",
+            "-vf", "scale=640:-2", str(jpg),
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if res.returncode != 0 or not jpg.exists():
+            return jsonify({"error": res.stderr.strip() or res.stdout.strip() or "preview failed"}), 500
+        return send_file(jpg, mimetype="image/jpeg", max_age=0)
+
+    @app.route("/api/files/stream")
+    @require_auth
+    def files_stream():
+        source = _safe_path(request.args.get("path") or "")
+        if not source or not source.exists() or source.is_dir():
+            return jsonify({"error": "path not found"}), 404
+        return send_file(source, conditional=True)
+
+    @app.route("/api/naming/suggest")
+    @require_auth
+    def naming_suggest():
+        cfg = config_manager.read() if config_manager else {}
+        source = (request.args.get("source") or "").strip()
+        library_type = (request.args.get("library_type") or "movies").strip()
+        return jsonify({"suggestion": _build_name_suggestion(source, cfg, library_type=library_type)})
+
+    @app.route("/api/cleanup", methods=["POST"])
+    @require_auth
+    def cleanup():
+        payload = request.get_json(silent=True) or {}
+        action = str(payload.get("action") or "")
+        cfg = config_manager.read() if config_manager else {}
+        if action == "disc_cache":
+            tracker.clear_disc_info()
+            return jsonify({"ok": True})
+        if action == "notifications":
+            tracker.clear_notifications()
+            return jsonify({"ok": True})
+        if action == "failed_outputs":
+            removed = []
+            for item in tracker.snapshot().get("recent", []):
+                if item.get("state") != "error":
+                    continue
+                target = _safe_path(item.get("destination") or "")
+                if target and target.exists() and target.is_file():
+                    try:
+                        target.unlink()
+                        removed.append(str(target))
+                    except Exception:
+                        continue
+            return jsonify({"ok": True, "removed": removed})
+        if action == "temp_rips":
+            workspace = Path(cfg.get("rip_dir") or "/mnt/ripped") / ".makemkv"
+            shutil.rmtree(workspace, ignore_errors=True)
+            workspace.mkdir(parents=True, exist_ok=True)
+            return jsonify({"ok": True, "path": str(workspace)})
+        return jsonify({"error": "unsupported action"}), 400
 
     @app.route("/api/diagnostics/runtime")
     @require_auth

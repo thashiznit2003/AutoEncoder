@@ -121,7 +121,13 @@ MAIN_PAGE_TEMPLATE = """
   </nav>
   <div class="grid">
     <div class="panel" id="panel-active" data-panel-title="Active Encodes">
-      <h2>🟢 Active Encodes</h2>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+        <h2 style="margin:0;">🟢 Active Encodes</h2>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button id="queue-pause-toggle" class="smb-btn" style="padding:6px 8px;">Pause After Current</button>
+          <button id="retry-last-failed" class="smb-btn" style="padding:6px 8px;">Retry Last Failed</button>
+        </div>
+      </div>
       <div class="muted field-display" id="hb-runtime"></div>
       <div id="active" class="field-display"></div>
     </div>
@@ -136,7 +142,7 @@ MAIN_PAGE_TEMPLATE = """
         <button data-clear="all" class="clear-btn">Clear All</button>
       </div>
     </div>
-    <div class="panel" id="panel-events" data-panel-title="Status Messages">
+    <div class="panel" id="panel-events" data-panel-title="Status Messages" data-advanced="1">
       <div style="display:flex; align-items:center; gap:8px; justify-content: space-between; margin-bottom:6px;">
         <h2 style="margin:0;">📣 Status Messages</h2>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -146,11 +152,21 @@ MAIN_PAGE_TEMPLATE = """
       </div>
       <div id="events" class="log field-display"></div>
     </div>
+    <div class="panel" id="panel-notifications" data-panel-title="Notification History">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+        <h2 style="margin:0;">🔔 Notification History</h2>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button id="enable-browser-notify" class="smb-btn" style="padding:6px 8px;">Enable Browser Notifications</button>
+          <button id="clear-notifications" class="smb-btn" style="padding:6px 8px;">Clear</button>
+        </div>
+      </div>
+      <div id="notifications" class="log field-display" style="max-height:260px; overflow-y:auto;"></div>
+    </div>
     <div class="panel" id="panel-metrics" data-panel-title="System Metrics">
       <h2>📊 System Metrics</h2>
       <div id="metrics" class="log field-display"></div>
     </div>
-    <div class="panel" id="panel-smb" data-panel-title="SMB Browser">
+    <div class="panel" id="panel-smb" data-panel-title="SMB Browser" data-advanced="1">
       <h2><span class="icon mario-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
         <rect width="16" height="16" fill="none"/>
         <rect x="2" y="0" width="12" height="1" fill="#d62828"/>
@@ -195,7 +211,7 @@ MAIN_PAGE_TEMPLATE = """
         <button class="smb-btn" id="smb-refresh">Refresh</button>
       </div>
     </div>
-    <div class="panel" id="panel-logs" data-panel-title="Logs" style="grid-column: 1 / -1;">
+    <div class="panel" id="panel-logs" data-panel-title="Logs" data-advanced="1" style="grid-column: 1 / -1;">
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; justify-content: space-between;">
         <h2 style="margin:0;">🧾 Logs</h2>
         <button id="copy-logs" style="padding:6px 10px; background:#2563eb; color:#fff; border:0; border-radius:6px; cursor:pointer;">Copy last 300</button>
@@ -269,7 +285,7 @@ MAIN_PAGE_TEMPLATE = """
 
     function buildMobileNav() {
       if (!mobileItems) return;
-      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
+      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]")).filter((panel) => panel.style.display !== "none");
       mobileItems.innerHTML = "";
       panels.forEach((panel) => {
         const btn = document.createElement("button");
@@ -284,6 +300,13 @@ MAIN_PAGE_TEMPLATE = """
         mobileItems.appendChild(btn);
       });
       updatePanelVisibility();
+    }
+
+    function applyAdvancedMode(enabled) {
+      document.querySelectorAll(".panel[data-advanced='1']").forEach((panel) => {
+        panel.style.display = enabled ? "" : "none";
+      });
+      buildMobileNav();
     }
 
     function initMobileNav() {
@@ -377,6 +400,48 @@ MAIN_PAGE_TEMPLATE = """
         overlay.appendChild(box);
         document.body.appendChild(overlay);
       });
+    }
+
+    function uiModal(title, bodyHtml, opts) {
+      const overlay = document.createElement("div");
+      overlay.style.cssText = "position:fixed;inset:0;background:rgba(2,6,23,0.7);display:flex;align-items:center;justify-content:center;z-index:10001;padding:16px;";
+      const box = document.createElement("div");
+      box.style.cssText = "background:#0f172a;border:1px solid #1f2937;border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,0.45);padding:16px;max-width:840px;width:100%;color:#e2e8f0;display:flex;flex-direction:column;gap:10px;max-height:90vh;";
+      const head = document.createElement("div");
+      head.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:12px;";
+      head.innerHTML = "<strong style='font-size:14px;'>" + title + "</strong>";
+      const close = document.createElement("button");
+      close.type = "button";
+      close.textContent = "Close";
+      close.style.cssText = "background:#1f2937;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-weight:600;";
+      const body = document.createElement("div");
+      body.style.cssText = "overflow:auto;font-size:12px;line-height:1.5;";
+      body.innerHTML = bodyHtml;
+      const cleanup = () => { try { overlay.remove(); } catch (e) {} };
+      close.onclick = cleanup;
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) cleanup(); });
+      head.appendChild(close);
+      box.appendChild(head);
+      box.appendChild(body);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      return { overlay, body, close: cleanup };
+    }
+
+    async function copyText(text, label) {
+      const value = String(text || "").trim();
+      if (!value) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = value;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      uiNotify((label || "Copied") + " copied.", "success");
     }
 
     window.alert = (msg) => {
@@ -765,17 +830,28 @@ MAIN_PAGE_TEMPLATE = """
           controls = '<button class="confirm-btn" data-action="proceed" data-src="' + encodeURIComponent(item.source || "") + '">Proceed</button> '
                    + '<button class="confirm-btn" data-action="cancel" data-src="' + encodeURIComponent(item.source || "") + '">Cancel</button>';
         } else if (state === "queued") {
-          controls = '<button class="remove-queued-btn" data-src="' + encodeURIComponent(item.source || "") + '">Remove</button>';
+          controls = '<button class="queue-btn" data-action="up" data-src="' + encodeURIComponent(item.source || "") + '">Up</button> '
+            + '<button class="queue-btn" data-action="down" data-src="' + encodeURIComponent(item.source || "") + '">Down</button> '
+            + '<button class="queue-btn" data-action="' + (item.queue_held ? 'resume' : 'hold') + '" data-src="' + encodeURIComponent(item.source || "") + '">' + (item.queue_held ? 'Resume' : 'Hold') + '</button> '
+            + '<button class="remove-queued-btn" data-src="' + encodeURIComponent(item.source || "") + '">Remove</button>';
         } else if (state === "canceled" || state === "error") {
           controls = '<button class="retry-btn" data-src="' + encodeURIComponent(item.source || "") + '">Retry</button>';
+        }
+        controls += ' <button class="details-btn" data-src="' + encodeURIComponent(item.source || "") + '">Details</button>';
+        if (item.destination) {
+          controls += ' <button class="copy-path-btn" data-path="' + encodeURIComponent(item.destination || "") + '">Copy Path</button>';
+          controls += ' <button class="preview-btn" data-path="' + encodeURIComponent(item.destination || "") + '">Preview</button>';
+          controls += ' <button class="move-btn" data-path="' + encodeURIComponent(item.destination || "") + '" data-kind="movies">Move</button>';
         }
         const messageText = formatItemValue(item.message || "");
         const encoderLine = item.encoder ? ('<div class="muted">Encoder: ' + item.encoder + '</div>') : "";
         const infoText = formatItemValue(item.info);
         const infoLine = infoText ? '<div class="muted">' + infoText + '</div>' : "";
         const renameLine = item.rename_to ? '<div class="muted">Will rename to: ' + item.rename_to + '</div>' : "";
+        const stageLine = item.stage ? '<div class="muted">Stage: ' + item.stage + '</div>' : "";
+        const queueLine = item.state === "queued" ? '<div class="muted">Queue: #' + (item.queue_rank || '?') + (item.queue_held ? ' (held)' : '') + '</div>' : "";
         return [
-          '<div class="item">',
+          '<div class="item" data-job-source="' + encodeURIComponent(item.source || "") + '">',
           '  <span class="field-id-item">#' + (idx + 1) + '</span>',
           '  <div class="flex-between">',
           '    <div class="path">' + (item.source || "") + '</div>',
@@ -786,11 +862,72 @@ MAIN_PAGE_TEMPLATE = """
           encoderLine,
           infoLine,
           renameLine,
+          stageLine,
+          queueLine,
           '  <div class="muted">' + (etaText || (duration ? ((state === "queued") ? "Queued for: " + duration : "Encode elapsed: " + duration) : "")) + '</div>',
           '  ' + progBar,
           '</div>'
         ].join("");
       }).join("");
+    }
+
+    function renderNotifications(items) {
+      const el = document.getElementById("notifications");
+      if (!el) return;
+      if (!items || !items.length) {
+        el.textContent = "No notifications yet.";
+        return;
+      }
+      el.textContent = items.map((item) => {
+        const stamp = item.ts ? new Date(item.ts * 1000).toLocaleString() : "";
+        return "[" + stamp + "] " + (item.level || "info").toUpperCase() + " " + (item.message || "");
+      }).join("\\n");
+    }
+
+    async function openJobDetails(source) {
+      const data = await fetchJSON("/api/job_details?source=" + encodeURIComponent(source));
+      const html = `
+        <div class="log" style="height:auto; max-height:70vh;">${JSON.stringify(data, null, 2)}</div>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="job-copy-json">Copy JSON</button>
+          ${data.destination ? '<button id="job-copy-dest">Copy destination</button>' : ''}
+        </div>
+      `;
+      const modal = uiModal("Job Details", html);
+      const copyJson = modal.body.querySelector("#job-copy-json");
+      if (copyJson) copyJson.onclick = () => copyText(JSON.stringify(data, null, 2), "Job JSON");
+      const copyDest = modal.body.querySelector("#job-copy-dest");
+      if (copyDest) copyDest.onclick = () => copyText(data.destination || "", "Destination");
+    }
+
+    async function openPreview(path) {
+      const html = `
+        <div style="display:grid; gap:8px;">
+          <img src="/api/files/preview?path=${encodeURIComponent(path)}&t=${Date.now()}" style="max-width:100%; border-radius:10px; border:1px solid #1f2937;" />
+          <video controls preload="metadata" style="width:100%; max-height:52vh; border-radius:10px; border:1px solid #1f2937;">
+            <source src="/api/files/stream?path=${encodeURIComponent(path)}" />
+          </video>
+        </div>
+      `;
+      uiModal("Preview", html);
+    }
+
+    let seenNotificationKeys = new Set();
+    function maybeBrowserNotify(items, settings) {
+      if (!("Notification" in window)) return;
+      if (Notification.permission !== "granted") return;
+      const prefs = (settings && settings.notifications) || {};
+      (items || []).slice(0, 10).reverse().forEach((item) => {
+        const key = [item.ts, item.kind, item.source, item.message].join("|");
+        if (seenNotificationKeys.has(key)) return;
+        seenNotificationKeys.add(key);
+        if (item.kind === "job-complete" && !prefs.job_complete) return;
+        if (item.kind === "job-failed" && !prefs.job_failed) return;
+        if (item.kind === "job-canceled") return;
+        try {
+          new Notification("Linux Video Encoder", { body: item.message || "", silent: false });
+        } catch (e) {}
+      });
     }
 
     function numberPanels() {
@@ -832,6 +969,7 @@ MAIN_PAGE_TEMPLATE = """
         renderList(document.getElementById("active"), status.active, "No active encodes.");
         renderList(document.getElementById("recent"), status.recent, "No recent jobs.");
         const hbCfg = status.handbrake_config || {};
+        applyAdvancedMode(!!hbCfg.advanced_mode);
         const hb = hbCfg.handbrake || {};
         const hbDvd = hbCfg.handbrake_dvd || {};
         const hbBr = hbCfg.handbrake_br || {};
@@ -865,6 +1003,10 @@ MAIN_PAGE_TEMPLATE = """
           " | Audio=" + audioModeLabel +
           " | Offset=" + audioOffsetLabel +
           " | " + nvRuntimeLabel;
+        const queuePauseBtn = document.getElementById("queue-pause-toggle");
+        if (queuePauseBtn) {
+          queuePauseBtn.textContent = status.pause_after_current ? "Resume Queue" : "Pause After Current";
+        }
         // Disc card update (main page, no eject)
         let discInfo = status.disc_info || {};
         const busyEl = document.getElementById("mk-scan-busy");
@@ -912,6 +1054,13 @@ MAIN_PAGE_TEMPLATE = """
         if (lastEventsText) {
           document.getElementById("events").textContent = lastEventsText;
         }
+      }
+      try {
+        const notifications = await fetchJSON("/api/notifications");
+        renderNotifications(notifications || []);
+        maybeBrowserNotify(notifications || [], hbCfg || {});
+      } catch (e) {
+        showJsError("Notifications fetch failed: " + e);
       }
       try {
         bindUsbButtons();
@@ -985,6 +1134,61 @@ MAIN_PAGE_TEMPLATE = """
         }
         refresh();
       }
+      if (e.target.classList.contains("details-btn")) {
+        const src = decodeURIComponent(e.target.getAttribute("data-src"));
+        await openJobDetails(src);
+      }
+      if (e.target.classList.contains("copy-path-btn")) {
+        const path = decodeURIComponent(e.target.getAttribute("data-path"));
+        await copyText(path, "Path");
+      }
+      if (e.target.classList.contains("preview-btn")) {
+        const path = decodeURIComponent(e.target.getAttribute("data-path"));
+        await openPreview(path);
+      }
+      if (e.target.classList.contains("move-btn")) {
+        const path = decodeURIComponent(e.target.getAttribute("data-path"));
+        const kind = e.target.getAttribute("data-kind") || "movies";
+        try {
+          const res = await fetchJSON("/api/files/move", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path, library_type: kind }) });
+          alert("Moved to: " + (res.destination || ""));
+          refresh();
+        } catch (err) {
+          alert("Move failed: " + err);
+        }
+      }
+      if (e.target.classList.contains("queue-btn")) {
+        const src = decodeURIComponent(e.target.getAttribute("data-src"));
+        const action = e.target.getAttribute("data-action");
+        await fetchJSON("/api/queue/control", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: src, action }) });
+        refresh();
+      }
+    });
+
+    document.getElementById("queue-pause-toggle")?.addEventListener("click", async () => {
+      const paused = document.getElementById("queue-pause-toggle").textContent.indexOf("Resume") !== -1;
+      await fetchJSON("/api/queue/control", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "pause_after_current", value: !paused }) });
+      refresh();
+    });
+    document.getElementById("retry-last-failed")?.addEventListener("click", async () => {
+      try {
+        await fetchJSON("/api/retry_last_failed", { method: "POST" });
+        refresh();
+      } catch (e) {
+        alert("Retry last failed unavailable: " + e);
+      }
+    });
+    document.getElementById("enable-browser-notify")?.addEventListener("click", async () => {
+      if (!("Notification" in window)) {
+        alert("Browser notifications are not supported here.");
+        return;
+      }
+      const result = await Notification.requestPermission();
+      alert("Notification permission: " + result);
+    });
+    document.getElementById("clear-notifications")?.addEventListener("click", async () => {
+      await fetchJSON("/api/cleanup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "notifications" }) });
+      refresh();
     });
 
     document.getElementById("handbrake-form")?.addEventListener("input", () => { hbDirty = true; });
@@ -1448,6 +1652,9 @@ SETTINGS_PAGE_TEMPLATE = """
           <div id="mk-titles-debug" class="muted field-display" style="margin-top:6px; font-size:11px;"></div>
           <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" id="mk-titles-apply">Use selected titles</button>
+            <button type="button" id="mk-title-prefer">Prefer selected title</button>
+            <button type="button" id="mk-title-block">Never auto-pick selected title</button>
+            <button type="button" id="mk-title-clear-pref">Clear selected title preference</button>
           </div>
         </div>
       </div>
@@ -1472,7 +1679,7 @@ SETTINGS_PAGE_TEMPLATE = """
         </label>
       </div>
     </div>
-    <div class="panel" id="panel-diagnostics" data-panel-title="Diagnostics">
+    <div class="panel" id="panel-diagnostics" data-panel-title="Diagnostics" data-advanced="1">
       <h2>🐞 Diagnostics</h2>
       <div class="muted" style="margin-bottom:8px;">Push status, events, and log tail to the diagnostics repo using stored credentials.</div>
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
@@ -1483,7 +1690,48 @@ SETTINGS_PAGE_TEMPLATE = """
       <textarea id="diag-runtime" class="log" style="height:220px; width:100%; box-sizing:border-box;" readonly placeholder="Runtime diagnostics will appear here."></textarea>
       <div class="muted field-display" id="diag-status" style="margin-top:6px;">Idle.</div>
     </div>
-    <div class="panel" id="panel-auth" data-panel-title="Authentication">
+    <div class="panel" id="panel-qol" data-panel-title="Quality of Life">
+      <h2>✨ Quality of Life</h2>
+      <div class="muted field-display" id="mk-preflight-summary">Preflight summary unavailable.</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+        <button type="button" id="mk-preflight-refresh">Refresh Preflight</button>
+        <button type="button" id="mk-history-open">Disc History</button>
+      </div>
+      <label>Movie naming template <input id="qol-name-movie" placeholder="{title}" /></label>
+      <label>Disc naming template <input id="qol-name-disc" placeholder="{disc_label}" /></label>
+      <label>Movies destination <input id="qol-dest-movies" placeholder="/mnt/output/movies" /></label>
+      <label>TV destination <input id="qol-dest-tv" placeholder="/mnt/output/tv" /></label>
+      <label>Extras destination <input id="qol-dest-extras" placeholder="/mnt/output/extras" /></label>
+      <div class="muted" style="margin-top:4px;">Audio/Sub presets</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button type="button" class="audio-preset-btn" data-preset="english_only">English Only</button>
+        <button type="button" class="audio-preset-btn" data-preset="english_forced">English + Forced Subs</button>
+        <button type="button" class="audio-preset-btn" data-preset="all_audio_eng_subs">All Audio + Eng Subs</button>
+        <button type="button" class="audio-preset-btn" data-preset="original_plus_english">Original + English</button>
+      </div>
+      <div class="muted" style="margin-top:10px;">Disc profile presets</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button type="button" class="disc-preset-btn" data-preset="balanced">Balanced</button>
+        <button type="button" class="disc-preset-btn" data-preset="movie_only">Movie Only</button>
+        <button type="button" class="disc-preset-btn" data-preset="episodes">Episodes</button>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+        <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-advanced-mode" /> Advanced mode</label>
+        <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-browser-notify" /> Browser notifications</label>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
+        <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-notify-start" /> Notify on start</label>
+        <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-notify-complete" /> Notify on complete</label>
+        <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-notify-failed" /> Notify on failure</label>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
+        <button type="button" id="qol-save">Save QoL</button>
+        <button type="button" id="cleanup-disc-cache">Clear Disc Cache</button>
+        <button type="button" id="cleanup-temp-rips">Clear Temp Rips</button>
+        <button type="button" id="cleanup-failed-outputs">Delete Failed Outputs</button>
+      </div>
+    </div>
+    <div class="panel" id="panel-auth" data-panel-title="Authentication" data-advanced="1">
       <h2>🔒 Authentication</h2>
       <div class="muted" style="margin-bottom:6px;">HTTP Basic auth for this UI/API.</div>
       <label>Username <input id="auth-user" placeholder="admin" /></label>
@@ -1543,7 +1791,7 @@ SETTINGS_PAGE_TEMPLATE = """
 
     function buildMobileNav() {
       if (!mobileItems) return;
-      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]"));
+      const panels = Array.from(document.querySelectorAll(".panel[data-panel-title]")).filter((panel) => panel.style.display !== "none");
       mobileItems.innerHTML = "";
       panels.forEach((panel) => {
         const btn = document.createElement("button");
@@ -1558,6 +1806,13 @@ SETTINGS_PAGE_TEMPLATE = """
         mobileItems.appendChild(btn);
       });
       updatePanelVisibility();
+    }
+
+    function applyAdvancedMode(enabled) {
+      document.querySelectorAll(".panel[data-advanced='1']").forEach((panel) => {
+        panel.style.display = enabled ? "" : "none";
+      });
+      buildMobileNav();
     }
 
     function initMobileNav() {
@@ -1788,6 +2043,31 @@ SETTINGS_PAGE_TEMPLATE = """
       }
     }
 
+    function selectedTitleIds() {
+      return Array.from(document.querySelectorAll(".mk-title-check:checked")).map((el) => String(el.getAttribute("data-title") || "")).filter(Boolean);
+    }
+
+    function applyAudioPreset(cfg, presetName) {
+      const preset = ((cfg || {}).audio_subtitle_presets || {})[presetName];
+      if (!preset) return;
+      document.getElementById("mk-audio-langs").value = (preset.audio_langs || []).join(", ");
+      document.getElementById("mk-sub-langs").value = (preset.subtitle_langs || []).join(", ");
+      if (preset.subtitle_mode) {
+        document.getElementById("hb-subs").value = preset.subtitle_mode;
+      }
+      mkDirty = true;
+      hbDirty = true;
+    }
+
+    function applyDiscPreset(cfg, presetName) {
+      const preset = ((cfg || {}).disc_profile_presets || {})[presetName];
+      if (!preset) return;
+      if (preset.min_length !== undefined) document.getElementById("mk-minlen").value = preset.min_length;
+      if (preset.prefer_surround !== undefined) document.getElementById("mk-prefer-surround").checked = !!preset.prefer_surround;
+      if (preset.exclude_commentary !== undefined) document.getElementById("mk-exclude-commentary").checked = !!preset.exclude_commentary;
+      mkDirty = true;
+    }
+
     function numberPanels() {
       document.querySelectorAll(".panel").forEach(panel => {
         let n = 1;
@@ -1851,6 +2131,7 @@ SETTINGS_PAGE_TEMPLATE = """
         const cfg = await fetchJSON("/api/config");
         const status = await fetchJSON("/api/status");
         const runtime = await fetchJSON("/api/diagnostics/runtime");
+        const preflight = await fetchJSON("/api/makemkv/preflight");
         if (!hbDirty) {
           populateHandbrakeForm(cfg);
         }
@@ -1942,6 +2223,26 @@ SETTINGS_PAGE_TEMPLATE = """
           document.getElementById("auth-user").value = cfg.auth_user || "";
           document.getElementById("auth-pass").value = cfg.auth_password || "";
         }
+        document.getElementById("qol-name-movie").value = cfg.naming_template_movie || "{title}";
+        document.getElementById("qol-name-disc").value = cfg.naming_template_disc || "{disc_label}";
+        document.getElementById("qol-dest-movies").value = (cfg.final_destinations || {}).movies || "";
+        document.getElementById("qol-dest-tv").value = (cfg.final_destinations || {}).tv || "";
+        document.getElementById("qol-dest-extras").value = (cfg.final_destinations || {}).extras || "";
+        document.getElementById("qol-advanced-mode").checked = !!cfg.advanced_mode;
+        applyAdvancedMode(!!cfg.advanced_mode);
+        const notify = cfg.notifications || {};
+        document.getElementById("qol-browser-notify").checked = !!notify.browser;
+        document.getElementById("qol-notify-start").checked = !!notify.job_start;
+        document.getElementById("qol-notify-complete").checked = !!notify.job_complete;
+        document.getElementById("qol-notify-failed").checked = !!notify.job_failed;
+        const main = preflight.main_feature || {};
+        const remembered = (preflight.remembered && preflight.remembered.last) || null;
+        document.getElementById("mk-preflight-summary").textContent =
+          "Likely main feature: " + (main.id !== undefined ? ("title " + main.id) : "unknown") +
+          (main.duration ? (" | " + main.duration) : "") +
+          (main.score !== undefined ? (" | score " + main.score) : "") +
+          " | encoder " + (preflight.encoder || "unknown") +
+          (remembered ? (" | last output " + (remembered.output || "unknown")) : "");
       } catch (e) {
         const debugEl = document.getElementById("mk-titles-debug");
         if (debugEl) {
@@ -2253,6 +2554,73 @@ SETTINGS_PAGE_TEMPLATE = """
       } catch (e) {
         alert("Failed to copy: " + e);
       }
+    });
+
+    document.getElementById("mk-title-prefer").addEventListener("click", async () => {
+      const ids = selectedTitleIds();
+      if (ids.length !== 1) { alert("Select exactly one title."); return; }
+      await fetchJSON("/api/makemkv/title_preference", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title_id: ids[0], action: "prefer" }) });
+      refreshSettings();
+    });
+    document.getElementById("mk-title-block").addEventListener("click", async () => {
+      const ids = selectedTitleIds();
+      if (ids.length !== 1) { alert("Select exactly one title."); return; }
+      await fetchJSON("/api/makemkv/title_preference", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title_id: ids[0], action: "block" }) });
+      refreshSettings();
+    });
+    document.getElementById("mk-title-clear-pref").addEventListener("click", async () => {
+      const ids = selectedTitleIds();
+      if (ids.length !== 1) { alert("Select exactly one title."); return; }
+      await fetchJSON("/api/makemkv/title_preference", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title_id: ids[0], action: "clear" }) });
+      refreshSettings();
+    });
+    document.getElementById("mk-preflight-refresh").addEventListener("click", refreshSettings);
+    document.getElementById("mk-history-open").addEventListener("click", async () => {
+      const data = await fetchJSON("/api/disc/history");
+      const history = data.history || [];
+      const body = history.length ? `<div class="log" style="height:auto; max-height:70vh;">${JSON.stringify(data, null, 2)}</div>` : "<div class='muted'>No remembered disc history yet.</div>";
+      uiModal("Disc History", body);
+    });
+    document.querySelectorAll(".audio-preset-btn").forEach((btn) => btn.addEventListener("click", async () => {
+      const cfg = await fetchJSON("/api/config");
+      applyAudioPreset(cfg, btn.getAttribute("data-preset"));
+    }));
+    document.querySelectorAll(".disc-preset-btn").forEach((btn) => btn.addEventListener("click", async () => {
+      const cfg = await fetchJSON("/api/config");
+      applyDiscPreset(cfg, btn.getAttribute("data-preset"));
+    }));
+    document.getElementById("qol-save").addEventListener("click", async () => {
+      const body = {
+        naming_template_movie: document.getElementById("qol-name-movie").value || "{title}",
+        naming_template_disc: document.getElementById("qol-name-disc").value || "{disc_label}",
+        final_destinations: {
+          movies: document.getElementById("qol-dest-movies").value || "",
+          tv: document.getElementById("qol-dest-tv").value || "",
+          extras: document.getElementById("qol-dest-extras").value || "",
+        },
+        advanced_mode: document.getElementById("qol-advanced-mode").checked,
+        notifications: {
+          browser: document.getElementById("qol-browser-notify").checked,
+          job_start: document.getElementById("qol-notify-start").checked,
+          job_complete: document.getElementById("qol-notify-complete").checked,
+          job_failed: document.getElementById("qol-notify-failed").checked,
+        },
+      };
+      await fetchJSON("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      alert("QoL settings saved.");
+      refreshSettings();
+    });
+    document.getElementById("cleanup-disc-cache").addEventListener("click", async () => {
+      await fetchJSON("/api/cleanup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "disc_cache" }) });
+      refreshSettings();
+    });
+    document.getElementById("cleanup-temp-rips").addEventListener("click", async () => {
+      await fetchJSON("/api/cleanup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "temp_rips" }) });
+      alert("Temporary rip workspaces cleared.");
+    });
+    document.getElementById("cleanup-failed-outputs").addEventListener("click", async () => {
+      const res = await fetchJSON("/api/cleanup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "failed_outputs" }) });
+      alert("Removed " + ((res.removed || []).length) + " failed outputs.");
     });
 
     document.getElementById("mk-start-rip").addEventListener("click", async () => {
