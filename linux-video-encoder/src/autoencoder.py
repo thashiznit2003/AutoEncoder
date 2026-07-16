@@ -30,6 +30,7 @@ from smb_allowlist import enforce_smb_allowlist, load_smb_allowlist, save_smb_al
 from web_server import start_web_server
 from makemkv_parser import parse_makemkv_info_output, _parse_duration_to_seconds, apply_title_scores
 from config_validation import normalize_config, validate_update_payload
+from ha_notifications import send_home_assistant_notification
 
 # locate config in the state volume (seeded from repo config.json on first run)
 STATE_DIR = Path("/var/lib/autoencoder/state")
@@ -145,6 +146,13 @@ DEFAULT_CONFIG = {
     "naming_template_disc": "{disc_label}",
     "final_destinations": {"movies": "", "tv": "", "extras": ""},
     "notifications": {"browser": True, "job_start": True, "job_complete": True, "job_failed": True},
+    "home_assistant": {
+        "enabled": False,
+        "url": "",
+        "token": "",
+        "notify_service": "",
+        "title_prefix": "Linux Video Encoder",
+    },
     "audio_subtitle_presets": {
         "english_only": {"audio_langs": ["eng"], "subtitle_langs": [], "subtitle_mode": "none"},
         "english_forced": {"audio_langs": ["eng"], "subtitle_langs": ["eng"], "subtitle_mode": "burn_forced"},
@@ -219,6 +227,7 @@ class ConfigManager:
                 "naming_template_disc",
                 "final_destinations",
                 "notifications",
+                "home_assistant",
                 "audio_subtitle_presets",
                 "disc_profile_presets",
                 "disc_title_preferences",
@@ -2040,6 +2049,7 @@ def main():
     ensure_makemkv_settings_persistence()
     status_tracker = StatusTracker(LOG_FILE)
     cfg_manager = ConfigManager(CONFIG_PATH)
+    status_tracker.register_notification_sink(lambda notification: send_home_assistant_notification(notification, cfg_manager.read()))
     start_web_server(status_tracker, config_manager=cfg_manager, port=WEB_PORT)
 
     config = cfg_manager.read()

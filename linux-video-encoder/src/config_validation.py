@@ -72,6 +72,17 @@ def validate_notifications(value: Any) -> Dict[str, bool]:
     }
 
 
+def validate_home_assistant(value: Any) -> Dict[str, Any]:
+    src = value if isinstance(value, dict) else {}
+    return {
+        "enabled": bool(src.get("enabled", False)),
+        "url": str(src.get("url") or "").strip().rstrip("/"),
+        "token": str(src.get("token") or "").strip(),
+        "notify_service": str(src.get("notify_service") or "").strip(),
+        "title_prefix": str(src.get("title_prefix") or "Linux Video Encoder").strip()[:120] or "Linux Video Encoder",
+    }
+
+
 def validate_disc_title_preferences(value: Any) -> Dict[str, Dict[str, list[str]]]:
     src = value if isinstance(value, dict) else {}
     out: Dict[str, Dict[str, list[str]]] = {}
@@ -154,6 +165,7 @@ def normalize_config(cfg: Dict[str, Any], defaults: Dict[str, Any]) -> Dict[str,
     merged["naming_template_disc"] = sanitize_template(merged.get("naming_template_disc"), defaults["naming_template_disc"])
     merged["final_destinations"] = validate_final_destinations(merged.get("final_destinations"))
     merged["notifications"] = validate_notifications(merged.get("notifications"))
+    merged["home_assistant"] = validate_home_assistant(merged.get("home_assistant"))
     merged["disc_title_preferences"] = validate_disc_title_preferences(merged.get("disc_title_preferences"))
 
     if not isinstance(merged.get("handbrake_presets"), list):
@@ -186,6 +198,8 @@ def validate_update_payload(data: Dict[str, Any]) -> Tuple[Dict[str, Any], list[
         payload["final_destinations"] = validate_final_destinations(payload["final_destinations"])
     if "notifications" in payload:
         payload["notifications"] = validate_notifications(payload["notifications"])
+    if "home_assistant" in payload:
+        payload["home_assistant"] = validate_home_assistant(payload["home_assistant"])
     if "disc_title_preferences" in payload:
         payload["disc_title_preferences"] = validate_disc_title_preferences(payload["disc_title_preferences"])
     return payload, warnings

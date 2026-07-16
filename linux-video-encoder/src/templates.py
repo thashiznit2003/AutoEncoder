@@ -1756,12 +1756,18 @@ SETTINGS_PAGE_TEMPLATE = """
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
         <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-advanced-mode" /> Advanced mode</label>
         <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-browser-notify" /> Browser notifications</label>
+        <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-ha-enabled" /> Home Assistant push</label>
       </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
         <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-notify-start" /> Notify on start</label>
         <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-notify-complete" /> Notify on complete</label>
         <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="qol-notify-failed" /> Notify on failure</label>
       </div>
+      <label style="margin-top:10px;">Home Assistant URL <input id="qol-ha-url" placeholder="https://homeassistant.thashiznit.cc" /></label>
+      <label>Home Assistant token <input id="qol-ha-token" type="password" placeholder="Long-lived access token" /></label>
+      <label>Notify service <input id="qol-ha-service" placeholder="notify.mobile_app_joe_iphone" /></label>
+      <label>Notification title <input id="qol-ha-title" placeholder="Linux Video Encoder" /></label>
+      <div class="muted">Home Assistant service format should look like <code>notify.mobile_app_joe_iphone</code>.</div>
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
         <button type="button" id="qol-save">Save QoL</button>
         <button type="button" id="cleanup-disc-cache">Clear Disc Cache</button>
@@ -2269,10 +2275,16 @@ SETTINGS_PAGE_TEMPLATE = """
         document.getElementById("qol-advanced-mode").checked = !!cfg.advanced_mode;
         applyAdvancedMode(!!cfg.advanced_mode);
         const notify = cfg.notifications || {};
+        const ha = cfg.home_assistant || {};
         document.getElementById("qol-browser-notify").checked = !!notify.browser;
         document.getElementById("qol-notify-start").checked = !!notify.job_start;
         document.getElementById("qol-notify-complete").checked = !!notify.job_complete;
         document.getElementById("qol-notify-failed").checked = !!notify.job_failed;
+        document.getElementById("qol-ha-enabled").checked = !!ha.enabled;
+        document.getElementById("qol-ha-url").value = ha.url || "";
+        document.getElementById("qol-ha-token").value = ha.token || "";
+        document.getElementById("qol-ha-service").value = ha.notify_service || "";
+        document.getElementById("qol-ha-title").value = ha.title_prefix || "Linux Video Encoder";
         const main = preflight.main_feature || {};
         const remembered = (preflight.remembered && preflight.remembered.last) || null;
         document.getElementById("mk-preflight-summary").textContent =
@@ -2651,6 +2663,13 @@ SETTINGS_PAGE_TEMPLATE = """
           job_start: document.getElementById("qol-notify-start").checked,
           job_complete: document.getElementById("qol-notify-complete").checked,
           job_failed: document.getElementById("qol-notify-failed").checked,
+        },
+        home_assistant: {
+          enabled: document.getElementById("qol-ha-enabled").checked,
+          url: document.getElementById("qol-ha-url").value || "",
+          token: document.getElementById("qol-ha-token").value || "",
+          notify_service: document.getElementById("qol-ha-service").value || "",
+          title_prefix: document.getElementById("qol-ha-title").value || "Linux Video Encoder",
         },
       };
       await fetchJSON("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

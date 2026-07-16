@@ -36,6 +36,12 @@ class StatusTrackerTests(unittest.TestCase):
         self.assertEqual(self.tracker.last_failed_source(), "movie.mkv")
         self.assertTrue(any(item["kind"] == "job-failed" for item in notifications))
 
+    def test_notification_sink_receives_start_event(self):
+        received = []
+        self.tracker.register_notification_sink(lambda payload: received.append(payload))
+        self.tracker.start("movie.mkv", "/tmp/movie-out.mkv", state="running")
+        self.assertTrue(any(item["kind"] == "job-start" for item in received))
+
 
 if __name__ == "__main__":
     unittest.main()

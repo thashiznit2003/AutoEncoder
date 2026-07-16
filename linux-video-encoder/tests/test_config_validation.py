@@ -40,6 +40,7 @@ DEFAULTS = {
     "naming_template_disc": "{disc_label}",
     "final_destinations": {"movies": "", "tv": "", "extras": ""},
     "notifications": {"browser": True, "job_start": True, "job_complete": True, "job_failed": True},
+    "home_assistant": {"enabled": False, "url": "", "token": "", "notify_service": "", "title_prefix": "Linux Video Encoder"},
     "audio_subtitle_presets": {},
     "disc_profile_presets": {},
     "disc_title_preferences": {},
@@ -54,6 +55,7 @@ class ConfigValidationTests(unittest.TestCase):
                 "rescan_interval": "9999",
                 "makemkv_titles": "1, 2 ,3",
                 "notifications": {"browser": 0, "job_failed": 1},
+                "home_assistant": {"enabled": 1, "url": "https://ha.local/", "token": "abc", "notify_service": "notify.phone"},
                 "final_destinations": {"movies": "/movies", "tv": "/tv"},
                 "naming_template_movie": "bad-template-without-tokens",
                 "disc_title_preferences": {"disc-a": {"prefer_titles": "5,6", "blocked_titles": ["7"]}},
@@ -64,6 +66,9 @@ class ConfigValidationTests(unittest.TestCase):
         self.assertEqual(cfg["makemkv_titles"], ["1", "2", "3"])
         self.assertFalse(cfg["notifications"]["browser"])
         self.assertTrue(cfg["notifications"]["job_failed"])
+        self.assertTrue(cfg["home_assistant"]["enabled"])
+        self.assertEqual(cfg["home_assistant"]["url"], "https://ha.local")
+        self.assertEqual(cfg["home_assistant"]["notify_service"], "notify.phone")
         self.assertEqual(cfg["final_destinations"]["movies"], "/movies")
         self.assertEqual(cfg["final_destinations"]["tv"], "/tv")
         self.assertEqual(cfg["naming_template_movie"], "{title}")

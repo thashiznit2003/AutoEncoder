@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.25.209 - 2026-07-16
+- Add Home Assistant push notification delivery to Linux Video Encoder, with settings for URL, token, notify service, title, and per-event enablement in the Settings page.
+- Route tracker notification events through backend sinks so job start, completion, and failure can fan out beyond browser-only notifications.
+
 ## 1.25.208 - 2026-07-16
 - Replace the older duplicated config-normalization path with a dedicated validation module so persisted settings are clamped, sanitized, and normalized consistently.
 - Add helper-driven output classification and rename templating so completed files can be routed more safely into movie, TV, or extras destinations using richer token replacement.

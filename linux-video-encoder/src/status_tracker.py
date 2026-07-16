@@ -93,6 +93,7 @@ class StatusTracker:
         self._notifications = []
         self._disc_profiles = {}
         self._last_failed_source = None
+        self._notification_sinks = []
         self._state_path = Path(state_path)
         self._load_persisted_state()
 
@@ -189,13 +190,29 @@ class StatusTracker:
                 self._events = self._events[-self._history_size :]
 
     def add_notification(self, message: str, level: str = "info", kind: str = "general", source: str = ""):
+        notification = None
+        sinks = []
         with self._lock:
-            self._notifications.append({"message": message, "level": level, "kind": kind, "source": source, "ts": time.time()})
+            notification = {"message": message, "level": level, "kind": kind, "source": source, "ts": time.time()}
+            self._notifications.append(notification)
             if len(self._notifications) > 500:
                 self._notifications = self._notifications[-500:]
+            sinks = list(self._notification_sinks)
             self._persist_state_locked()
+        for sink in sinks:
+            try:
+                sink(dict(notification))
+            except Exception:
+                pass
+
+    def register_notification_sink(self, sink):
+        if not callable(sink):
+            return
+        with self._lock:
+            self._notification_sinks.append(sink)
 
     def start(self, src: str, dest: str, info=None, state: str = "running"):
+        notification = None
         with self._lock:
             if src not in self._queue_rank:
                 self._queue_seq += 1
@@ -210,6 +227,11 @@ class StatusTracker:
                 "stage": "queued" if state == "queued" else "preparing",
             }
             self._persist_state_locked()
+            if state in {"running", "ripping", "starting"}:
+                label = Path(src).name if src else "job"
+                notification = (f"Job started: {label}", "info", "job-start", src)
+        if notification:
+            self.add_notification(*notification)
 
     def register_proc(self, src: str, proc):
         with self._lock:
