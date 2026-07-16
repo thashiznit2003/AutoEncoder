@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.25.208 - 2026-07-16
+- Replace the older duplicated config-normalization path with a dedicated validation module so persisted settings are clamped, sanitized, and normalized consistently.
+- Add helper-driven output classification and rename templating so completed files can be routed more safely into movie, TV, or extras destinations using richer token replacement.
+- Add a real unit test suite for config validation, queue controls, and the new QoL helper logic, and upgrade the UI to show structured job details plus smarter move/history actions.
+
 ## 1.25.207 - 2026-07-16
 - Fix the main dashboard notification refresh path so browser-notification settings reuse the already-fetched config instead of throwing a `ReferenceError` on `hbCfg`.
 

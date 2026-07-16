@@ -29,6 +29,7 @@ from status_tracker import StatusTracker
 from smb_allowlist import enforce_smb_allowlist, load_smb_allowlist, save_smb_allowlist, remove_from_allowlist
 from web_server import start_web_server
 from makemkv_parser import parse_makemkv_info_output, _parse_duration_to_seconds, apply_title_scores
+from config_validation import normalize_config, validate_update_payload
 
 # locate config in the state volume (seeded from repo config.json on first run)
 STATE_DIR = Path("/var/lib/autoencoder/state")
@@ -183,6 +184,9 @@ class ConfigManager:
     def update(self, data: Dict[str, Any]) -> Dict[str, Any]:
         with self.lock:
             cfg = load_config(self.path)
+            payload, warnings = validate_update_payload(data)
+            for warning in warnings:
+                logging.warning("Config update adjusted: %s", warning)
             for field in [
                 "output_dir",
                 "rip_dir",
@@ -219,10 +223,10 @@ class ConfigManager:
                 "disc_profile_presets",
                 "disc_title_preferences",
             ]:
-                if field in data and data[field] is not None:
-                    cfg[field] = data[field]
+                if field in payload and payload[field] is not None:
+                    cfg[field] = payload[field]
             for key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
-                hb_data = data.get(key)
+                hb_data = payload.get(key)
                 if isinstance(hb_data, dict):
                     if key not in cfg or not isinstance(cfg.get(key), dict):
                         cfg[key] = {}
@@ -257,99 +261,7 @@ def load_config(path: Path):
             cfg = json.load(f)
     except Exception:
         cfg = {}
-    # merge defaults (shallow merge is sufficient for this shape)
-    merged = DEFAULT_CONFIG.copy()
-    merged.update({k: v for k, v in cfg.items() if v is not None})
-    # ensure output_dir is a string path
-    merged["output_dir"] = str(Path(merged["output_dir"]))
-    merged["smb_staging_dir"] = str(Path(merged.get("smb_staging_dir", DEFAULT_CONFIG["smb_staging_dir"])))
-    merged["usb_staging_dir"] = str(Path(merged.get("usb_staging_dir", DEFAULT_CONFIG["usb_staging_dir"])))
-    merged["auth_user"] = merged.get("auth_user", DEFAULT_CONFIG["auth_user"])
-    merged["auth_password"] = merged.get("auth_password", DEFAULT_CONFIG["auth_password"])
-    extra_auth_users = merged.get("auth_additional_users", [])
-    if not isinstance(extra_auth_users, list):
-        extra_auth_users = []
-    normalized_extra_auth_users = []
-    for entry in extra_auth_users:
-        if not isinstance(entry, dict):
-            continue
-        username = str(entry.get("username") or "").strip()
-        password = str(entry.get("password") or "")
-        if not username or not password:
-            continue
-        normalized_extra_auth_users.append({"username": username, "password": password})
-    merged["auth_additional_users"] = normalized_extra_auth_users
-    # ensure handbrake dict exists
-    for hb_key in ["handbrake", "handbrake_dvd", "handbrake_br"]:
-        if hb_key not in merged or not isinstance(merged.get(hb_key), dict):
-            merged[hb_key] = DEFAULT_CONFIG.get(hb_key, {}).copy()
-        else:
-            hb = DEFAULT_CONFIG.get(hb_key, {}).copy()
-            hb.update({k: v for k, v in merged[hb_key].items() if v is not None})
-            merged[hb_key] = hb
-        # normalize HB list fields
-        for list_key in ["audio_lang_list"]:
-            val = merged[hb_key].get(list_key, [])
-            if isinstance(val, str):
-                val = [v.strip() for v in val.split(",") if v.strip()]
-            elif isinstance(val, list):
-                val = [str(v).strip() for v in val if str(v).strip()]
-            else:
-                val = []
-            merged[hb_key][list_key] = val
-        for str_key in ["audio_track_list", "audio_mixdown", "audio_samplerate", "audio_encoder"]:
-            v = merged[hb_key].get(str_key, "")
-            merged[hb_key][str_key] = "" if v is None else str(v)
-        for num_key in ["audio_drc", "audio_gain"]:
-            val = merged[hb_key].get(num_key)
-            try:
-                merged[hb_key][num_key] = float(val) if val is not None else None
-            except Exception:
-                merged[hb_key][num_key] = None
-    hb_default_encoder = merged.get("handbrake", {}).get("encoder") or "x264"
-    for hb_key in ["handbrake_dvd", "handbrake_br"]:
-        if not merged.get(hb_key, {}).get("encoder"):
-            merged[hb_key]["encoder"] = hb_default_encoder
-    if "handbrake_presets" not in merged or not isinstance(merged.get("handbrake_presets"), list):
-        merged["handbrake_presets"] = []
-    if "makemkv_minlength" not in merged:
-        merged["makemkv_minlength"] = DEFAULT_CONFIG["makemkv_minlength"]
-    for key in ["makemkv_titles", "makemkv_audio_langs", "makemkv_subtitle_langs", "makemkv_preferred_audio_langs", "makemkv_preferred_subtitle_langs"]:
-        val = merged.get(key, [])
-        if isinstance(val, str):
-            val = [v.strip() for v in val.split(",") if v.strip()]
-        elif isinstance(val, list):
-            val = [str(v).strip() for v in val if str(v).strip()]
-        else:
-            val = []
-        merged[key] = val
-    merged["makemkv_keep_ripped"] = bool(merged.get("makemkv_keep_ripped"))
-    merged["makemkv_exclude_commentary"] = bool(merged.get("makemkv_exclude_commentary"))
-    merged["makemkv_prefer_surround"] = bool(merged.get("makemkv_prefer_surround"))
-    merged["makemkv_auto_rip"] = bool(merged.get("makemkv_auto_rip"))
-    merged["low_bitrate_auto_proceed"] = bool(merged.get("low_bitrate_auto_proceed"))
-    merged["low_bitrate_auto_skip"] = bool(merged.get("low_bitrate_auto_skip"))
-    merged["advanced_mode"] = bool(merged.get("advanced_mode"))
-    merged["queue_pause_after_current"] = bool(merged.get("queue_pause_after_current"))
-    if not isinstance(merged.get("final_destinations"), dict):
-        merged["final_destinations"] = DEFAULT_CONFIG["final_destinations"].copy()
-    else:
-        tmp = DEFAULT_CONFIG["final_destinations"].copy()
-        tmp.update({k: str(v or "") for k, v in merged.get("final_destinations", {}).items()})
-        merged["final_destinations"] = tmp
-    if not isinstance(merged.get("notifications"), dict):
-        merged["notifications"] = DEFAULT_CONFIG["notifications"].copy()
-    else:
-        tmp = DEFAULT_CONFIG["notifications"].copy()
-        tmp.update({k: bool(v) for k, v in merged.get("notifications", {}).items()})
-        merged["notifications"] = tmp
-    if not isinstance(merged.get("audio_subtitle_presets"), dict):
-        merged["audio_subtitle_presets"] = DEFAULT_CONFIG["audio_subtitle_presets"].copy()
-    if not isinstance(merged.get("disc_profile_presets"), dict):
-        merged["disc_profile_presets"] = DEFAULT_CONFIG["disc_profile_presets"].copy()
-    if not isinstance(merged.get("disc_title_preferences"), dict):
-        merged["disc_title_preferences"] = {}
-    return merged
+    return normalize_config(cfg, DEFAULT_CONFIG)
 
 def load_usb_seen() -> Dict[str, Dict[str, float]]:
     try:

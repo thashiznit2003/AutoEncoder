@@ -841,7 +841,7 @@ MAIN_PAGE_TEMPLATE = """
         if (item.destination) {
           controls += ' <button class="copy-path-btn" data-path="' + encodeURIComponent(item.destination || "") + '">Copy Path</button>';
           controls += ' <button class="preview-btn" data-path="' + encodeURIComponent(item.destination || "") + '">Preview</button>';
-          controls += ' <button class="move-btn" data-path="' + encodeURIComponent(item.destination || "") + '" data-kind="movies">Move</button>';
+          controls += ' <button class="move-btn" data-path="' + encodeURIComponent(item.destination || "") + '" data-kind="auto">Move</button>';
         }
         const messageText = formatItemValue(item.message || "");
         const encoderLine = item.encoder ? ('<div class="muted">Encoder: ' + item.encoder + '</div>') : "";
@@ -886,11 +886,37 @@ MAIN_PAGE_TEMPLATE = """
 
     async function openJobDetails(source) {
       const data = await fetchJSON("/api/job_details?source=" + encodeURIComponent(source));
+      const summary = data.summary || {};
+      const rows = [
+        ["Source", data.source || ""],
+        ["Destination", data.destination || ""],
+        ["State", data.state || ""],
+        ["Stage", summary.stage || data.stage || ""],
+        ["Class", data.error_class || ""],
+        ["Library", data.library_type || ""],
+        ["Suggested Name", data.name_suggestion || ""],
+        ["Suggested Root", data.recommended_destination_root || ""],
+        ["Queue Rank", summary.queue_rank == null ? "" : String(summary.queue_rank)],
+        ["Queue Held", summary.queue_held ? "Yes" : "No"],
+        ["Source Exists", data.source_exists ? "Yes" : "No"],
+        ["Output Exists", data.exists ? "Yes" : "No"],
+        ["Message", data.message || ""],
+      ].filter((row) => row[1] !== "");
+      const detailsHtml = rows.map(([label, value]) => `
+        <div style="padding:8px 0; border-bottom:1px solid #1f2937;">
+          <div class="muted" style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em;">${label}</div>
+          <div style="word-break:break-word;">${String(value)}</div>
+        </div>
+      `).join("");
       const html = `
-        <div class="log" style="height:auto; max-height:70vh;">${JSON.stringify(data, null, 2)}</div>
+        <div style="display:grid; gap:8px;">
+          <div class="log" style="height:auto; max-height:55vh;">${detailsHtml}</div>
+          <div class="muted">Raw payload available if you need to debug a failed rip or encode.</div>
+        </div>
         <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
           <button id="job-copy-json">Copy JSON</button>
           ${data.destination ? '<button id="job-copy-dest">Copy destination</button>' : ''}
+          ${data.destination ? '<button id="job-move-auto">Move Suggested</button>' : ''}
         </div>
       `;
       const modal = uiModal("Job Details", html);
@@ -898,6 +924,13 @@ MAIN_PAGE_TEMPLATE = """
       if (copyJson) copyJson.onclick = () => copyText(JSON.stringify(data, null, 2), "Job JSON");
       const copyDest = modal.body.querySelector("#job-copy-dest");
       if (copyDest) copyDest.onclick = () => copyText(data.destination || "", "Destination");
+      const moveAuto = modal.body.querySelector("#job-move-auto");
+      if (moveAuto) moveAuto.onclick = async () => {
+        const res = await fetchJSON("/api/files/move", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: data.destination || "", library_type: data.library_type || "movies" }) });
+        await copyText(res.destination || "", "Moved Destination");
+        modal.close();
+        refresh();
+      };
     }
 
     async function openPreview(path) {
@@ -1149,8 +1182,12 @@ MAIN_PAGE_TEMPLATE = """
       }
       if (e.target.classList.contains("move-btn")) {
         const path = decodeURIComponent(e.target.getAttribute("data-path"));
-        const kind = e.target.getAttribute("data-kind") || "movies";
+        let kind = e.target.getAttribute("data-kind") || "movies";
         try {
+          if (kind === "auto") {
+            const suggestion = await fetchJSON("/api/naming/suggest?source=" + encodeURIComponent(path));
+            kind = suggestion.library_type || "movies";
+          }
           const res = await fetchJSON("/api/files/move", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path, library_type: kind }) });
           alert("Moved to: " + (res.destination || ""));
           refresh();
@@ -2579,7 +2616,16 @@ SETTINGS_PAGE_TEMPLATE = """
     document.getElementById("mk-history-open").addEventListener("click", async () => {
       const data = await fetchJSON("/api/disc/history");
       const history = data.history || [];
-      const body = history.length ? `<div class="log" style="height:auto; max-height:70vh;">${JSON.stringify(data, null, 2)}</div>` : "<div class='muted'>No remembered disc history yet.</div>";
+      const body = history.length ? `
+        <div class="log" style="height:auto; max-height:70vh;">${history.map((item) => {
+          const stamp = item.ts ? new Date(item.ts * 1000).toLocaleString() : "";
+          const titles = Array.isArray(item.titles) ? item.titles.join(", ") : "";
+          return "[" + stamp + "] " + (item.rename_to || item.disc_source || "disc") + "\\n"
+            + " Titles: " + titles + "\\n"
+            + " Output: " + (item.output || "") + "\\n"
+            + " Audio: " + ((item.audio_langs || []).join(", ") || "default") + " | Subs: " + ((item.subtitle_langs || []).join(", ") || "default");
+        }).join("\\n\\n")}</div>
+      ` : "<div class='muted'>No remembered disc history yet.</div>";
       uiModal("Disc History", body);
     });
     document.querySelectorAll(".audio-preset-btn").forEach((btn) => btn.addEventListener("click", async () => {

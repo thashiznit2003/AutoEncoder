@@ -19,7 +19,7 @@ from templates import MAIN_PAGE_TEMPLATE, SETTINGS_PAGE_TEMPLATE
 from smb_allowlist import save_smb_allowlist, load_smb_allowlist, remove_from_allowlist
 from makemkv_parser import parse_makemkv_info_output
 from scanner import EXCLUDED_SCAN_PATHS, INTERNAL_SCAN_ROOTS
-from status_tracker import classify_message
+from qol_helpers import build_job_details, build_name_suggestion, guess_library_type
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
@@ -1575,16 +1575,21 @@ def create_app(tracker, config_manager=None):
         item, scope = _find_job(source)
         if not item:
             return None
-        details = dict(item)
-        details["scope"] = scope
-        details["error_class"] = details.get("error_class") or classify_message(
-            details.get("message") or "",
-            details.get("source") or "",
-            details.get("destination") or "",
+        snap = tracker.snapshot()
+        disc = snap.get("disc_info") or {}
+        payload = (disc.get("info") if isinstance(disc, dict) else disc) or {}
+        summary = payload.get("summary") or {}
+        cfg = config_manager.read() if config_manager else {}
+        return build_job_details(
+            item,
+            scope,
+            summary,
+            cfg.get("final_destinations") or {},
+            {
+                "movie": cfg.get("naming_template_movie", "{title}"),
+                "disc": cfg.get("naming_template_disc", "{disc_label}"),
+            },
         )
-        details["exists"] = os.path.exists(details.get("destination") or "")
-        details["source_exists"] = os.path.exists(details.get("source") or "")
-        return details
 
     def _build_disc_preflight(cfg: dict):
         snap = tracker.snapshot()
@@ -1628,15 +1633,24 @@ def create_app(tracker, config_manager=None):
         item, _scope = _find_job(source)
         target = item or {"source": source}
         path = Path(target.get("destination") or target.get("source") or "output.mkv")
-        base_title = path.stem
         disc = tracker.snapshot().get("disc_info") or {}
         payload = (disc.get("info") if isinstance(disc, dict) else disc) or {}
         summary = payload.get("summary") or {}
-        title = target.get("rename_to") or summary.get("disc_label") or summary.get("label") or base_title
-        template = cfg.get("naming_template_movie") if library_type == "movies" else cfg.get("naming_template_disc")
-        template = template or "{title}"
-        safe_title = re.sub(r"[\\\\/:*?\"<>|]+", "", title).strip() or base_title
-        return template.replace("{title}", safe_title).replace("{disc_label}", safe_title).replace("{source}", base_title)
+        title = target.get("rename_to") or summary.get("disc_label") or summary.get("label") or path.stem
+        return build_name_suggestion(
+            str(path),
+            library_type,
+            {
+                "movie": cfg.get("naming_template_movie", "{title}"),
+                "disc": cfg.get("naming_template_disc", "{disc_label}"),
+            },
+            title=title,
+            disc_label=summary.get("disc_label") or summary.get("label") or title,
+            resolution=str(summary.get("resolution") or ""),
+            encoder=str((cfg.get("handbrake") or {}).get("encoder") or ""),
+            disc_type=str(payload.get("disc_type") or summary.get("disc_type") or ""),
+            title_id=str(target.get("title_id") or ""),
+        )
 
     def _run_git(args, cwd: Path):
         return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=False)
@@ -2064,7 +2078,7 @@ def create_app(tracker, config_manager=None):
         if not src or not src.exists() or src.is_dir():
             return jsonify({"error": "source not found"}), 404
         cfg = config_manager.read()
-        library_type = str(payload.get("library_type") or "movies")
+        library_type = str(payload.get("library_type") or "").strip() or guess_library_type(str(src))
         root = str((cfg.get("final_destinations") or {}).get(library_type) or cfg.get("final_dir") or "")
         if not root:
             return jsonify({"error": f"no configured destination for {library_type}"}), 400
@@ -2108,8 +2122,8 @@ def create_app(tracker, config_manager=None):
     def naming_suggest():
         cfg = config_manager.read() if config_manager else {}
         source = (request.args.get("source") or "").strip()
-        library_type = (request.args.get("library_type") or "movies").strip()
-        return jsonify({"suggestion": _build_name_suggestion(source, cfg, library_type=library_type)})
+        library_type = (request.args.get("library_type") or "").strip() or guess_library_type(source)
+        return jsonify({"suggestion": _build_name_suggestion(source, cfg, library_type=library_type), "library_type": library_type})
 
     @app.route("/api/cleanup", methods=["POST"])
     @require_auth
