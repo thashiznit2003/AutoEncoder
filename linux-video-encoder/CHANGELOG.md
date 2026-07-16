@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.25.207 - 2026-07-16
+- Fix the main dashboard notification refresh path so browser-notification settings reuse the already-fetched config instead of throwing a `ReferenceError` on `hbCfg`.
+
 ## 1.25.206 - 2026-07-16
 - Add a broader quality-of-life pass across the app: job details, queue controls, pause-after-current, retry-last-failed, notification history, browser notifications, preview/sample actions, output move/delete actions, disc preflight summaries, remembered disc history, and cleanup utilities.
 - Add richer tracker state for stages, queue ordering/holds, classified failures, notification history, and remembered disc profiles so the UI can explain what each job is doing and why it failed.

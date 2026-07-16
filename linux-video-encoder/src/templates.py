@@ -964,11 +964,12 @@ MAIN_PAGE_TEMPLATE = """
     }
 
     async function refresh() {
+      let hbCfg = {};
       try {
         const status = await fetchJSON("/api/status");
         renderList(document.getElementById("active"), status.active, "No active encodes.");
         renderList(document.getElementById("recent"), status.recent, "No recent jobs.");
-        const hbCfg = status.handbrake_config || {};
+        hbCfg = status.handbrake_config || {};
         applyAdvancedMode(!!hbCfg.advanced_mode);
         const hb = hbCfg.handbrake || {};
         const hbDvd = hbCfg.handbrake_dvd || {};
