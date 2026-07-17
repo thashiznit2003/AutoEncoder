@@ -1421,13 +1421,18 @@ SETTINGS_PAGE_TEMPLATE = """
     .mobile-nav-items { display:flex; flex-direction:column; gap:6px; }
     .mobile-nav-item { text-align:left; padding:10px 12px; border-radius:10px; border:1px solid transparent; background:#111827; color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; }
     .mobile-nav-item.active { border-color:#60a5fa; background:#0b1220; color:#93c5fd; }
-    .settings-shell { display:grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; padding: 16px; align-items: start; }
-    .settings-sidebar { position: sticky; top: 16px; background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
-    .settings-sidebar-title { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; margin-bottom: 10px; }
-    .desktop-nav-items { display:flex; flex-direction:column; gap:6px; }
+    .settings-shell { display:flex; flex-direction:column; gap: 14px; padding: 16px; max-width: 1240px; margin: 0 auto; }
+    .settings-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background: linear-gradient(145deg, rgba(17,24,39,0.96), rgba(13,21,40,0.96)); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.03); position: sticky; top: 12px; z-index: 20; backdrop-filter: blur(12px); }
+    .settings-toolbar-main { display:flex; flex-direction:column; gap:4px; min-width: 220px; }
+    .settings-toolbar-title { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; }
+    .settings-toolbar-copy { font-size: 13px; color: #cbd5e1; }
+    .desktop-nav-items { display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end; flex:1; min-width: 0; }
+    .desktop-nav-items .mobile-nav-item { width:auto; min-width: 0; padding: 9px 14px; white-space: nowrap; border-radius: 999px; background: rgba(15,23,42,0.88); }
+    .desktop-nav-items .mobile-nav-item.active { box-shadow: 0 10px 24px rgba(59,130,246,0.22); }
+    .settings-content { min-width: 0; }
     .grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; gap: 12px; padding: 0; align-items: start; }
     .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
-    .settings-content .panel { max-width: 980px; width: 100%; }
+    .settings-content .panel { max-width: 980px; width: 100%; margin: 0 auto; }
     .panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #a5b4fc; letter-spacing: 0.4px; display:flex; align-items:center; gap:8px; }
     form { display: grid; gap: 8px; margin-top: 8px; }
     label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; min-width: 0; }
@@ -1451,8 +1456,8 @@ SETTINGS_PAGE_TEMPLATE = """
       header { flex-wrap: wrap; gap: 10px; }
       .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
       .nav-toggle { display:inline-flex; }
-      .settings-shell { grid-template-columns: 1fr; padding: 12px; }
-      .settings-sidebar { display:none; }
+      .settings-shell { padding: 12px; }
+      .settings-toolbar { display:none; }
       .grid { grid-template-columns: 1fr; }
       .settings-split-grid { grid-template-columns: 1fr; }
       .settings-button-grid { grid-template-columns: 1fr; }
@@ -1475,10 +1480,13 @@ SETTINGS_PAGE_TEMPLATE = """
     <div class="mobile-nav-items" id="mobile-nav-items"></div>
   </nav>
   <div class="settings-shell">
-    <aside class="settings-sidebar" aria-label="Settings sections">
-      <div class="settings-sidebar-title">Settings Sections</div>
+    <section class="settings-toolbar" aria-label="Settings sections">
+      <div class="settings-toolbar-main">
+        <div class="settings-toolbar-title">Settings Sections</div>
+        <div class="settings-toolbar-copy">Switch sections here. One focused settings panel stays visible at a time.</div>
+      </div>
       <div class="desktop-nav-items" id="desktop-nav-items"></div>
-    </aside>
+    </section>
     <main class="settings-content">
   <div class="grid">
     <div class="panel" id="panel-handbrake" data-panel-title="HandBrake Settings">
