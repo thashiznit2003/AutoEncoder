@@ -20,6 +20,7 @@ from smb_allowlist import save_smb_allowlist, load_smb_allowlist, remove_from_al
 from makemkv_parser import parse_makemkv_info_output
 from scanner import EXCLUDED_SCAN_PATHS, INTERNAL_SCAN_ROOTS
 from qol_helpers import build_job_details, build_name_suggestion, guess_library_type
+from tv_disc_helpers import build_episode_plan, classify_tv_candidates, tvmaze_episodes, tvmaze_search
 
 SMB_MOUNT_ROOT = pathlib.Path("/mnt/smb")
 ASSETS_ROOT = pathlib.Path("/linux-video-encoder/assets")
@@ -1595,14 +1596,30 @@ def create_app(tracker, config_manager=None):
         snap = tracker.snapshot()
         disc = snap.get("disc_info") or {}
         payload = (disc.get("info") if isinstance(disc, dict) else disc) or {}
+        classified = classify_tv_candidates(payload)
         summary = payload.get("summary") or {}
         titles = payload.get("titles") or []
         main = summary.get("main_feature") or {}
         remembered = None
         disc_key = "|".join([summary.get("disc_label") or "", summary.get("drive") or ""]).strip("|")
+        workflow = cfg.get("disc_workflow") or {}
+        episode_pref = {}
         if disc_key:
             remembered = tracker.disc_profile(disc_key)
+            episode_pref = (cfg.get("disc_episode_preferences") or {}).get(disc_key) or {}
         hb = cfg.get("handbrake", {})
+        episode_plan = {}
+        if str(workflow.get("mode") or "").lower() == "tv":
+            episode_plan = build_episode_plan(
+                payload,
+                str(episode_pref.get("show_title") or workflow.get("show_title") or ""),
+                int(episode_pref.get("season_number") or workflow.get("season_number") or 1),
+                int(episode_pref.get("episode_start") or workflow.get("episode_start") or 1),
+                selected_titles=(episode_pref.get("selected_titles") or []),
+                metadata_episodes=[],
+                count=int(workflow.get("episode_count") or 4),
+                existing_plan=episode_pref,
+            )
         return {
             "disc_key": disc_key,
             "disc_label": summary.get("disc_label") or summary.get("label") or "",
@@ -1619,7 +1636,42 @@ def create_app(tracker, config_manager=None):
             "output_dir": cfg.get("output_dir"),
             "rip_dir": cfg.get("rip_dir"),
             "remembered": remembered,
+            "disc_workflow": workflow,
+            "episode_candidates": classified.get("summary", {}).get("episode_candidates") or [],
+            "episode_plan": episode_plan,
+            "episode_preferences": episode_pref,
         }
+
+    def _active_disc_key(payload: dict | None = None) -> str:
+        parsed = payload or {}
+        summary = parsed.get("summary") or {}
+        return "|".join([summary.get("disc_label") or "", summary.get("drive") or ""]).strip("|")
+
+    def _build_episode_preference_payload(cfg: dict, payload: dict, existing: dict | None = None) -> dict:
+        workflow = cfg.get("disc_workflow") or {}
+        episode_pref = existing or {}
+        show_title = str(episode_pref.get("show_title") or workflow.get("show_title") or "").strip()
+        season_number = int(episode_pref.get("season_number") or workflow.get("season_number") or 1)
+        episode_start = int(episode_pref.get("episode_start") or workflow.get("episode_start") or 1)
+        count = int(workflow.get("episode_count") or 4)
+        selected_titles = episode_pref.get("selected_titles") or []
+        show_id = str(episode_pref.get("show_id") or workflow.get("show_id") or "").strip()
+        metadata = []
+        if show_id and str(workflow.get("metadata_provider") or "tvmaze") == "tvmaze":
+            try:
+                metadata = tvmaze_episodes(show_id)
+            except Exception:
+                metadata = []
+        return build_episode_plan(
+            payload,
+            show_title,
+            season_number,
+            episode_start,
+            selected_titles=selected_titles,
+            metadata_episodes=metadata,
+            count=count,
+            existing_plan=episode_pref,
+        )
 
     def _safe_path(path_value: str):
         if not path_value:
@@ -2057,6 +2109,89 @@ def create_app(tracker, config_manager=None):
             return jsonify({"history": []})
         profile = tracker.disc_profile(disc_key) or {}
         return jsonify(profile)
+
+    @app.route("/api/tv_disc/search", methods=["POST"])
+    @require_auth
+    def tv_disc_search():
+        payload = request.get_json(silent=True) or {}
+        query = str(payload.get("query") or "").strip()
+        if not query:
+            return jsonify({"error": "query required"}), 400
+        try:
+            return jsonify({"results": tvmaze_search(query)})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 502
+
+    @app.route("/api/tv_disc/plan")
+    @require_auth
+    def tv_disc_plan_get():
+        cfg = config_manager.read() if config_manager else {}
+        disc = tracker.snapshot().get("disc_info") or {}
+        payload = (disc.get("info") if isinstance(disc, dict) else disc) or {}
+        disc_key = _active_disc_key(payload)
+        episode_pref = ((cfg.get("disc_episode_preferences") or {}).get(disc_key) or {}) if disc_key else {}
+        return jsonify(
+            {
+                "disc_key": disc_key,
+                "workflow": cfg.get("disc_workflow") or {},
+                "plan": _build_episode_preference_payload(cfg, payload, existing=episode_pref) if payload else {},
+            }
+        )
+
+    @app.route("/api/tv_disc/plan", methods=["POST"])
+    @require_auth
+    def tv_disc_plan_post():
+        if not config_manager:
+            return jsonify({"error": "config unavailable"}), 500
+        body = request.get_json(silent=True) or {}
+        cfg = config_manager.read()
+        disc = tracker.snapshot().get("disc_info") or {}
+        payload = (disc.get("info") if isinstance(disc, dict) else disc) or {}
+        disc_key = _active_disc_key(payload)
+        if not disc_key:
+            return jsonify({"error": "no active disc"}), 400
+        workflow = dict(cfg.get("disc_workflow") or {})
+        existing_pref = dict((cfg.get("disc_episode_preferences") or {}).get(disc_key) or {})
+        if "mode" in body or "show_title" in body or "season_number" in body or "episode_start" in body or "show_id" in body or "episode_count" in body:
+            workflow.update(
+                {
+                    "mode": body.get("mode", workflow.get("mode")),
+                    "show_title": body.get("show_title", workflow.get("show_title")),
+                    "season_number": body.get("season_number", workflow.get("season_number")),
+                    "episode_start": body.get("episode_start", workflow.get("episode_start")),
+                    "show_id": body.get("show_id", workflow.get("show_id")),
+                    "episode_count": body.get("episode_count", workflow.get("episode_count")),
+                }
+            )
+            cfg = config_manager.update({"disc_workflow": workflow})
+            workflow = cfg.get("disc_workflow") or workflow
+        if "selected_titles" in body:
+            existing_pref["selected_titles"] = [str(item).strip() for item in (body.get("selected_titles") or []) if str(item).strip()]
+        if "show_title" in body:
+            existing_pref["show_title"] = str(body.get("show_title") or "").strip()
+        if "show_id" in body:
+            existing_pref["show_id"] = str(body.get("show_id") or "").strip()
+        if "season_number" in body:
+            existing_pref["season_number"] = int(body.get("season_number") or 1)
+        if "episode_start" in body:
+            existing_pref["episode_start"] = int(body.get("episode_start") or 1)
+        if "planned_titles" in body and isinstance(body.get("planned_titles"), list):
+            existing_pref["planned_titles"] = body.get("planned_titles")
+        plan = _build_episode_preference_payload(cfg, payload, existing=existing_pref)
+        if body.get("save"):
+            prefs = dict(cfg.get("disc_episode_preferences") or {})
+            prefs[disc_key] = {
+                "show_title": existing_pref.get("show_title") or plan.get("show_title") or "",
+                "show_id": existing_pref.get("show_id") or "",
+                "season_number": int(existing_pref.get("season_number") or plan.get("season_number") or 1),
+                "episode_start": int(existing_pref.get("episode_start") or plan.get("episode_start") or 1),
+                "metadata_provider": str((cfg.get("disc_workflow") or {}).get("metadata_provider") or "tvmaze"),
+                "selected_titles": plan.get("selected_titles") or existing_pref.get("selected_titles") or [],
+                "planned_titles": body.get("planned_titles") or plan.get("planned_titles") or [],
+                "updated_at": time.time(),
+            }
+            cfg = config_manager.update({"disc_episode_preferences": prefs})
+        return jsonify({"disc_key": disc_key, "workflow": workflow, "plan": plan})
 
     @app.route("/api/files/delete", methods=["POST"])
     @require_auth

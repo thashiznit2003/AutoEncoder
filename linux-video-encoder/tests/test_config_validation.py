@@ -43,7 +43,9 @@ DEFAULTS = {
     "home_assistant": {"enabled": False, "url": "", "token": "", "notify_service": "", "title_prefix": "Linux Video Encoder"},
     "audio_subtitle_presets": {},
     "disc_profile_presets": {},
+    "disc_workflow": {"mode": "movies", "show_title": "", "show_id": "", "season_number": 1, "episode_start": 1, "metadata_provider": "tvmaze", "auto_apply_plan": True, "episode_count": 4},
     "disc_title_preferences": {},
+    "disc_episode_preferences": {},
     "handbrake_presets": [],
 }
 
@@ -59,6 +61,8 @@ class ConfigValidationTests(unittest.TestCase):
                 "final_destinations": {"movies": "/movies", "tv": "/tv"},
                 "naming_template_movie": "bad-template-without-tokens",
                 "disc_title_preferences": {"disc-a": {"prefer_titles": "5,6", "blocked_titles": ["7"]}},
+                "disc_workflow": {"mode": "tv", "show_title": "Test Show", "season_number": "2", "episode_start": "4", "episode_count": "8"},
+                "disc_episode_preferences": {"disc-a": {"show_title": "Test Show", "selected_titles": "1,2", "planned_titles": [{"title_id": "1", "season": "2", "episode": "4"}]}},
             },
             DEFAULTS,
         )
@@ -73,6 +77,9 @@ class ConfigValidationTests(unittest.TestCase):
         self.assertEqual(cfg["final_destinations"]["tv"], "/tv")
         self.assertEqual(cfg["naming_template_movie"], "{title}")
         self.assertEqual(cfg["disc_title_preferences"]["disc-a"]["prefer_titles"], ["5", "6"])
+        self.assertEqual(cfg["disc_workflow"]["mode"], "tv")
+        self.assertEqual(cfg["disc_workflow"]["season_number"], 2)
+        self.assertEqual(cfg["disc_episode_preferences"]["disc-a"]["selected_titles"], ["1", "2"])
 
     def test_validate_update_payload_returns_warnings(self):
         payload, warnings = validate_update_payload(

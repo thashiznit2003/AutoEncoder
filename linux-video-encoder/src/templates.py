@@ -1660,6 +1660,31 @@ SETTINGS_PAGE_TEMPLATE = """
         <label style="display:flex; align-items:center; gap:6px;">
           <input type="checkbox" id="mk-auto-rip" /> Auto-start rip when disc detected
         </label>
+        <div style="border:1px solid rgba(148,163,184,0.18); border-radius:10px; padding:10px; margin:6px 0 2px 0;">
+          <div class="muted" style="margin-bottom:8px;">TV Disc Workflow</div>
+          <label>Disc workflow mode
+            <select id="mk-workflow-mode">
+              <option value="movies">Movies</option>
+              <option value="tv">TV Disc</option>
+              <option value="manual">Manual</option>
+            </select>
+          </label>
+          <label>Show title <input id="mk-show-title" placeholder="Batman The Animated Series" /></label>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+            <label>Season <input id="mk-season" type="number" min="1" step="1" /></label>
+            <label>Episode start <input id="mk-episode-start" type="number" min="1" step="1" /></label>
+            <label>Episode count <input id="mk-episode-count" type="number" min="1" step="1" /></label>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+            <button type="button" id="mk-tv-search">Search Metadata</button>
+            <button type="button" id="mk-tv-build">Build Episode Plan</button>
+            <button type="button" id="mk-tv-apply">Use Planned Titles</button>
+            <button type="button" id="mk-tv-save">Save Disc Plan</button>
+          </div>
+          <div id="mk-tv-status" class="muted field-display" style="margin-top:6px;">TV disc mode is idle.</div>
+          <div id="mk-tv-search-results" class="log field-display" style="max-height:120px; overflow:auto; padding:8px; margin-top:6px;"></div>
+          <div id="mk-tv-plan" class="log field-display" style="max-height:220px; overflow:auto; padding:8px; margin-top:6px;"></div>
+        </div>
         <button type="button" id="mk-save">Save MakeMKV</button>
       </form>
       <div style="margin-top:8px;">
@@ -2091,6 +2116,83 @@ SETTINGS_PAGE_TEMPLATE = """
       return Array.from(document.querySelectorAll(".mk-title-check:checked")).map((el) => String(el.getAttribute("data-title") || "")).filter(Boolean);
     }
 
+    function renderTvSearchResults(results) {
+      const el = document.getElementById("mk-tv-search-results");
+      if (!el) return;
+      const items = Array.isArray(results) ? results : [];
+      if (!items.length) {
+        el.innerHTML = "<div class='muted'>No metadata results loaded.</div>";
+        return;
+      }
+      el.innerHTML = items.map((item) => {
+        const sid = item.id !== undefined && item.id !== null ? String(item.id) : "";
+        const name = item.name || "Unknown show";
+        const premiered = item.premiered || "";
+        const status = item.status || "";
+        return '<button type="button" class="mk-tv-result" data-show-id="' + sid + '" data-show-name="' + name.replace(/"/g, '&quot;') + '" style="display:block; width:100%; text-align:left; margin:4px 0; padding:8px; border:1px solid rgba(148,163,184,0.16); border-radius:8px; background:rgba(15,23,42,0.5); color:inherit;">'
+          + '<div style="font-weight:600;">' + name + '</div>'
+          + '<div class="muted" style="font-size:11px;">' + [premiered, status].filter(Boolean).join(" | ") + '</div>'
+          + '</button>';
+      }).join("");
+      el.querySelectorAll(".mk-tv-result").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById("mk-show-title").value = btn.getAttribute("data-show-name") || "";
+          document.getElementById("mk-show-title").dataset.showId = btn.getAttribute("data-show-id") || "";
+          document.getElementById("mk-tv-status").textContent = "Selected show metadata: " + (btn.getAttribute("data-show-name") || "");
+          mkDirty = true;
+        });
+      });
+    }
+
+    function collectTvPlanEdits() {
+      return Array.from(document.querySelectorAll(".mk-tv-plan-row")).map((row) => ({
+        title_id: row.getAttribute("data-title-id") || "",
+        season: Number(row.querySelector(".mk-tv-plan-season")?.value || "1"),
+        episode: Number(row.querySelector(".mk-tv-plan-episode")?.value || "1"),
+        code: row.querySelector(".mk-tv-plan-code")?.textContent || "",
+        episode_title: row.querySelector(".mk-tv-plan-title")?.value || "",
+        filename: row.querySelector(".mk-tv-plan-file")?.value || "",
+        confidence: row.querySelector(".mk-tv-plan-confidence")?.textContent || "",
+        runtime_seconds: Number(row.getAttribute("data-runtime-seconds") || "0"),
+        menu_label: row.querySelector(".mk-tv-plan-menu")?.value || "",
+        notes: row.querySelector(".mk-tv-plan-notes")?.value || "",
+      })).filter((item) => item.title_id);
+    }
+
+    function renderTvPlan(plan) {
+      const el = document.getElementById("mk-tv-plan");
+      if (!el) return;
+      const planned = (plan && plan.planned_titles) || [];
+      if (!planned.length) {
+        el.innerHTML = "<div class='muted'>No episode plan yet.</div>";
+        return;
+      }
+      el.innerHTML = planned.map((item) => {
+        const titleId = item.title_id || "";
+        const code = item.code || "";
+        const runtime = item.runtime || "";
+        const confidence = item.confidence || "";
+        const reasons = (item.reasons || []).join(", ");
+        return '<div class="mk-tv-plan-row" data-title-id="' + titleId + '" data-runtime-seconds="' + (item.runtime_seconds || 0) + '" style="border:1px solid rgba(148,163,184,0.16); border-radius:8px; padding:8px; margin:6px 0;">'
+          + '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">'
+          + '<strong>Title ' + titleId + '</strong>'
+          + '<span class="mk-tv-plan-code muted">' + code + '</span>'
+          + '<span class="mk-tv-plan-confidence muted">' + confidence + '</span>'
+          + (runtime ? '<span class="muted">' + runtime + '</span>' : '')
+          + '</div>'
+          + '<div style="display:grid; grid-template-columns:80px 80px 1fr; gap:8px; margin-top:6px;">'
+          + '<label>Season<input class="mk-tv-plan-season" type="number" min="1" step="1" value="' + (item.season || 1) + '"/></label>'
+          + '<label>Episode<input class="mk-tv-plan-episode" type="number" min="1" step="1" value="' + (item.episode || 1) + '"/></label>'
+          + '<label>Episode title<input class="mk-tv-plan-title" value="' + (item.episode_title || '').replace(/"/g, '&quot;') + '"/></label>'
+          + '</div>'
+          + '<label style="margin-top:6px;">Output filename<input class="mk-tv-plan-file" value="' + (item.filename || '').replace(/"/g, '&quot;') + '"/></label>'
+          + '<label style="margin-top:6px;">Menu label / button hint<input class="mk-tv-plan-menu" value="' + (item.menu_label || '').replace(/"/g, '&quot;') + '" placeholder="Episode 1"/></label>'
+          + '<label style="margin-top:6px;">Notes<input class="mk-tv-plan-notes" value="' + (item.notes || '').replace(/"/g, '&quot;') + '" placeholder="Any manual mapping notes"/></label>'
+          + (reasons ? '<div class="muted" style="font-size:11px; margin-top:6px;">' + reasons + '</div>' : '')
+          + '</div>';
+      }).join("");
+    }
+
     function applyAudioPreset(cfg, presetName) {
       const preset = ((cfg || {}).audio_subtitle_presets || {})[presetName];
       if (!preset) return;
@@ -2191,6 +2293,13 @@ SETTINGS_PAGE_TEMPLATE = """
           document.getElementById("mk-exclude-commentary").checked = !!cfg.makemkv_exclude_commentary;
           document.getElementById("mk-prefer-surround").checked = cfg.makemkv_prefer_surround !== false;
           document.getElementById("mk-auto-rip").checked = !!cfg.makemkv_auto_rip;
+          const workflow = cfg.disc_workflow || {};
+          document.getElementById("mk-workflow-mode").value = workflow.mode || "movies";
+          document.getElementById("mk-show-title").value = workflow.show_title || "";
+          document.getElementById("mk-show-title").dataset.showId = workflow.show_id || "";
+          document.getElementById("mk-season").value = workflow.season_number || 1;
+          document.getElementById("mk-episode-start").value = workflow.episode_start || 1;
+          document.getElementById("mk-episode-count").value = workflow.episode_count || 4;
         }
         const hb = cfg.handbrake || {};
         const hbDvd = cfg.handbrake_dvd || {};
@@ -2293,6 +2402,18 @@ SETTINGS_PAGE_TEMPLATE = """
           (main.score !== undefined ? (" | score " + main.score) : "") +
           " | encoder " + (preflight.encoder || "unknown") +
           (remembered ? (" | last output " + (remembered.output || "unknown")) : "");
+        const workflow = preflight.disc_workflow || cfg.disc_workflow || {};
+        const episodeCandidates = preflight.episode_candidates || [];
+        const episodePlan = (preflight.episode_preferences && preflight.episode_preferences.planned_titles && preflight.episode_preferences.planned_titles.length)
+          ? preflight.episode_preferences
+          : (preflight.episode_plan || {});
+        const tvStatusEl = document.getElementById("mk-tv-status");
+        if (tvStatusEl) {
+          tvStatusEl.textContent = workflow.mode === "tv"
+            ? ("TV disc mode active" + (episodeCandidates.length ? (" | candidates: " + episodeCandidates.length) : ""))
+            : "TV disc mode is idle.";
+        }
+        renderTvPlan(episodePlan);
       } catch (e) {
         const debugEl = document.getElementById("mk-titles-debug");
         if (debugEl) {
@@ -2453,6 +2574,14 @@ SETTINGS_PAGE_TEMPLATE = """
         makemkv_exclude_commentary: document.getElementById("mk-exclude-commentary").checked,
         makemkv_prefer_surround: document.getElementById("mk-prefer-surround").checked,
         makemkv_auto_rip: document.getElementById("mk-auto-rip").checked,
+        disc_workflow: {
+          mode: document.getElementById("mk-workflow-mode").value || "movies",
+          show_title: document.getElementById("mk-show-title").value || "",
+          show_id: document.getElementById("mk-show-title").dataset.showId || "",
+          season_number: Number(document.getElementById("mk-season").value || "1"),
+          episode_start: Number(document.getElementById("mk-episode-start").value || "1"),
+          episode_count: Number(document.getElementById("mk-episode-count").value || "4"),
+        },
       };
       await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       try { await fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: "MakeMKV settings saved", level: "info" }) }); } catch (err) {}
@@ -2603,6 +2732,81 @@ SETTINGS_PAGE_TEMPLATE = """
         alert("Disc info copied.");
       } catch (e) {
         alert("Failed to copy: " + e);
+      }
+    });
+
+    document.getElementById("mk-tv-search").addEventListener("click", async () => {
+      const query = (document.getElementById("mk-show-title").value || "").trim();
+      if (!query) { alert("Enter a show title first."); return; }
+      document.getElementById("mk-tv-status").textContent = "Searching TV metadata...";
+      try {
+        const data = await fetchJSON("/api/tv_disc/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+        });
+        renderTvSearchResults(data.results || []);
+        document.getElementById("mk-tv-status").textContent = (data.results || []).length
+          ? "Select the best matching show below."
+          : "No TV metadata matches found.";
+      } catch (e) {
+        document.getElementById("mk-tv-status").textContent = "TV metadata search failed.";
+      }
+    });
+
+    async function requestTvPlan(savePlan) {
+      const ids = selectedTitleIds();
+      const body = {
+        mode: document.getElementById("mk-workflow-mode").value || "movies",
+        show_title: document.getElementById("mk-show-title").value || "",
+        show_id: document.getElementById("mk-show-title").dataset.showId || "",
+        season_number: Number(document.getElementById("mk-season").value || "1"),
+        episode_start: Number(document.getElementById("mk-episode-start").value || "1"),
+        episode_count: Number(document.getElementById("mk-episode-count").value || "4"),
+        selected_titles: ids,
+        planned_titles: collectTvPlanEdits(),
+        save: !!savePlan,
+      };
+      const data = await fetchJSON("/api/tv_disc/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      renderTvPlan((data && data.plan) || {});
+      const plannedTitles = ((data && data.plan && data.plan.selected_titles) || []).join(", ");
+      document.getElementById("mk-tv-status").textContent = plannedTitles
+        ? ("Planned episode titles: " + plannedTitles)
+        : "No episode plan could be built.";
+      if (savePlan) {
+        alert("TV disc plan saved for this disc.");
+      }
+      return data;
+    }
+
+    document.getElementById("mk-tv-build").addEventListener("click", async () => {
+      try {
+        await requestTvPlan(false);
+      } catch (e) {
+        alert("Failed to build TV episode plan: " + e);
+      }
+    });
+
+    document.getElementById("mk-tv-save").addEventListener("click", async () => {
+      try {
+        await requestTvPlan(true);
+      } catch (e) {
+        alert("Failed to save TV episode plan: " + e);
+      }
+    });
+
+    document.getElementById("mk-tv-apply").addEventListener("click", async () => {
+      try {
+        const data = await requestTvPlan(false);
+        const planned = (((data || {}).plan || {}).selected_titles || []).join(", ");
+        document.getElementById("mk-titles").value = planned;
+        mkDirty = true;
+      } catch (e) {
+        alert("Failed to apply TV episode titles: " + e);
       }
     });
 

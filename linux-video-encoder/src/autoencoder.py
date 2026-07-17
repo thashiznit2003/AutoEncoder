@@ -31,6 +31,7 @@ from web_server import start_web_server
 from makemkv_parser import parse_makemkv_info_output, _parse_duration_to_seconds, apply_title_scores
 from config_validation import normalize_config, validate_update_payload
 from ha_notifications import send_home_assistant_notification
+from tv_disc_helpers import build_episode_filename, build_episode_plan, select_episode_candidates
 
 # locate config in the state volume (seeded from repo config.json on first run)
 STATE_DIR = Path("/var/lib/autoencoder/state")
@@ -164,7 +165,18 @@ DEFAULT_CONFIG = {
         "movie_only": {"min_length": 3000, "prefer_surround": True, "exclude_commentary": True},
         "episodes": {"min_length": 1200, "prefer_surround": False, "exclude_commentary": True},
     },
+    "disc_workflow": {
+        "mode": "movies",
+        "show_title": "",
+        "show_id": "",
+        "season_number": 1,
+        "episode_start": 1,
+        "metadata_provider": "tvmaze",
+        "auto_apply_plan": True,
+        "episode_count": 4,
+    },
     "disc_title_preferences": {},
+    "disc_episode_preferences": {},
 }
 
 class ConfigManager:
@@ -230,7 +242,9 @@ class ConfigManager:
                 "home_assistant",
                 "audio_subtitle_presets",
                 "disc_profile_presets",
+                "disc_workflow",
                 "disc_title_preferences",
+                "disc_episode_preferences",
             ]:
                 if field in payload and payload[field] is not None:
                     cfg[field] = payload[field]
@@ -526,6 +540,7 @@ def rip_disc(
     titles=None,
     audio_langs=None,
     subtitle_langs=None,
+    config: Optional[dict] = None,
 ):
     """
     Rips a Blu-ray disc using MakeMKV CLI.
@@ -604,12 +619,14 @@ def rip_disc(
             status_tracker.add_event(f"Using existing ripped MKV: {latest}")
             status_tracker.complete(job_key, True, str(latest), "Reused existing rip")
         return str(latest), True
+    disc_key = ""
     if status_tracker:
         disc_titles = []
         try:
             di = status_tracker.disc_info() or {}
             parsed = di.get("info") if isinstance(di, dict) else di
             disc_titles = (parsed or {}).get("titles") or []
+            disc_key = _get_disc_key(status_tracker, di, disc_index, disc_source)
         except Exception:
             disc_titles = []
         info_parts = []
@@ -730,9 +747,26 @@ def rip_disc(
         rename_to = status_tracker.get_rename(job_key)
     else:
         rename_to = None
+    plan = _episode_plan_for_disc(config, disc_key)
+    planned_by_title = {
+        str(item.get("title_id")): item
+        for item in (plan.get("planned_titles") or [])
+        if isinstance(item, dict) and str(item.get("title_id") or "").strip()
+    }
+    show_title = str(plan.get("show_title") or "").strip()
     for idx, mkv_path in enumerate(mkv_files, start=1):
         try:
-            if rename_to and len(mkv_files) == 1:
+            title_hint = _extract_title_id_from_rip_name(mkv_path)
+            planned = planned_by_title.get(str(title_hint)) if title_hint else None
+            if planned:
+                fallback_name = build_episode_filename(
+                    show_title or "Show",
+                    int(planned.get("season") or 1),
+                    int(planned.get("episode") or idx),
+                    str(planned.get("episode_title") or ""),
+                )
+                base = sanitize_path_component(str(planned.get("filename") or fallback_name), expected_base)
+            elif rename_to and len(mkv_files) == 1:
                 base = sanitize_path_component(Path(rename_to).stem, expected_base)
             elif single_title_id is not None:
                 base = expected_base
@@ -782,6 +816,7 @@ def rip_disc(
                     "output": first_file,
                     "audio_langs": lang_list_audio,
                     "subtitle_langs": lang_list_subs,
+                    "episode_plan": plan.get("planned_titles") or [],
                 },
             )
         except Exception:
@@ -1456,6 +1491,7 @@ def _select_top_titles(info: dict, count: int, min_seconds: int, config: Optiona
         payload = payload.get("info") or payload
     if isinstance(payload, dict):
         payload = apply_title_scores(payload, preferences=_build_title_score_preferences(config))
+    workflow = ((config or {}).get("disc_workflow") or {}) if isinstance(config, dict) else {}
     summary = (payload or {}).get("summary") or {}
     disc_key = ""
     if summary:
@@ -1467,6 +1503,13 @@ def _select_top_titles(info: dict, count: int, min_seconds: int, config: Optiona
     blocked_titles = {str(v) for v in (title_prefs.get("blocked_titles") or []) if str(v).strip()}
     if preferred_titles:
         return preferred_titles[:count]
+    if str(workflow.get("mode") or "").lower() == "tv":
+        disc_episode_prefs = ((config or {}).get("disc_episode_preferences") or {}).get(disc_key, {}) if disc_key else {}
+        planned_titles = [str(v) for v in (disc_episode_prefs.get("selected_titles") or []) if str(v).strip()]
+        episode_count = int(workflow.get("episode_count") or count or 4)
+        selected = select_episode_candidates(payload or {}, count=episode_count, selected_titles=planned_titles)
+        if selected:
+            return [str(item.get("id")) for item in selected if item.get("id") is not None][:count]
     titles = (payload or {}).get("titles") or []
     candidates = []
     fallback = []
@@ -1494,6 +1537,22 @@ def _select_top_titles(info: dict, count: int, min_seconds: int, config: Optiona
         fallback.sort(reverse=True)
         return [str(tid) for _, _, _, tid in fallback[:count]]
     return []
+
+
+def _extract_title_id_from_rip_name(path_value: Path) -> Optional[str]:
+    match = re.search(r"_t0*(\d+)(?:\.[^.]+)?$", path_value.name, re.IGNORECASE)
+    if match:
+        return str(int(match.group(1)))
+    return None
+
+
+def _episode_plan_for_disc(config: Optional[dict], disc_key: str) -> dict:
+    if not disc_key or not isinstance(config, dict):
+        return {}
+    prefs = (config.get("disc_episode_preferences") or {}).get(disc_key) or {}
+    if not isinstance(prefs, dict):
+        return {}
+    return prefs
 
 def estimate_target_bitrate_kbps(config_str: str, hb_opts: dict) -> Optional[float]:
     if hb_opts.get("video_bitrate_kbps"):
@@ -1896,6 +1955,11 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
         if disc_source:
             minlen = int(config.get("makemkv_minlength", 1800))
             rip_titles = config.get("makemkv_titles", [])
+            workflow = config.get("disc_workflow") or {}
+            if not rip_titles and str(workflow.get("mode") or "").lower() == "tv":
+                episode_count = int(workflow.get("episode_count") or 4)
+                disc_info = status_tracker.disc_info() if status_tracker else {}
+                rip_titles = _select_top_titles(disc_info or {}, episode_count, minlen, config=config)
             rip_audio_langs = config.get("makemkv_audio_langs") or config.get("makemkv_preferred_audio_langs", [])
             rip_sub_langs = config.get("makemkv_subtitle_langs") or config.get("makemkv_preferred_subtitle_langs", [])
             rip_path, reused_rip = rip_disc(
@@ -1907,6 +1971,7 @@ def process_video(video_file: str, config: Dict[str, Any], output_dir: Path, rip
                 titles=rip_titles,
                 audio_langs=rip_audio_langs,
                 subtitle_langs=rip_sub_langs,
+                config=config,
             )
             if rip_path is None:
                 logging.error("Blu-ray ripping failed; skipping encoding for %s", video_file)
@@ -2232,6 +2297,7 @@ def main():
                 else:
                     mk_minlen = int(config.get("makemkv_minlength", 1800))
                     mk_titles = config.get("makemkv_titles", [])
+                    workflow = config.get("disc_workflow") or {}
                     mk_audio_langs = config.get("makemkv_audio_langs", []) or config.get("makemkv_preferred_audio_langs", [])
                     mk_sub_langs = config.get("makemkv_subtitle_langs", []) or config.get("makemkv_preferred_subtitle_langs", [])
                     if mode == "auto":
@@ -2255,6 +2321,10 @@ def main():
                         if not next_title:
                             continue
                         mk_titles = [next_title]
+                    elif not mk_titles and str(workflow.get("mode") or "").lower() == "tv":
+                        episode_count = int(workflow.get("episode_count") or 4)
+                        disc_info = status_tracker.disc_info() or {}
+                        mk_titles = _select_top_titles(disc_info, episode_count, mk_minlen, config=config)
                     rip_path, reused = rip_disc(
                         disc_source,
                         disc_num,
@@ -2264,6 +2334,7 @@ def main():
                         titles=mk_titles,
                         audio_langs=mk_audio_langs,
                         subtitle_langs=mk_sub_langs,
+                        config=config,
                     )
                     if rip_path:
                         video_files.append(str(rip_path))

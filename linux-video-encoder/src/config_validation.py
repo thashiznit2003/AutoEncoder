@@ -45,6 +45,13 @@ def _bounded_float(value: Any, default: float | None, minimum: float | None = No
     return parsed
 
 
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
 def sanitize_template(value: Any, default: str) -> str:
     text = str(value or "").strip() or default
     allowed = ["{title}", "{disc_label}", "{source}", "{year}", "{resolution}", "{encoder}", "{disc_type}", "{title_id}"]
@@ -92,6 +99,66 @@ def validate_disc_title_preferences(value: Any) -> Dict[str, Dict[str, list[str]
         out[str(disc_key)] = {
             "prefer_titles": _csv_list(prefs.get("prefer_titles")),
             "blocked_titles": _csv_list(prefs.get("blocked_titles")),
+        }
+    return out
+
+
+def validate_disc_workflow(value: Any) -> Dict[str, Any]:
+    src = value if isinstance(value, dict) else {}
+    mode = str(src.get("mode") or "movies").strip().lower()
+    if mode not in {"movies", "tv", "manual"}:
+        mode = "movies"
+    provider = str(src.get("metadata_provider") or "tvmaze").strip().lower() or "tvmaze"
+    if provider not in {"tvmaze", "none"}:
+        provider = "tvmaze"
+    return {
+        "mode": mode,
+        "show_title": str(src.get("show_title") or "").strip()[:160],
+        "show_id": str(src.get("show_id") or "").strip()[:40],
+        "season_number": _bounded_int(src.get("season_number"), 1, minimum=1, maximum=100),
+        "episode_start": _bounded_int(src.get("episode_start"), 1, minimum=1, maximum=500),
+        "metadata_provider": provider,
+        "auto_apply_plan": bool(src.get("auto_apply_plan", True)),
+        "episode_count": _bounded_int(src.get("episode_count"), 4, minimum=1, maximum=30),
+    }
+
+
+def validate_disc_episode_preferences(value: Any) -> Dict[str, Dict[str, Any]]:
+    src = value if isinstance(value, dict) else {}
+    out: Dict[str, Dict[str, Any]] = {}
+    for disc_key, prefs in src.items():
+        if not isinstance(prefs, dict):
+            continue
+        planned_titles = []
+        for entry in prefs.get("planned_titles") or []:
+            if not isinstance(entry, dict):
+                continue
+            title_id = str(entry.get("title_id") or "").strip()
+            if not title_id:
+                continue
+            planned_titles.append(
+                {
+                    "title_id": title_id,
+                    "season": _bounded_int(entry.get("season"), 1, minimum=1, maximum=100),
+                    "episode": _bounded_int(entry.get("episode"), 1, minimum=1, maximum=500),
+                    "code": str(entry.get("code") or "").strip()[:32],
+                    "episode_title": str(entry.get("episode_title") or "").strip()[:200],
+                    "filename": str(entry.get("filename") or "").strip()[:255],
+                    "confidence": str(entry.get("confidence") or "").strip()[:32],
+                    "runtime_seconds": _bounded_int(entry.get("runtime_seconds"), 0, minimum=0, maximum=43200),
+                    "menu_label": str(entry.get("menu_label") or "").strip()[:120],
+                    "notes": str(entry.get("notes") or "").strip()[:500],
+                }
+            )
+        out[str(disc_key)] = {
+            "show_title": str(prefs.get("show_title") or "").strip()[:160],
+            "show_id": str(prefs.get("show_id") or "").strip()[:40],
+            "season_number": _bounded_int(prefs.get("season_number"), 1, minimum=1, maximum=100),
+            "episode_start": _bounded_int(prefs.get("episode_start"), 1, minimum=1, maximum=500),
+            "metadata_provider": str(prefs.get("metadata_provider") or "tvmaze").strip().lower()[:32] or "tvmaze",
+            "selected_titles": _csv_list(prefs.get("selected_titles")),
+            "planned_titles": planned_titles,
+            "updated_at": _safe_float(prefs.get("updated_at"), 0.0),
         }
     return out
 
@@ -166,7 +233,9 @@ def normalize_config(cfg: Dict[str, Any], defaults: Dict[str, Any]) -> Dict[str,
     merged["final_destinations"] = validate_final_destinations(merged.get("final_destinations"))
     merged["notifications"] = validate_notifications(merged.get("notifications"))
     merged["home_assistant"] = validate_home_assistant(merged.get("home_assistant"))
+    merged["disc_workflow"] = validate_disc_workflow(merged.get("disc_workflow"))
     merged["disc_title_preferences"] = validate_disc_title_preferences(merged.get("disc_title_preferences"))
+    merged["disc_episode_preferences"] = validate_disc_episode_preferences(merged.get("disc_episode_preferences"))
 
     if not isinstance(merged.get("handbrake_presets"), list):
         merged["handbrake_presets"] = []
@@ -200,6 +269,10 @@ def validate_update_payload(data: Dict[str, Any]) -> Tuple[Dict[str, Any], list[
         payload["notifications"] = validate_notifications(payload["notifications"])
     if "home_assistant" in payload:
         payload["home_assistant"] = validate_home_assistant(payload["home_assistant"])
+    if "disc_workflow" in payload:
+        payload["disc_workflow"] = validate_disc_workflow(payload["disc_workflow"])
     if "disc_title_preferences" in payload:
         payload["disc_title_preferences"] = validate_disc_title_preferences(payload["disc_title_preferences"])
+    if "disc_episode_preferences" in payload:
+        payload["disc_episode_preferences"] = validate_disc_episode_preferences(payload["disc_episode_preferences"])
     return payload, warnings

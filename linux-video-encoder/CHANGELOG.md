@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.25.210 - 2026-07-17
+- Add a TV-disc workflow to Linux Video Encoder, including per-disc show/season state, episode candidate scoring, and a saved episode plan that can drive multi-title DVD ripping without breaking the movie workflow.
+- Add TV metadata search through TVMaze, plus plan generation that maps selected titles to consecutive `SxxExx` episodes and persists manual menu/button notes for later reuse on the same disc.
+- Use saved TV-disc plans during MakeMKV rip finalization so multi-title outputs can be renamed directly to episode-style filenames instead of generic `partXX` results.
+
 ## 1.25.209 - 2026-07-16
 - Add Home Assistant push notification delivery to Linux Video Encoder, with settings for URL, token, notify service, title, and per-event enablement in the Settings page.
 - Route tracker notification events through backend sinks so job start, completion, and failure can fan out beyond browser-only notifications.
