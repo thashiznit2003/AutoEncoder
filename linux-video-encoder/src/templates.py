@@ -38,9 +38,30 @@ MAIN_PAGE_TEMPLATE = """
     h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; display:flex; align-items:center; gap:10px; }
     .brand { display:flex; align-items:center; gap:12px; }
     .logo-img { height: 48px; width: auto; filter: drop-shadow(0 0 6px rgba(79,70,229,0.4)); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-auto-rows: minmax(240px, auto); gap: 12px; padding: 12px; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.95fr); gap: 14px; padding: 14px; max-width: 1520px; margin: 0 auto; align-items: start; }
     .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
     .panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #a5b4fc; letter-spacing: 0.4px; display:flex; align-items:center; gap:8px; }
+    .hero-panel { grid-column: 1 / -1; padding: 18px; background: linear-gradient(145deg, rgba(17,24,39,0.98), rgba(11,18,32,0.96)); }
+    .hero-grid { display:grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.95fr); gap: 18px; align-items:start; }
+    .hero-title { margin: 0; font-size: 28px; line-height: 1.05; letter-spacing: -0.03em; color: #f8fafc; }
+    .hero-copy { margin: 10px 0 0 0; color: #a5b4fc; max-width: 760px; line-height: 1.6; }
+    .hero-status-row { display:flex; flex-wrap:wrap; gap:10px; margin-top: 14px; }
+    .hero-pill { display:flex; flex-direction:column; gap:3px; min-width: 160px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(96,165,250,0.16); background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.72)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); }
+    .hero-pill-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: #93c5fd; }
+    .hero-pill-value { font-size: 15px; font-weight: 700; color: #f8fafc; }
+    .hero-side { display:grid; gap: 12px; }
+    .hero-action-card { border-radius: 14px; border: 1px solid rgba(148,163,184,0.14); background: rgba(15,23,42,0.76); padding: 14px; display:grid; gap: 10px; }
+    .hero-action-title { margin: 0; font-size: 13px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.08em; }
+    .hero-action-copy { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+    .hero-action-row { display:flex; flex-wrap:wrap; gap:8px; }
+    .workflow-panel { min-height: 380px; }
+    .side-panel { min-height: 220px; }
+    .panel-meta { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+    .panel-copy { color:#94a3b8; font-size:13px; line-height:1.5; }
+    .compact-stack { display:grid; gap: 12px; }
+    .notification-shell { display:grid; gap:10px; }
+    .notification-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .history-list { max-height: 360px; overflow-y: auto; }
     form { display: grid; gap: 8px; margin-top: 8px; }
     label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; }
     input, select, textarea { padding: 9px 11px; border-radius: 10px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; transition: border 0.2s ease, box-shadow 0.2s ease; }
@@ -73,7 +94,10 @@ MAIN_PAGE_TEMPLATE = """
       header { flex-wrap: wrap; gap: 10px; }
       .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
       .nav-toggle { display:inline-flex; }
-      .grid { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; padding: 12px; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-title { font-size: 23px; }
+      .hero-pill { min-width: calc(50% - 6px); flex: 1 1 180px; }
     }
     .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 11px; opacity: 0.45; line-height: 1; }
     .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
@@ -121,20 +145,91 @@ MAIN_PAGE_TEMPLATE = """
     <div class="mobile-nav-items" id="mobile-nav-items"></div>
   </nav>
   <div class="grid">
-    <div class="panel" id="panel-active" data-panel-title="Active Encodes">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-        <h2 style="margin:0;">🟢 Active Encodes</h2>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button id="queue-pause-toggle" class="smb-btn" style="padding:6px 8px;">Pause After Current</button>
-          <button id="retry-last-failed" class="smb-btn" style="padding:6px 8px;">Retry Last Failed</button>
+    <section class="panel hero-panel" id="panel-overview" data-panel-title="Overview">
+      <div class="hero-grid">
+        <div>
+          <div class="muted" style="text-transform:uppercase; letter-spacing:0.12em; font-size:12px;">Workflow Dashboard</div>
+          <h2 class="hero-title">Rip, monitor, and finish jobs without digging through logs.</h2>
+          <p class="hero-copy">The main page now prioritizes the active workflow, recent outcomes, and system health. Runtime logs and event tails live in Settings where they still belong for debugging.</p>
+          <div class="hero-status-row">
+            <div class="hero-pill">
+              <div class="hero-pill-label">Disc</div>
+              <div class="hero-pill-value" id="hero-disc">No disc detected</div>
+            </div>
+            <div class="hero-pill">
+              <div class="hero-pill-label">Queue</div>
+              <div class="hero-pill-value" id="hero-queue">0 active, 0 queued</div>
+            </div>
+            <div class="hero-pill">
+              <div class="hero-pill-label">Recent Outcomes</div>
+              <div class="hero-pill-value" id="hero-recent">No recent jobs</div>
+            </div>
+            <div class="hero-pill">
+              <div class="hero-pill-label">Storage</div>
+              <div class="hero-pill-value" id="hero-storage">Checking output free space</div>
+            </div>
+          </div>
+        </div>
+        <div class="hero-side">
+          <div class="hero-action-card">
+            <div class="hero-action-title">Primary Actions</div>
+            <div class="hero-action-copy">Keep the queue moving from here. Use Settings for disc analysis, title selection, logs, and advanced tuning.</div>
+            <div class="hero-action-row">
+              <button id="queue-pause-toggle" class="smb-btn" type="button">Pause After Current</button>
+              <button id="retry-last-failed" class="smb-btn" type="button">Retry Last Failed</button>
+              <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button">Open Settings</button></a>
+              <button id="enable-browser-notify" class="smb-btn" type="button">Enable Browser Notifications</button>
+            </div>
+          </div>
+          <div class="hero-action-card">
+            <div class="hero-action-title">Runtime Profile</div>
+            <div class="hero-action-copy" id="hb-runtime">Runtime HandBrake profile unavailable.</div>
+          </div>
         </div>
       </div>
-      <div class="muted field-display" id="hb-runtime"></div>
+    </section>
+    <div class="panel workflow-panel" id="panel-active" data-panel-title="Active Workflow">
+      <div class="panel-meta">
+        <div>
+          <h2 style="margin:0;">🟢 Active Workflow</h2>
+          <div class="panel-copy">Current rips and encodes stay at the top. Stop, retry, rename, and inspect details directly from the job cards.</div>
+        </div>
+      </div>
       <div id="active" class="field-display"></div>
     </div>
-    <div class="panel" id="panel-recent" data-panel-title="Recent Jobs">
-      <h2>🕒 Recent Jobs</h2>
-      <div id="recent" class="field-display" style="max-height: 260px; overflow-y: auto;"></div>
+    <div class="compact-stack">
+      <div class="panel side-panel" id="panel-metrics" data-panel-title="System Overview">
+        <div class="panel-meta">
+          <div>
+            <h2 style="margin:0;">📊 System Overview</h2>
+            <div class="panel-copy">Quick hardware and output-space visibility without opening diagnostics.</div>
+          </div>
+        </div>
+        <div id="metrics" class="log field-display"></div>
+      </div>
+      <div class="panel side-panel" id="panel-notifications" data-panel-title="Notifications">
+        <div class="panel-meta">
+          <div>
+            <h2 style="margin:0;">🔔 Notifications</h2>
+            <div class="panel-copy">Recent alerts and push events. Clear them here; full runtime history lives in Settings.</div>
+          </div>
+        </div>
+        <div class="notification-shell">
+          <div id="notifications" class="log field-display" style="max-height:260px; overflow-y:auto;"></div>
+          <div class="notification-actions">
+            <button id="clear-notifications" class="smb-btn" type="button">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel workflow-panel" id="panel-recent" data-panel-title="Recent Jobs">
+      <div class="panel-meta">
+        <div>
+          <h2 style="margin:0;">🕒 Recent Jobs</h2>
+          <div class="panel-copy">Recent outcomes stay separate from active work so failures, completions, and queued items are easier to scan.</div>
+        </div>
+      </div>
+      <div id="recent" class="field-display history-list"></div>
       <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
         <button data-clear="success" class="clear-btn">Clear Success</button>
         <button data-clear="error" class="clear-btn">Clear Error</button>
@@ -142,82 +237,6 @@ MAIN_PAGE_TEMPLATE = """
         <button data-clear="canceled" class="clear-btn">Clear Canceled</button>
         <button data-clear="all" class="clear-btn">Clear All</button>
       </div>
-    </div>
-    <div class="panel" id="panel-events" data-panel-title="Status Messages" data-advanced="1">
-      <div style="display:flex; align-items:center; gap:8px; justify-content: space-between; margin-bottom:6px;">
-        <h2 style="margin:0;">📣 Status Messages</h2>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button id="copy-event-last" class="smb-btn" style="padding:6px 8px;">Copy Last</button>
-          <button id="copy-event-last10" class="smb-btn" style="padding:6px 8px;">Copy Last 10</button>
-        </div>
-      </div>
-      <div id="events" class="log field-display"></div>
-    </div>
-    <div class="panel" id="panel-notifications" data-panel-title="Notification History">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
-        <h2 style="margin:0;">🔔 Notification History</h2>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button id="enable-browser-notify" class="smb-btn" style="padding:6px 8px;">Enable Browser Notifications</button>
-          <button id="clear-notifications" class="smb-btn" style="padding:6px 8px;">Clear</button>
-        </div>
-      </div>
-      <div id="notifications" class="log field-display" style="max-height:260px; overflow-y:auto;"></div>
-    </div>
-    <div class="panel" id="panel-metrics" data-panel-title="System Metrics">
-      <h2>📊 System Metrics</h2>
-      <div id="metrics" class="log field-display"></div>
-    </div>
-    <div class="panel" id="panel-smb" data-panel-title="SMB Browser" data-advanced="1">
-      <h2><span class="icon mario-icon" aria-hidden="true"><svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
-        <rect width="16" height="16" fill="none"/>
-        <rect x="2" y="0" width="12" height="1" fill="#d62828"/>
-        <rect x="1" y="1" width="14" height="1" fill="#d62828"/>
-        <rect x="1" y="2" width="7" height="1" fill="#d62828"/><rect x="9" y="2" width="6" height="1" fill="#d62828"/>
-        <rect x="0" y="3" width="4" height="1" fill="#7c4a1d"/><rect x="4" y="3" width="8" height="1" fill="#f2c29c"/><rect x="12" y="3" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="4" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="4" width="10" height="1" fill="#f2c29c"/><rect x="12" y="4" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="5" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="5" width="2" height="1" fill="#f2c29c"/><rect x="4" y="5" width="2" height="1" fill="#0b1220"/><rect x="6" y="5" width="2" height="1" fill="#f2c29c"/><rect x="8" y="5" width="2" height="1" fill="#0b1220"/><rect x="10" y="5" width="2" height="1" fill="#f2c29c"/><rect x="12" y="5" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="6" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="6" width="4" height="1" fill="#f2c29c"/><rect x="6" y="6" width="2" height="1" fill="#3b2a1a"/><rect x="8" y="6" width="4" height="1" fill="#f2c29c"/><rect x="12" y="6" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="7" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="7" width="2" height="1" fill="#f2c29c"/><rect x="4" y="7" width="6" height="1" fill="#3b2a1a"/><rect x="10" y="7" width="2" height="1" fill="#f2c29c"/><rect x="12" y="7" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="8" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="8" width="10" height="1" fill="#f2c29c"/><rect x="12" y="8" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="9" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="9" width="2" height="1" fill="#f2c29c"/><rect x="4" y="9" width="6" height="1" fill="#2563eb"/><rect x="10" y="9" width="2" height="1" fill="#f2c29c"/><rect x="12" y="9" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="10" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="10" width="2" height="1" fill="#f2c29c"/><rect x="4" y="10" width="6" height="1" fill="#2563eb"/><rect x="10" y="10" width="2" height="1" fill="#f2c29c"/><rect x="12" y="10" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="11" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="11" width="2" height="1" fill="#f2c29c"/><rect x="4" y="11" width="6" height="1" fill="#2563eb"/><rect x="10" y="11" width="2" height="1" fill="#f2c29c"/><rect x="12" y="11" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="12" width="2" height="1" fill="#7c4a1d"/><rect x="2" y="12" width="2" height="1" fill="#f2c29c"/><rect x="4" y="12" width="6" height="1" fill="#2563eb"/><rect x="10" y="12" width="2" height="1" fill="#f2c29c"/><rect x="12" y="12" width="4" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="13" width="3" height="1" fill="#7c4a1d"/><rect x="3" y="13" width="8" height="1" fill="#2563eb"/><rect x="11" y="13" width="5" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="14" width="1" height="1" fill="none"/><rect x="1" y="14" width="1" height="1" fill="#7c4a1d"/><rect x="2" y="14" width="2" height="1" fill="#2563eb"/><rect x="4" y="14" width="6" height="1" fill="none"/><rect x="10" y="14" width="2" height="1" fill="#2563eb"/><rect x="12" y="14" width="2" height="1" fill="#7c4a1d"/>
-        <rect x="0" y="15" width="1" height="1" fill="none"/><rect x="1" y="15" width="2" height="1" fill="#7c4a1d"/><rect x="3" y="15" width="2" height="1" fill="#2563eb"/><rect x="5" y="15" width="4" height="1" fill="none"/><rect x="9" y="15" width="2" height="1" fill="#2563eb"/><rect x="11" y="15" width="2" height="1" fill="#7c4a1d"/>
-      </svg></span> SMB Browser</h2>
-      <form id="smb-form" style="display:grid; gap:6px;">
-        <div class="field-display"><input id="smb-url" placeholder="smb://server/share[/path]" /></div>
-        <div class="field-display"><input id="smb-user" placeholder="Username" /></div>
-        <div class="field-display"><input id="smb-pass" placeholder="Password" type="password" /></div>
-        <button type="button" id="smb-connect">Connect</button>
-      </form>
-      <div class="smb-grid" style="margin-top:8px;">
-        <div>
-          <div class="muted">Mounts (click to browse)</div>
-          <div id="smb-mounts" class="smb-list field-display"></div>
-        </div>
-        <div>
-          <div class="muted">Browse</div>
-          <div id="smb-browse" class="smb-list field-display"></div>
-        </div>
-      </div>
-      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
-        <div class="field-display inline" style="flex:1;"><input id="smb-current-path" readonly placeholder="Path" style="width:100%;"/></div>
-        <button class="smb-btn" id="smb-up">Up</button>
-      </div>
-      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
-        <button class="smb-btn" id="smb-queue">Queue selected for encode</button>
-        <button class="smb-btn" id="smb-refresh">Refresh</button>
-      </div>
-    </div>
-    <div class="panel" id="panel-logs" data-panel-title="Logs" data-advanced="1" style="grid-column: 1 / -1;">
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; justify-content: space-between;">
-        <h2 style="margin:0;">🧾 Logs</h2>
-        <button id="copy-logs" style="padding:6px 10px; background:#2563eb; color:#fff; border:0; border-radius:6px; cursor:pointer;">Copy last 300</button>
-      </div>
-      <div id="logs" class="log field-display"></div>
     </div>
   </div>
   <script>
@@ -561,8 +580,10 @@ MAIN_PAGE_TEMPLATE = """
 
     function renderMetrics(metrics) {
       const el = document.getElementById("metrics");
+      const heroStorageEl = document.getElementById("hero-storage");
       if (!metrics) {
-        el.textContent = "Metrics unavailable.";
+        if (el) el.textContent = "Metrics unavailable.";
+        if (heroStorageEl) heroStorageEl.textContent = "Metrics unavailable";
         return;
       }
       const icons = {
@@ -590,6 +611,9 @@ MAIN_PAGE_TEMPLATE = """
       }
       if (metrics.fs) {
         cards.push({ icon: icons.output, label: "Output", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB" });
+        if (heroStorageEl) heroStorageEl.textContent = metrics.fs.free_gb + " GB free of " + metrics.fs.total_gb + " GB";
+      } else if (heroStorageEl) {
+        heroStorageEl.textContent = "Output free space unavailable";
       }
       if (metrics.net) {
         cards.push({ icon: icons.network, label: "Network", value: metrics.net.rx_mb + "MB ↓ / " + metrics.net.tx_mb + "MB ↑" });
@@ -646,6 +670,7 @@ MAIN_PAGE_TEMPLATE = """
 
     function renderLogs(lines) {
       const el = document.getElementById("logs");
+      if (!el) return;
       const atBottom = (el.scrollTop + el.clientHeight) >= (el.scrollHeight - 20);
       const source = Array.isArray(lines) ? lines : [];
       const filtered = isMobile() ? filterMobileLogs(source) : source;
@@ -885,6 +910,32 @@ MAIN_PAGE_TEMPLATE = """
       }).join("\\n");
     }
 
+    function updateHeroStatus(status) {
+      const active = Array.isArray((status || {}).active) ? status.active : [];
+      const recent = Array.isArray((status || {}).recent) ? status.recent : [];
+      const queued = active.filter((item) => item && item.state === "queued").length;
+      const running = active.filter((item) => item && (item.state === "running" || item.state === "ripping")).length;
+      const recentCounts = recent.reduce((acc, item) => {
+        const key = (item && item.state) ? item.state : "unknown";
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      const summary = (status && status.disc_info && (status.disc_info.summary || (status.disc_info.info && status.disc_info.info.summary))) || {};
+      const discLabel = summary.disc_label || summary.label || "";
+      const discPresent = status && status.disc_present === true;
+      const discValue = discPresent ? (discLabel || "Disc detected") : "No disc detected";
+      const queueValue = running + " active, " + queued + " queued";
+      const recentValue = recent.length
+        ? ((recentCounts.error || 0) + " failed, " + (recentCounts.success || 0) + " complete")
+        : "No recent jobs";
+      const discEl = document.getElementById("hero-disc");
+      const queueEl = document.getElementById("hero-queue");
+      const recentEl = document.getElementById("hero-recent");
+      if (discEl) discEl.textContent = discValue;
+      if (queueEl) queueEl.textContent = queueValue;
+      if (recentEl) recentEl.textContent = recentValue;
+    }
+
     async function openJobDetails(source) {
       const data = await fetchJSON("/api/job_details?source=" + encodeURIComponent(source));
       const summary = data.summary || {};
@@ -1003,6 +1054,7 @@ MAIN_PAGE_TEMPLATE = """
         const status = await fetchJSON("/api/status");
         renderList(document.getElementById("active"), status.active, "No active encodes.");
         renderList(document.getElementById("recent"), status.recent, "No recent jobs.");
+        updateHeroStatus(status);
         hbCfg = status.handbrake_config || {};
         applyAdvancedMode(!!hbCfg.advanced_mode);
         const hb = hbCfg.handbrake || {};
@@ -1068,27 +1120,6 @@ MAIN_PAGE_TEMPLATE = """
         updateDiscCard(window.__discInfo || {}, !!window.__discPending, window.__discPresent);
       } catch (e) {
         showJsError("Refresh failed: " + e);
-      }
-      try {
-        const logs = await fetchJSON("/api/logs");
-        const lines = Array.isArray(logs.lines) ? logs.lines : [];
-        renderLogs(lines);
-      } catch (e) {
-        showJsError("Logs fetch failed: " + e);
-      }
-      try {
-        const events = await fetchJSON("/api/events");
-        eventsCache = events || [];
-        const lines = (eventsCache || []).map(function(ev) {
-          return "[" + new Date(ev.ts * 1000).toLocaleTimeString() + "] " + ev.message;
-        });
-        lastEventsText = lines.join("\\n") || "No recent events.";
-        document.getElementById("events").textContent = lastEventsText;
-      } catch (e) {
-        showJsError("Events fetch failed: " + e);
-        if (lastEventsText) {
-          document.getElementById("events").textContent = lastEventsText;
-        }
       }
       try {
         const notifications = await fetchJSON("/api/notifications");
@@ -1235,28 +1266,6 @@ MAIN_PAGE_TEMPLATE = """
     document.getElementById("makemkv-form")?.addEventListener("change", () => { mkDirty = true; });
     document.getElementById("handbrake-form")?.addEventListener("change", () => { hbDirty = true; });
 
-    document.getElementById("copy-logs").addEventListener("click", async () => {
-      try {
-        const logs = await fetchJSON("/api/logs");
-        const lines = (logs.lines || []).slice(-300);
-        const filtered = isMobile() ? filterMobileLogs(lines) : lines;
-        const text = (filtered && filtered.length) ? filtered.join("\\n") : (isMobile() ? "No critical logs yet." : "Ready to encode");
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
-        } else {
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          document.body.removeChild(ta);
-        }
-        alert("Copied last " + lines.length + " log lines to clipboard.");
-      } catch (e) {
-        alert("Failed to copy logs: " + e);
-      }
-    });
-
     let smbMountId = null;
     let smbPath = "/";
     let smbSelected = null;
@@ -1290,7 +1299,7 @@ MAIN_PAGE_TEMPLATE = """
       document.getElementById("smb-mounts").innerHTML = mountItems || "<div class='muted'>No mounts</div>";
     }
 
-    document.getElementById("smb-connect").addEventListener("click", async () => {
+    document.getElementById("smb-connect")?.addEventListener("click", async () => {
       const body = {
         url: document.getElementById("smb-url").value,
         username: document.getElementById("smb-user").value,
@@ -1303,14 +1312,14 @@ MAIN_PAGE_TEMPLATE = """
       await smbRefreshMounts();
       await smbList("/");
     });
-    smbForm.addEventListener("keydown", async (e) => {
+    smbForm?.addEventListener("keydown", async (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
         connectSmb();
       }
     });
 
-    document.getElementById("smb-refresh").addEventListener("click", async () => {
+    document.getElementById("smb-refresh")?.addEventListener("click", async () => {
       await smbRefreshMounts();
       await smbList();
     });
@@ -1334,16 +1343,16 @@ MAIN_PAGE_TEMPLATE = """
       }
     }
 
-    document.getElementById("copy-event-last").addEventListener("click", () => copyEvents(1));
-    document.getElementById("copy-event-last10").addEventListener("click", () => copyEvents(10));
+    document.getElementById("copy-event-last")?.addEventListener("click", () => copyEvents(1));
+    document.getElementById("copy-event-last10")?.addEventListener("click", () => copyEvents(10));
 
-    document.getElementById("smb-up").addEventListener("click", async () => {
+    document.getElementById("smb-up")?.addEventListener("click", async () => {
       if (!smbMountId || !smbPath || smbPath === "/") return;
       const up = smbPath.replace(/\\/+$/, "").split("/").slice(0, -1).join("/") || "/";
       await smbList(up);
     });
 
-    document.getElementById("smb-browse").addEventListener("click", async (e) => {
+    document.getElementById("smb-browse")?.addEventListener("click", async (e) => {
       const item = e.target.closest(".smb-item");
       if (!item) return;
       const path = item.getAttribute("data-path");
@@ -1357,7 +1366,7 @@ MAIN_PAGE_TEMPLATE = """
       }
     });
 
-    document.getElementById("smb-mounts").addEventListener("click", async (e) => {
+    document.getElementById("smb-mounts")?.addEventListener("click", async (e) => {
       const unmountBtn = e.target.closest(".smb-unmount");
       if (unmountBtn) {
         const id = unmountBtn.getAttribute("data-id");
@@ -1377,13 +1386,13 @@ MAIN_PAGE_TEMPLATE = """
       }
     });
 
-    document.getElementById("smb-queue").addEventListener("click", async () => {
+    document.getElementById("smb-queue")?.addEventListener("click", async () => {
       if (!smbMountId || !smbSelected) { alert("Select a file first."); return; }
       await fetch("/api/smb/queue", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mount_id: smbMountId, path: smbSelected }) });
       alert("Queued: " + smbSelected);
     });
 
-    smbRefreshMounts();
+    if (document.getElementById("smb-mounts")) smbRefreshMounts();
 
     initMobileNav();
     numberPanels();
@@ -1780,6 +1789,25 @@ SETTINGS_PAGE_TEMPLATE = """
       </div>
       <textarea id="diag-runtime" class="log" style="height:220px; width:100%; box-sizing:border-box;" readonly placeholder="Runtime diagnostics will appear here."></textarea>
       <div class="muted field-display" id="diag-status" style="margin-top:6px;">Idle.</div>
+    </div>
+    <div class="panel" id="panel-runtime-console" data-panel-title="Runtime Console">
+      <h2>🧾 Runtime Console</h2>
+      <div class="muted" style="margin-bottom:8px;">Logs and event tails moved here so the main page can stay focused on ripping and queue management.</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+        <button type="button" id="runtime-refresh">Refresh Console</button>
+        <button type="button" id="runtime-copy-events">Copy Events</button>
+        <button type="button" id="runtime-copy-logs">Copy Logs</button>
+      </div>
+      <div class="settings-split-grid">
+        <div class="field-display">
+          <div class="muted" style="margin-bottom:6px;">Recent events</div>
+          <textarea id="runtime-events" class="log" style="height:220px; width:100%; box-sizing:border-box;" readonly placeholder="Recent events will appear here."></textarea>
+        </div>
+        <div class="field-display">
+          <div class="muted" style="margin-bottom:6px;">Log tail</div>
+          <textarea id="runtime-logs" class="log" style="height:220px; width:100%; box-sizing:border-box;" readonly placeholder="Recent logs will appear here."></textarea>
+        </div>
+      </div>
     </div>
     <div class="panel" id="panel-qol" data-panel-title="Quality of Life">
       <h2>✨ Quality of Life</h2>
@@ -2316,6 +2344,8 @@ SETTINGS_PAGE_TEMPLATE = """
         const status = await fetchJSON("/api/status");
         const runtime = await fetchJSON("/api/diagnostics/runtime");
         const preflight = await fetchJSON("/api/makemkv/preflight");
+        const events = await fetchJSON("/api/events");
+        const logs = await fetchJSON("/api/logs");
         if (!hbDirty) {
           populateHandbrakeForm(cfg);
         }
@@ -2409,6 +2439,15 @@ SETTINGS_PAGE_TEMPLATE = """
         const diagRuntimeEl = document.getElementById("diag-runtime");
         if (diagRuntimeEl) {
           diagRuntimeEl.value = JSON.stringify(runtime, null, 2);
+        }
+        const runtimeEventsEl = document.getElementById("runtime-events");
+        if (runtimeEventsEl) {
+          runtimeEventsEl.value = (events || []).map((ev) => "[" + new Date(ev.ts * 1000).toLocaleTimeString() + "] " + ev.message).join("\\n") || "No recent events.";
+        }
+        const runtimeLogsEl = document.getElementById("runtime-logs");
+        if (runtimeLogsEl) {
+          const lines = Array.isArray(logs && logs.lines) ? logs.lines : [];
+          runtimeLogsEl.value = lines.length ? lines.join("\\n") : "Ready to encode";
         }
         if (!authDirty) {
           document.getElementById("auth-user").value = cfg.auth_user || "";
@@ -2965,6 +3004,13 @@ SETTINGS_PAGE_TEMPLATE = """
     });
 
     const diagStatus = document.getElementById("diag-status");
+    document.getElementById("runtime-refresh").addEventListener("click", refreshSettings);
+    document.getElementById("runtime-copy-events").addEventListener("click", async () => {
+      await copyText(document.getElementById("runtime-events").value || "", "Events");
+    });
+    document.getElementById("runtime-copy-logs").addEventListener("click", async () => {
+      await copyText(document.getElementById("runtime-logs").value || "", "Logs");
+    });
     document.getElementById("diag-refresh-runtime").addEventListener("click", async () => {
       try {
         const runtime = await fetchJSON("/api/diagnostics/runtime");
