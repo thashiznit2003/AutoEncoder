@@ -7,6 +7,7 @@ MAIN_PAGE_TEMPLATE = """
   <title>Linux Video Encoder v__VERSION__</title>
   <style>
     :root { color-scheme: dark; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
+    * { box-sizing: border-box; }
     body { margin: 0; background: radial-gradient(circle at 18% 20%, rgba(59,130,246,0.12), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,0.12), transparent 32%), #0b1220; color: #e2e8f0; }
     .scan-indicator { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:#93c5fd; }
     .scan-dot { width:10px; height:10px; border:2px solid #93c5fd; border-top-color: transparent; border-radius:50%; animation: scan-spin 1s linear infinite; }
@@ -1420,15 +1421,15 @@ SETTINGS_PAGE_TEMPLATE = """
     .mobile-nav-items { display:flex; flex-direction:column; gap:6px; }
     .mobile-nav-item { text-align:left; padding:10px 12px; border-radius:10px; border:1px solid transparent; background:#111827; color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; }
     .mobile-nav-item.active { border-color:#60a5fa; background:#0b1220; color:#93c5fd; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-auto-rows: minmax(240px, auto); gap: 12px; padding: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-auto-rows: minmax(240px, auto); gap: 12px; padding: 12px; align-items: start; }
     .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
     .panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #a5b4fc; letter-spacing: 0.4px; display:flex; align-items:center; gap:8px; }
     form { display: grid; gap: 8px; margin-top: 8px; }
-    label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; }
-    input, select, textarea { padding: 9px 11px; border-radius: 10px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; transition: border 0.2s ease, box-shadow 0.2s ease; }
+    label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; min-width: 0; }
+    input, select, textarea { width: 100%; min-width: 0; max-width: 100%; padding: 9px 11px; border-radius: 10px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; transition: border 0.2s ease, box-shadow 0.2s ease; }
     textarea { font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 1px rgba(96,165,250,0.5); }
-    button { padding: 9px 12px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.2s; }
+    button { width: 100%; min-width: 0; max-width: 100%; padding: 9px 12px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.2s; white-space: normal; overflow-wrap: anywhere; text-align: center; }
     button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,0.35); }
     .muted { color: #94a3b8; }
     .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); word-break: break-word; overflow-wrap: anywhere; }
@@ -1437,11 +1438,17 @@ SETTINGS_PAGE_TEMPLATE = """
     .field-display.inline .field-id { margin: 0; }
     .field-id { display:block; font-size: 11px; opacity: 0.45; line-height: 1; margin: 0; }
     .field-id { display:block; font-size: 11px; opacity: 0.45; line-height: 1; margin: 0; }
+    .settings-inline-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; min-width:0; }
+    .settings-inline-row > * { min-width:0; }
+    .settings-split-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; min-width:0; }
+    .settings-button-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:6px; min-width:0; }
     @media (max-width: 900px) {
       header { flex-wrap: wrap; gap: 10px; }
       .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
       .nav-toggle { display:inline-flex; }
       .grid { grid-template-columns: 1fr; }
+      .settings-split-grid { grid-template-columns: 1fr; }
+      .settings-button-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -1618,7 +1625,7 @@ SETTINGS_PAGE_TEMPLATE = """
           </select>
         </label>
         <button type="button" id="hb-save">Save HandBrake</button>
-        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:4px;">
+        <div class="settings-inline-row" style="margin-top:4px;">
           <select id="hb-preset-select" style="flex:1;">
             <option value="">Load preset...</option>
           </select>
@@ -1670,12 +1677,12 @@ SETTINGS_PAGE_TEMPLATE = """
             </select>
           </label>
           <label>Show title <input id="mk-show-title" placeholder="Batman The Animated Series" /></label>
-          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+        <div class="settings-split-grid">
             <label>Season <input id="mk-season" type="number" min="1" step="1" /></label>
             <label>Episode start <input id="mk-episode-start" type="number" min="1" step="1" /></label>
             <label>Episode count <input id="mk-episode-count" type="number" min="1" step="1" /></label>
           </div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+          <div class="settings-button-grid" style="margin-top:6px;">
             <button type="button" id="mk-tv-search">Search Metadata</button>
             <button type="button" id="mk-tv-build">Build Episode Plan</button>
             <button type="button" id="mk-tv-apply">Use Planned Titles</button>
@@ -1697,7 +1704,7 @@ SETTINGS_PAGE_TEMPLATE = """
         </div>
         <div class="muted field-display" id="mk-disc-status">Disc status: unknown</div>
         <div class="muted field-display" id="mk-rip-status">Rip status: active</div>
-        <div style="display:flex; gap:6px; margin:6px 0; flex-wrap:wrap;">
+        <div class="settings-button-grid" style="margin:6px 0;">
           <button type="button" id="mk-refresh-info">Refresh disc info</button>
           <button type="button" id="mk-reset-drive">Reset drive</button>
           <button type="button" id="mk-eject">Eject</button>
@@ -1713,7 +1720,7 @@ SETTINGS_PAGE_TEMPLATE = """
           <div class="muted" style="margin-bottom:6px;">Titles (select to set manual rip list)</div>
           <div id="mk-titles-list" class="log field-display" style="max-height:180px; overflow:auto; padding:8px;"></div>
           <div id="mk-titles-debug" class="muted field-display" style="margin-top:6px; font-size:11px;"></div>
-          <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+          <div class="settings-button-grid" style="margin-top:6px;">
             <button type="button" id="mk-titles-apply">Use selected titles</button>
             <button type="button" id="mk-title-prefer">Prefer selected title</button>
             <button type="button" id="mk-title-block">Never auto-pick selected title</button>
