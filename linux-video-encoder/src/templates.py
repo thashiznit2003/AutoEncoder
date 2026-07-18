@@ -6,137 +6,462 @@ MAIN_PAGE_TEMPLATE = """
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Linux Video Encoder v__VERSION__</title>
   <style>
-    :root { color-scheme: dark; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
+    :root {
+      color-scheme: dark;
+      font-family: "Avenir Next", "Inter", "Segoe UI", sans-serif;
+      --bg: #071018;
+      --bg-elevated: rgba(8, 17, 28, 0.82);
+      --bg-panel: rgba(11, 22, 34, 0.92);
+      --bg-panel-soft: rgba(14, 28, 43, 0.8);
+      --border: rgba(118, 148, 181, 0.18);
+      --border-strong: rgba(255, 181, 95, 0.3);
+      --text: #edf4ff;
+      --muted: #8ca3bf;
+      --teal: #58f3d2;
+      --cyan: #6fb8ff;
+      --amber: #ffb85f;
+      --danger: #ff7a7a;
+      --success: #64f5a8;
+      --shadow: 0 28px 60px rgba(0, 0, 0, 0.34);
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; background: radial-gradient(circle at 18% 20%, rgba(59,130,246,0.12), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,0.12), transparent 32%), #0b1220; color: #e2e8f0; }
-    .scan-indicator { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:#93c5fd; }
-    .scan-dot { width:10px; height:10px; border:2px solid #93c5fd; border-top-color: transparent; border-radius:50%; animation: scan-spin 1s linear infinite; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(88,243,210,0.12), transparent 34%),
+        radial-gradient(circle at 100% 0%, rgba(255,184,95,0.12), transparent 28%),
+        radial-gradient(circle at 50% 100%, rgba(111,184,255,0.1), transparent 36%),
+        linear-gradient(180deg, #08111b 0%, #050b13 100%);
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(140,163,191,0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(140,163,191,0.045) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at center, black 42%, transparent 90%);
+      opacity: 0.24;
+    }
+    .scan-indicator { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--cyan); }
+    .scan-dot { width:10px; height:10px; border:2px solid var(--cyan); border-top-color: transparent; border-radius:50%; animation: scan-spin 1s linear infinite; }
     @keyframes scan-spin { to { transform: rotate(360deg); } }
-    header { padding: 14px 16px; background: linear-gradient(120deg, #0f172a, #0c1425); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
-    .header-left { display:flex; align-items:center; gap:10px; }
-    .header-right { display:flex; gap:10px; align-items:center; }
-    .nav-toggle { display:none; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid #1f2937; background:#0b1220; color:#e2e8f0; font-size:18px; cursor:pointer; }
-    .mobile-nav-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.6); opacity:0; pointer-events:none; transition: opacity 0.2s ease; z-index:9998; }
-    .mobile-nav { position:fixed; top:0; left:0; bottom:0; width:240px; background:#0f172a; border-right:1px solid #1f2937; padding:16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateX(-110%); transition: transform 0.2s ease; z-index:9999; }
+    .app-shell { max-width: 1580px; margin: 0 auto; padding: 22px 22px 34px; position: relative; z-index: 1; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(9,20,32,0.92), rgba(6,14,23,0.84));
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+    .header-left, .header-right { display:flex; align-items:center; gap:12px; flex-wrap: wrap; }
+    .nav-toggle {
+      display:none;
+      align-items:center;
+      justify-content:center;
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background: rgba(10, 19, 31, 0.92);
+      color: var(--text);
+      font-size:18px;
+      cursor:pointer;
+    }
+    .mobile-nav-backdrop { position:fixed; inset:0; background:rgba(3,8,14,0.7); opacity:0; pointer-events:none; transition: opacity 0.2s ease; z-index:9998; }
+    .mobile-nav {
+      position:fixed;
+      top:0;
+      left:0;
+      bottom:0;
+      width:256px;
+      padding:18px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      transform:translateX(-110%);
+      transition: transform 0.2s ease;
+      z-index:9999;
+      background: rgba(8, 17, 28, 0.98);
+      border-right: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(18px);
+    }
     .mobile-nav.open { transform:translateX(0); }
     .mobile-nav-backdrop.show { opacity:1; pointer-events:auto; }
-    .mobile-nav-title { font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#94a3b8; margin-bottom:6px; }
-    .mobile-nav-items { display:flex; flex-direction:column; gap:6px; }
-    .mobile-nav-item { text-align:left; padding:10px 12px; border-radius:10px; border:1px solid transparent; background:#111827; color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; }
-    .mobile-nav-item.active { border-color:#60a5fa; background:#0b1220; color:#93c5fd; }
-    .header-left { display:flex; align-items:center; gap:10px; }
-    .header-right { display:flex; gap:10px; align-items:center; }
-    .nav-toggle { display:none; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid #1f2937; background:#0b1220; color:#e2e8f0; font-size:18px; cursor:pointer; }
-    .mobile-nav-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.6); opacity:0; pointer-events:none; transition: opacity 0.2s ease; z-index:9998; }
-    .mobile-nav { position:fixed; top:0; left:0; bottom:0; width:240px; background:#0f172a; border-right:1px solid #1f2937; padding:16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateX(-110%); transition: transform 0.2s ease; z-index:9999; }
-    .mobile-nav.open { transform:translateX(0); }
-    .mobile-nav-backdrop.show { opacity:1; pointer-events:auto; }
-    .mobile-nav-title { font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#94a3b8; margin-bottom:6px; }
-    .mobile-nav-items { display:flex; flex-direction:column; gap:6px; }
-    .mobile-nav-item { text-align:left; padding:10px 12px; border-radius:10px; border:1px solid transparent; background:#111827; color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; }
-    .mobile-nav-item.active { border-color:#60a5fa; background:#0b1220; color:#93c5fd; }
-    h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; display:flex; align-items:center; gap:10px; }
-    .brand { display:flex; align-items:center; gap:12px; }
-    .logo-img { height: 48px; width: auto; filter: drop-shadow(0 0 6px rgba(79,70,229,0.4)); }
-    .grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.95fr); gap: 14px; padding: 14px; max-width: 1520px; margin: 0 auto; align-items: start; }
-    .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
-    .panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #a5b4fc; letter-spacing: 0.4px; display:flex; align-items:center; gap:8px; }
-    .hero-panel { grid-column: 1 / -1; padding: 18px; background: linear-gradient(145deg, rgba(17,24,39,0.98), rgba(11,18,32,0.96)); }
-    .hero-grid { display:grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.95fr); gap: 18px; align-items:start; }
-    .hero-title { margin: 0; font-size: 28px; line-height: 1.05; letter-spacing: -0.03em; color: #f8fafc; }
-    .hero-copy { margin: 10px 0 0 0; color: #a5b4fc; max-width: 760px; line-height: 1.6; }
-    .hero-status-row { display:flex; flex-wrap:wrap; gap:10px; margin-top: 14px; }
-    .hero-pill { display:flex; flex-direction:column; gap:3px; min-width: 160px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(96,165,250,0.16); background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.72)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); }
-    .hero-pill-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: #93c5fd; }
-    .hero-pill-value { font-size: 15px; font-weight: 700; color: #f8fafc; }
-    .hero-side { display:grid; gap: 12px; }
-    .hero-action-card { border-radius: 14px; border: 1px solid rgba(148,163,184,0.14); background: rgba(15,23,42,0.76); padding: 14px; display:grid; gap: 10px; }
-    .hero-action-title { margin: 0; font-size: 13px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.08em; }
-    .hero-action-copy { font-size: 13px; color: #94a3b8; line-height: 1.5; }
-    .hero-action-row { display:flex; flex-wrap:wrap; gap:8px; }
-    .workflow-panel { min-height: 380px; }
-    .side-panel { min-height: 220px; }
-    .panel-meta { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
-    .panel-copy { color:#94a3b8; font-size:13px; line-height:1.5; }
-    .compact-stack { display:grid; gap: 12px; }
-    .notification-shell { display:grid; gap:10px; }
-    .notification-actions { display:flex; gap:6px; flex-wrap:wrap; }
-    .history-list { max-height: 360px; overflow-y: auto; }
+    .mobile-nav-title {
+      font-size:11px;
+      letter-spacing:0.18em;
+      text-transform:uppercase;
+      color: var(--amber);
+      margin-bottom:4px;
+    }
+    .mobile-nav-items { display:flex; flex-direction:column; gap:8px; }
+    .mobile-nav-item {
+      text-align:left;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid transparent;
+      background: rgba(13, 26, 40, 0.88);
+      color: var(--text);
+      font-size:13px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .mobile-nav-item.active {
+      border-color: rgba(255,184,95,0.36);
+      color: var(--amber);
+      box-shadow: inset 0 0 0 1px rgba(255,184,95,0.14);
+    }
+    h1 { margin: 0; font-size: 20px; letter-spacing: -0.02em; display:flex; align-items:center; gap:12px; }
+    .brand { display:flex; align-items:center; gap:14px; }
+    .logo-img { height: 44px; width: auto; filter: drop-shadow(0 0 16px rgba(88,243,210,0.18)); }
+    .brand-lockup { display:grid; gap:2px; }
+    .brand-eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+    .brand-title { font-size: 22px; font-weight: 800; }
+    .header-status {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(8,17,28,0.72);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .dashboard {
+      display:grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.82fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .main-column, .side-column { display:grid; gap:18px; }
+    .panel {
+      background: linear-gradient(180deg, rgba(10, 20, 31, 0.96), rgba(8, 16, 26, 0.88));
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 24%);
+    }
+    .panel h2 { margin: 0; font-size: 18px; letter-spacing: -0.02em; color: var(--text); display:flex; align-items:center; gap:10px; }
+    .control-deck {
+      padding: 24px;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(88,243,210,0.12), transparent 34%),
+        radial-gradient(circle at 100% 0%, rgba(255,184,95,0.12), transparent 30%),
+        linear-gradient(160deg, rgba(10,22,34,0.98), rgba(6,14,23,0.92));
+      border-color: rgba(255,255,255,0.1);
+    }
+    .deck-grid { display:grid; grid-template-columns: minmax(0, 1.08fr) minmax(310px, 0.92fr); gap:18px; }
+    .deck-kicker {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    .deck-headline {
+      margin: 0;
+      font-size: clamp(34px, 4vw, 56px);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 11ch;
+    }
+    .deck-copy {
+      margin: 14px 0 0 0;
+      max-width: 720px;
+      font-size: 15px;
+      line-height: 1.65;
+      color: #bfd0e7;
+    }
+    .deck-signals {
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:12px;
+      margin-top: 22px;
+    }
+    .signal-card {
+      min-height: 118px;
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(14, 29, 44, 0.92), rgba(10, 21, 33, 0.72));
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .signal-label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .signal-value {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.1;
+      word-break: break-word;
+    }
+    .signal-note { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .deck-side { display:grid; gap:14px; }
+    .ops-card {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(11, 23, 36, 0.92), rgba(8, 17, 28, 0.84));
+      display:grid;
+      gap:14px;
+    }
+    .ops-label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+    .ops-copy { color: #bdd0e7; font-size: 14px; line-height: 1.6; }
+    .ops-actions { display:flex; flex-wrap:wrap; gap:10px; }
+    .ops-list { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+    .ops-list li {
+      display:flex;
+      gap:10px;
+      color: #c9d7ea;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .ops-list li::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--amber), var(--teal));
+      flex-shrink: 0;
+    }
+    .panel-meta {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      margin-bottom: 16px;
+      flex-wrap:wrap;
+    }
+    .panel-eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 6px;
+    }
+    .panel-copy { color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 58ch; }
+    .stage-panel { min-height: 280px; }
+    .telemetry-panel { position: sticky; top: 20px; }
     form { display: grid; gap: 8px; margin-top: 8px; }
     label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; }
-    input, select, textarea { padding: 9px 11px; border-radius: 10px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; transition: border 0.2s ease, box-shadow 0.2s ease; }
-    textarea { font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 1px rgba(96,165,250,0.5); }
-    button { padding: 9px 12px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.2s; }
-    button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,0.35); }
-    .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; height: 320px; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); word-break: break-word; overflow-wrap: anywhere; }
-    #metrics { height: auto; overflow: visible; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: #0f172a; font-weight: 700; }
-    .badge.running { background: #fde047; }
-    .badge.starting { background: #fb923c; color:#0b1220; }
-    .badge.success { background: #34d399; }
-    .badge.error { background: #f87171; }
-    .badge.queued { background: #60a5fa; color: #0b1220; }
-    .badge.canceled { background: #cbd5e1; color: #0b1220; }
-    .badge.ripping { background: #38bdf8; color:#0b1220; }
-    .progress { background: #1f2937; border-radius: 8px; height: 9px; overflow: hidden; margin-top: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
-    .progress-bar { background: linear-gradient(90deg, #22c55e, #4ade80); height: 100%; transition: width 0.2s ease; }
-    .item { padding: 9px; border-bottom: 1px solid #1f2937; position: relative; }
-    .item:last-child { border-bottom: 0; }
-    .muted { color: #94a3b8; }
-    .flex-between { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-    .path { word-break: break-all; }
-    .field-display { position: relative; display:flex; flex-direction:column; gap:2px; margin-bottom:6px; }
-    .field-display.inline { flex-direction: row; align-items: center; gap: 6px; margin-bottom: 0; }
-    .field-display.inline .field-id { margin: 0; }
-    .field-id { display:block; font-size: 11px; opacity: 0.45; line-height: 1; margin: 0; }
-    @media (max-width: 900px) {
-      header { flex-wrap: wrap; gap: 10px; }
-      .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
-      .nav-toggle { display:inline-flex; }
-      .grid { grid-template-columns: 1fr; padding: 12px; }
-      .hero-grid { grid-template-columns: 1fr; }
-      .hero-title { font-size: 23px; }
-      .hero-pill { min-width: calc(50% - 6px); flex: 1 1 180px; }
+    input, select, textarea {
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(4, 11, 19, 0.92);
+      color: var(--text);
+      transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
-    .field-id-item { position: absolute; top: 4px; left: 6px; font-size: 11px; opacity: 0.45; line-height: 1; }
-    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
-    .metric-card { background: linear-gradient(145deg, #0f1b2e, #0c1626); border: 1px solid #1d2a40; border-radius: 12px; padding: 12px 14px; min-height: 78px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); }
-    .metric-card.metric-standard { align-items: center; padding: 6px 8px; min-height: 44px; gap: 8px; }
-    .metric-card.usb-card { background: #0f172a; border: 1px solid #1f2937; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); padding: 10px 12px; min-height: 64px; gap: 6px; }
-    .metric-icon { width: 28px; height: 28px; border-radius: 999px; background: linear-gradient(135deg, #60a5fa, #a78bfa); color: #0b1220; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; box-shadow: 0 6px 14px rgba(79,70,229,0.35); }
+    textarea { font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: rgba(111,184,255,0.72);
+      box-shadow: 0 0 0 1px rgba(111,184,255,0.32);
+      background: rgba(5, 13, 22, 0.96);
+    }
+    button, .smb-btn {
+      padding: 11px 14px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ff9a4c, #ffb95d 48%, #ffd874);
+      color: #121212;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      box-shadow: 0 12px 28px rgba(255, 165, 84, 0.24);
+    }
+    button:hover, .smb-btn:hover { transform: translateY(-1px); filter: brightness(1.03); }
+    .log {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: rgba(4, 11, 19, 0.88);
+      border-radius: 18px;
+      padding: 12px;
+      overflow: auto;
+      height: 320px;
+      border: 1px solid rgba(255,255,255,0.08);
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    #metrics { height: auto; overflow: visible; background: transparent; border: 0; padding: 0; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: #081018;
+    }
+    .badge.running { background: #ffe16b; }
+    .badge.starting { background: #ffb061; }
+    .badge.success { background: #65f3b0; }
+    .badge.error { background: #ff8a8a; }
+    .badge.queued { background: #7dc2ff; }
+    .badge.canceled { background: #c4cfdb; }
+    .badge.ripping { background: #7be9ff; }
+    .progress {
+      margin-top: 10px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      background: linear-gradient(90deg, var(--teal), var(--cyan));
+      height: 100%;
+      transition: width 0.2s ease;
+      border-radius: inherit;
+    }
+    .item {
+      position: relative;
+      display:grid;
+      gap:10px;
+      margin-bottom: 12px;
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(14, 28, 42, 0.9), rgba(10, 20, 31, 0.78));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .item:last-child { margin-bottom: 0; }
+    .muted { color: var(--muted); }
+    .flex-between { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+    .path {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.35;
+      word-break: break-word;
+      max-width: min(70ch, 100%);
+    }
+    .field-display { position: relative; display:flex; flex-direction:column; gap:8px; margin-bottom:0; }
+    .field-display.inline { flex-direction: row; align-items: center; gap: 6px; margin-bottom: 0; }
+    .field-id, .field-id-item { display:none; }
+    .metric-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .metric-card {
+      background: linear-gradient(180deg, rgba(12,24,37,0.96), rgba(8,17,28,0.9));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 14px;
+      min-height: 92px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .metric-card.metric-standard { min-height: 86px; }
+    .metric-card.usb-card, .metric-card.disc-card { grid-column: 1 / -1; min-height: auto; }
+    .metric-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(255,184,95,0.24), rgba(88,243,210,0.24));
+      color: var(--amber);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
     .metric-icon svg { width: 100%; height: 100%; }
-    .usb-card .metric-icon { width: 24px; height: 24px; font-size: 12px; background: linear-gradient(135deg, #60a5fa, #a78bfa); color: #0b1220; box-shadow: 0 6px 14px rgba(79,70,229,0.35); }
-    .metric-text { display: flex; flex-direction: column; line-height: 1.15; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
-    .metric-label { font-size: 14px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.8px; }
-    .usb-card .metric-label { letter-spacing: 0.6px; }
-    .metric-value { font-size: 10px; font-weight: 700; color: #e5edff; }
-    .smb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
-    .smb-list { max-height: 220px; overflow-y: auto; border: 1px solid #1f2937; border-radius: 10px; padding: 8px; background: #0b1220; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
-    .smb-item { padding: 6px 0; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-    .smb-item:last-child { border-bottom: 0; }
-    .smb-btn { padding: 7px 10px; border: 0; border-radius: 8px; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; cursor: pointer; }
-    .smb-path { word-break: break-all; flex: 1; }
-    .icon { width: 16px; height: 16px; display:inline-block; }
-    .icon.mario-icon svg { width: 100%; height: 100%; image-rendering: pixelated; }
+    .metric-text { display:flex; flex-direction:column; gap:4px; min-width:0; }
+    .metric-label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .metric-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.15;
+      word-break: break-word;
+    }
+    .notification-shell { display:grid; gap:12px; }
+    .notification-actions { display:flex; flex-wrap:wrap; gap:10px; }
+    .history-list { max-height: 560px; overflow-y: auto; }
+    #notifications.log {
+      height: auto;
+      min-height: 180px;
+      max-height: 320px;
+    }
+    @media (max-width: 1180px) {
+      .deck-grid, .dashboard { grid-template-columns: 1fr; }
+      .telemetry-panel { position: static; }
+      .deck-signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
     @media (max-width: 900px) {
-      header { flex-wrap: wrap; gap: 10px; }
-      .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+      .app-shell { padding: 14px 14px 28px; }
+      header { padding: 14px; border-radius: 20px; }
       .nav-toggle { display:inline-flex; }
-      .grid { grid-template-columns: 1fr; }
+      .header-right { width: 100%; justify-content: flex-start; }
+      .dashboard, .main-column, .side-column { grid-template-columns: 1fr; }
+      .deck-signals { grid-template-columns: 1fr; }
+      .deck-headline { font-size: 34px; max-width: 100%; }
+      .panel, .control-deck { padding: 16px; border-radius: 22px; }
     }
   </style>
 </head>
 <body>
+  <div class="app-shell">
   <header>
     <div class="header-left">
       <button class="nav-toggle" id="mobile-nav-toggle" type="button" aria-label="Open menu">☰</button>
-      <h1 class="brand"><img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" /> <span>Linux Video Encoder v__VERSION__</span></h1>
+      <div class="brand">
+        <img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" />
+        <div class="brand-lockup">
+          <div class="brand-eyebrow">Optical Workflow</div>
+          <h1 class="brand-title">Linux Video Encoder v__VERSION__</h1>
+        </div>
+      </div>
     </div>
     <div class="header-right">
+      <div class="header-status">Live control surface</div>
+      <div id="clock" class="header-status"></div>
       <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button">Settings</button></a>
       <button onclick="window.location.reload(true)">Hard Reload</button>
-      <div id="clock" class="muted"></div>
     </div>
   </header>
   <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
@@ -144,100 +469,116 @@ MAIN_PAGE_TEMPLATE = """
     <div class="mobile-nav-title">Panels</div>
     <div class="mobile-nav-items" id="mobile-nav-items"></div>
   </nav>
-  <div class="grid">
-    <section class="panel hero-panel" id="panel-overview" data-panel-title="Overview">
-      <div class="hero-grid">
-        <div>
-          <div class="muted" style="text-transform:uppercase; letter-spacing:0.12em; font-size:12px;">Workflow Dashboard</div>
-          <h2 class="hero-title">Rip, monitor, and finish jobs without digging through logs.</h2>
-          <p class="hero-copy">The main page now prioritizes the active workflow, recent outcomes, and system health. Runtime logs and event tails live in Settings where they still belong for debugging.</p>
-          <div class="hero-status-row">
-            <div class="hero-pill">
-              <div class="hero-pill-label">Disc</div>
-              <div class="hero-pill-value" id="hero-disc">No disc detected</div>
+  <div class="dashboard">
+    <div class="main-column">
+      <section class="panel control-deck" id="panel-overview" data-panel-title="Overview">
+        <div class="deck-grid">
+          <div>
+            <div class="deck-kicker">Encode Control Deck</div>
+            <h2 class="deck-headline">A sharper cockpit for ripping and finishing discs.</h2>
+            <p class="deck-copy">This surface is now about operational clarity: what disc is loaded, what is running, what just finished, and what needs intervention. Settings still handles deep configuration, title inspection, and debugging.</p>
+            <div class="deck-signals">
+              <div class="signal-card">
+                <div class="signal-label">Loaded Disc</div>
+                <div class="signal-value" id="hero-disc">No disc detected</div>
+                <div class="signal-note">Current optical media and drive state.</div>
+              </div>
+              <div class="signal-card">
+                <div class="signal-label">Queue Pressure</div>
+                <div class="signal-value" id="hero-queue">0 active, 0 queued</div>
+                <div class="signal-note">Live work currently being processed.</div>
+              </div>
+              <div class="signal-card">
+                <div class="signal-label">Recent Outcome</div>
+                <div class="signal-value" id="hero-recent">No recent jobs</div>
+                <div class="signal-note">Completion and failure pulse.</div>
+              </div>
+              <div class="signal-card">
+                <div class="signal-label">Output Capacity</div>
+                <div class="signal-value" id="hero-storage">Checking output free space</div>
+                <div class="signal-note">Available destination storage.</div>
+              </div>
             </div>
-            <div class="hero-pill">
-              <div class="hero-pill-label">Queue</div>
-              <div class="hero-pill-value" id="hero-queue">0 active, 0 queued</div>
+          </div>
+          <div class="deck-side">
+            <div class="ops-card">
+              <div class="ops-label">Command Strip</div>
+              <div class="ops-copy">Use the main controls here, then drop into Settings only when you need disc analysis, workflow rules, or diagnostics.</div>
+              <div class="ops-actions">
+                <button id="queue-pause-toggle" class="smb-btn" type="button">Pause After Current</button>
+                <button id="retry-last-failed" class="smb-btn" type="button">Retry Last Failed</button>
+                <button id="enable-browser-notify" class="smb-btn" type="button">Enable Browser Notifications</button>
+                <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button">Open Settings</button></a>
+              </div>
             </div>
-            <div class="hero-pill">
-              <div class="hero-pill-label">Recent Outcomes</div>
-              <div class="hero-pill-value" id="hero-recent">No recent jobs</div>
-            </div>
-            <div class="hero-pill">
-              <div class="hero-pill-label">Storage</div>
-              <div class="hero-pill-value" id="hero-storage">Checking output free space</div>
+            <div class="ops-card">
+              <div class="ops-label">Runtime Profile</div>
+              <div class="ops-copy" id="hb-runtime">Runtime HandBrake profile unavailable.</div>
+              <ul class="ops-list">
+                <li>Active and recent jobs are now visually separated so failures do not get buried under idle space.</li>
+                <li>Telemetry and notifications sit in a side rail instead of interrupting the main workflow column.</li>
+                <li>Logs were intentionally removed from the front page to keep the operating surface clean.</li>
+              </ul>
             </div>
           </div>
         </div>
-        <div class="hero-side">
-          <div class="hero-action-card">
-            <div class="hero-action-title">Primary Actions</div>
-            <div class="hero-action-copy">Keep the queue moving from here. Use Settings for disc analysis, title selection, logs, and advanced tuning.</div>
-            <div class="hero-action-row">
-              <button id="queue-pause-toggle" class="smb-btn" type="button">Pause After Current</button>
-              <button id="retry-last-failed" class="smb-btn" type="button">Retry Last Failed</button>
-              <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button">Open Settings</button></a>
-              <button id="enable-browser-notify" class="smb-btn" type="button">Enable Browser Notifications</button>
-            </div>
-          </div>
-          <div class="hero-action-card">
-            <div class="hero-action-title">Runtime Profile</div>
-            <div class="hero-action-copy" id="hb-runtime">Runtime HandBrake profile unavailable.</div>
-          </div>
-        </div>
-      </div>
-    </section>
-    <div class="panel workflow-panel" id="panel-active" data-panel-title="Active Workflow">
-      <div class="panel-meta">
-        <div>
-          <h2 style="margin:0;">🟢 Active Workflow</h2>
-          <div class="panel-copy">Current rips and encodes stay at the top. Stop, retry, rename, and inspect details directly from the job cards.</div>
-        </div>
-      </div>
-      <div id="active" class="field-display"></div>
-    </div>
-    <div class="compact-stack">
-      <div class="panel side-panel" id="panel-metrics" data-panel-title="System Overview">
+      </section>
+      <section class="panel stage-panel" id="panel-active" data-panel-title="Active Workflow">
         <div class="panel-meta">
           <div>
-            <h2 style="margin:0;">📊 System Overview</h2>
-            <div class="panel-copy">Quick hardware and output-space visibility without opening diagnostics.</div>
+            <div class="panel-eyebrow">Now Processing</div>
+            <h2>Active Workflow</h2>
+            <div class="panel-copy">Running rips and encodes stay here with the controls you actually need: stop, rename, retry, inspect, move, and preview.</div>
+          </div>
+        </div>
+        <div id="active" class="field-display"></div>
+      </section>
+      <section class="panel stage-panel" id="panel-recent" data-panel-title="Recent Jobs">
+        <div class="panel-meta">
+          <div>
+            <div class="panel-eyebrow">Recent Activity</div>
+            <h2>Recent Jobs</h2>
+            <div class="panel-copy">Completions, failures, and held items stay in their own lane so you can clear noise without losing operational context.</div>
+          </div>
+        </div>
+        <div id="recent" class="field-display history-list"></div>
+        <div class="notification-actions" style="margin-top:14px;">
+          <button data-clear="success" class="clear-btn">Clear Success</button>
+          <button data-clear="error" class="clear-btn">Clear Error</button>
+          <button data-clear="running" class="clear-btn">Clear Running</button>
+          <button data-clear="canceled" class="clear-btn">Clear Canceled</button>
+          <button data-clear="all" class="clear-btn">Clear All</button>
+        </div>
+      </section>
+    </div>
+    <div class="side-column">
+      <section class="panel telemetry-panel" id="panel-metrics" data-panel-title="System Overview">
+        <div class="panel-meta">
+          <div>
+            <div class="panel-eyebrow">Telemetry</div>
+            <h2>System Overview</h2>
+            <div class="panel-copy">Performance, output space, USB state, and loaded disc details in a tighter utility rail.</div>
           </div>
         </div>
         <div id="metrics" class="log field-display"></div>
-      </div>
-      <div class="panel side-panel" id="panel-notifications" data-panel-title="Notifications">
+      </section>
+      <section class="panel" id="panel-notifications" data-panel-title="Notifications">
         <div class="panel-meta">
           <div>
-            <h2 style="margin:0;">🔔 Notifications</h2>
-            <div class="panel-copy">Recent alerts and push events. Clear them here; full runtime history lives in Settings.</div>
+            <div class="panel-eyebrow">Attention Queue</div>
+            <h2>Notifications</h2>
+            <div class="panel-copy">Recent alerts and push messages. Full runtime console and event history remain in Settings.</div>
           </div>
         </div>
         <div class="notification-shell">
-          <div id="notifications" class="log field-display" style="max-height:260px; overflow-y:auto;"></div>
+          <div id="notifications" class="log field-display"></div>
           <div class="notification-actions">
             <button id="clear-notifications" class="smb-btn" type="button">Clear</button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
-    <div class="panel workflow-panel" id="panel-recent" data-panel-title="Recent Jobs">
-      <div class="panel-meta">
-        <div>
-          <h2 style="margin:0;">🕒 Recent Jobs</h2>
-          <div class="panel-copy">Recent outcomes stay separate from active work so failures, completions, and queued items are easier to scan.</div>
-        </div>
-      </div>
-      <div id="recent" class="field-display history-list"></div>
-      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap: wrap;">
-        <button data-clear="success" class="clear-btn">Clear Success</button>
-        <button data-clear="error" class="clear-btn">Clear Error</button>
-        <button data-clear="running" class="clear-btn">Clear Running</button>
-        <button data-clear="canceled" class="clear-btn">Clear Canceled</button>
-        <button data-clear="all" class="clear-btn">Clear All</button>
-      </div>
-    </div>
+  </div>
   </div>
   <script>
     let hbDirty = false;
