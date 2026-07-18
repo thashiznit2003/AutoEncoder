@@ -1795,45 +1795,107 @@ SETTINGS_PAGE_TEMPLATE = """
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Settings - Linux Video Encoder v__VERSION__</title>
   <style>
-    :root { color-scheme: dark; font-family: "Inter", "Segoe UI", Arial, sans-serif; }
-    body { margin: 0; background: radial-gradient(circle at 18% 20%, rgba(59,130,246,0.12), transparent 40%), radial-gradient(circle at 80% 10%, rgba(94,234,212,0.12), transparent 32%), #0b1220; color: #e2e8f0; }
-    header { padding: 14px 16px; background: linear-gradient(120deg, #0f172a, #0c1425); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
-    .header-left { display:flex; align-items:center; gap:10px; }
-    .header-right { display:flex; gap:10px; align-items:center; }
-    h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; display:flex; align-items:center; gap:10px; }
-    .brand { display:flex; align-items:center; gap:10px; }
-    .logo-img { height: 32px; width: auto; filter: drop-shadow(0 0 6px rgba(79,70,229,0.4)); }
-    .nav-toggle { display:none; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid #1f2937; background:#0b1220; color:#e2e8f0; font-size:18px; cursor:pointer; }
-    .mobile-nav-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.6); opacity:0; pointer-events:none; transition: opacity 0.2s ease; z-index:9998; }
-    .mobile-nav { position:fixed; top:0; left:0; bottom:0; width:240px; background:#0f172a; border-right:1px solid #1f2937; padding:16px 14px; display:flex; flex-direction:column; gap:10px; transform:translateX(-110%); transition: transform 0.2s ease; z-index:9999; }
+    :root {
+      color-scheme: dark;
+      font-family: "Avenir Next", "Inter", "Segoe UI", sans-serif;
+      --bg: #071018;
+      --text: #edf4ff;
+      --muted: #8ca3bf;
+      --teal: #58f3d2;
+      --cyan: #6fb8ff;
+      --amber: #ffb85f;
+      --border: rgba(118, 148, 181, 0.18);
+      --shadow: 0 28px 60px rgba(0, 0, 0, 0.34);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(88,243,210,0.12), transparent 34%),
+        radial-gradient(circle at 100% 0%, rgba(255,184,95,0.12), transparent 28%),
+        radial-gradient(circle at 50% 100%, rgba(111,184,255,0.1), transparent 36%),
+        linear-gradient(180deg, #08111b 0%, #050b13 100%);
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(140,163,191,0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(140,163,191,0.045) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at center, black 42%, transparent 90%);
+      opacity: 0.24;
+    }
+    .app-shell { max-width: 1540px; margin: 0 auto; padding: 22px 22px 34px; position: relative; z-index: 1; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(9,20,32,0.92), rgba(6,14,23,0.84));
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+    .header-left, .header-right { display:flex; align-items:center; gap:12px; flex-wrap: wrap; }
+    .header-left { flex: 1 1 420px; min-width: 0; }
+    .header-right { justify-content: flex-end; }
+    h1 { margin: 0; font-size: 20px; letter-spacing: -0.02em; display:flex; align-items:center; gap:12px; }
+    .brand { display:flex; align-items:center; gap:14px; }
+    .brand-lockup { display:grid; gap:2px; }
+    .brand-eyebrow { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--teal); }
+    .brand-title { font-size: 20px; font-weight: 800; line-height: 1.05; }
+    .logo-img { height: 40px; width: auto; filter: drop-shadow(0 0 16px rgba(88,243,210,0.18)); }
+    .header-status {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(8,17,28,0.72);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .nav-toggle { display:none; align-items:center; justify-content:center; width:42px; height:42px; border-radius:14px; border:1px solid var(--border); background: rgba(10, 19, 31, 0.92); color: var(--text); font-size:18px; cursor:pointer; }
+    .mobile-nav-backdrop { position:fixed; inset:0; background:rgba(3,8,14,0.7); opacity:0; pointer-events:none; transition: opacity 0.2s ease; z-index:9998; }
+    .mobile-nav { position:fixed; top:0; left:0; bottom:0; width:256px; background: rgba(8, 17, 28, 0.98); border-right:1px solid rgba(255,255,255,0.08); padding:18px 16px; display:flex; flex-direction:column; gap:10px; transform:translateX(-110%); transition: transform 0.2s ease; z-index:9999; backdrop-filter: blur(18px); }
     .mobile-nav.open { transform:translateX(0); }
     .mobile-nav-backdrop.show { opacity:1; pointer-events:auto; }
-    .mobile-nav-title { font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#94a3b8; margin-bottom:6px; }
-    .mobile-nav-items { display:flex; flex-direction:column; gap:6px; }
-    .mobile-nav-item { text-align:left; padding:10px 12px; border-radius:10px; border:1px solid transparent; background:#111827; color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; }
-    .mobile-nav-item.active { border-color:#60a5fa; background:#0b1220; color:#93c5fd; }
-    .settings-shell { display:flex; flex-direction:column; gap: 14px; padding: 16px; max-width: 1240px; margin: 0 auto; }
-    .settings-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background: linear-gradient(145deg, rgba(17,24,39,0.96), rgba(13,21,40,0.96)); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.03); position: sticky; top: 12px; z-index: 20; backdrop-filter: blur(12px); }
-    .settings-toolbar-main { display:flex; flex-direction:column; gap:4px; min-width: 220px; }
-    .settings-toolbar-title { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; }
-    .settings-toolbar-copy { font-size: 13px; color: #cbd5e1; }
-    .desktop-nav-items { display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end; flex:1; min-width: 0; }
-    .desktop-nav-items .mobile-nav-item { width:auto; min-width: 0; padding: 9px 14px; white-space: nowrap; border-radius: 999px; background: rgba(15,23,42,0.88); }
-    .desktop-nav-items .mobile-nav-item.active { box-shadow: 0 10px 24px rgba(59,130,246,0.22); }
+    .mobile-nav-title { font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color: var(--amber); margin-bottom:4px; }
+    .mobile-nav-items { display:flex; flex-direction:column; gap:8px; }
+    .mobile-nav-item { text-align:left; padding:12px 14px; border-radius:14px; border:1px solid transparent; background: rgba(13, 26, 40, 0.88); color: var(--text); font-size:13px; font-weight:700; cursor:pointer; }
+    .mobile-nav-item.active { border-color: rgba(255,184,95,0.36); color: var(--amber); box-shadow: inset 0 0 0 1px rgba(255,184,95,0.14); }
+    .settings-shell { display:flex; flex-direction:column; gap: 18px; padding: 0; max-width: 1460px; margin: 0 auto; }
+    .settings-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background: linear-gradient(180deg, rgba(10, 20, 31, 0.96), rgba(8, 16, 26, 0.88)); border: 1px solid var(--border); border-radius: 28px; padding: 18px; box-shadow: var(--shadow); position: sticky; top: 12px; z-index: 20; overflow: hidden; }
+    .settings-toolbar::after { content:""; position:absolute; inset:0; pointer-events:none; background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 24%); }
+    .settings-toolbar-main { display:flex; flex-direction:column; gap:6px; min-width: 260px; position:relative; z-index:1; }
+    .settings-toolbar-title { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--amber); }
+    .settings-toolbar-copy { font-size: 14px; color: #bfd0e7; line-height: 1.6; max-width: 48ch; }
+    .desktop-nav-items { display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end; flex:1; min-width: 0; position:relative; z-index:1; }
+    .desktop-nav-items .mobile-nav-item { width:auto; min-width: 0; padding: 11px 14px; white-space: nowrap; border-radius: 14px; background: rgba(13, 26, 40, 0.88); }
+    .desktop-nav-items .mobile-nav-item.active { box-shadow: inset 0 0 0 1px rgba(255,184,95,0.14); }
     .settings-content { min-width: 0; }
     .grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; gap: 12px; padding: 0; align-items: start; }
-    .panel { background: linear-gradient(145deg, #111827, #0d1528); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03); }
-    .settings-content .panel { max-width: 980px; width: 100%; margin: 0 auto; }
-    .panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #a5b4fc; letter-spacing: 0.4px; display:flex; align-items:center; gap:8px; }
+    .panel { background: linear-gradient(180deg, rgba(10, 20, 31, 0.96), rgba(8, 16, 26, 0.88)); border: 1px solid var(--border); border-radius: 28px; padding: 18px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .panel::after { content:""; position:absolute; inset:0; pointer-events:none; background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 24%); }
+    .settings-content .panel { max-width: 1100px; width: 100%; margin: 0 auto; }
+    .panel h2 { margin: 0 0 10px 0; font-size: 18px; color: var(--text); letter-spacing: -0.02em; display:flex; align-items:center; gap:10px; position:relative; z-index:1; }
     form { display: grid; gap: 8px; margin-top: 8px; }
-    label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; min-width: 0; }
-    input, select, textarea { width: 100%; min-width: 0; max-width: 100%; padding: 9px 11px; border-radius: 10px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; transition: border 0.2s ease, box-shadow 0.2s ease; }
+    label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; min-width: 0; position:relative; z-index:1; }
+    input, select, textarea { width: 100%; min-width: 0; max-width: 100%; padding: 11px 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: rgba(4, 11, 19, 0.92); color: var(--text); transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
     textarea { font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 1px rgba(96,165,250,0.5); }
-    button { width: 100%; min-width: 0; max-width: 100%; padding: 9px 12px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.2s; white-space: normal; overflow-wrap: anywhere; text-align: center; }
-    button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,0.35); }
-    .muted { color: #94a3b8; }
-    .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border-radius: 12px; padding: 10px; overflow: auto; border: 1px solid #1f2937; white-space: pre-wrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); word-break: break-word; overflow-wrap: anywhere; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: rgba(111,184,255,0.72); box-shadow: 0 0 0 1px rgba(111,184,255,0.32); background: rgba(5, 13, 22, 0.96); }
+    button { width: 100%; min-width: 0; max-width: 100%; padding: 11px 14px; border: 0; border-radius: 14px; background: linear-gradient(135deg, #ff9a4c, #ffb95d 48%, #ffd874); color: #121212; font-weight: 800; letter-spacing: 0.01em; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.2s ease, filter 0.2s ease; box-shadow: 0 12px 28px rgba(255, 165, 84, 0.24); white-space: normal; overflow-wrap: anywhere; text-align: center; position:relative; z-index:1; }
+    button:hover { transform: translateY(-1px); filter: brightness(1.03); }
+    .muted { color: var(--muted); position:relative; z-index:1; }
+    .log { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; background: rgba(4, 11, 19, 0.88); border-radius: 18px; padding: 12px; overflow: auto; border: 1px solid rgba(255,255,255,0.08); white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; position:relative; z-index:1; }
     .field-display { position: relative; display:flex; flex-direction:column; gap:2px; margin-bottom:6px; }
     .field-display.inline { flex-direction: row; align-items: center; gap: 6px; margin-bottom: 0; }
     .field-display.inline .field-id { margin: 0; }
@@ -1844,24 +1906,34 @@ SETTINGS_PAGE_TEMPLATE = """
     .settings-split-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; min-width:0; }
     .settings-button-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:6px; min-width:0; }
     @media (max-width: 900px) {
-      header { flex-wrap: wrap; gap: 10px; }
+      .app-shell { padding: 14px 14px 28px; }
+      header { flex-wrap: wrap; gap: 10px; padding: 14px; border-radius: 20px; }
       .header-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
       .nav-toggle { display:inline-flex; }
-      .settings-shell { padding: 12px; }
+      .settings-shell { padding: 0; }
       .settings-toolbar { display:none; }
       .grid { grid-template-columns: 1fr; }
       .settings-split-grid { grid-template-columns: 1fr; }
       .settings-button-grid { grid-template-columns: 1fr; }
+      .panel { padding: 16px; border-radius: 22px; }
     }
   </style>
 </head>
 <body>
+  <div class="app-shell">
   <header>
     <div class="header-left">
       <button class="nav-toggle" id="mobile-nav-toggle" type="button" aria-label="Open menu">☰</button>
-      <h1 class="brand"><img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" /> <span>Settings – Linux Video Encoder v__VERSION__</span></h1>
+      <div class="brand">
+        <img src="/assets/linux-video-encoder-icon.svg" alt="Logo" class="logo-img" />
+        <div class="brand-lockup">
+          <div class="brand-eyebrow">Settings Surface</div>
+          <h1 class="brand-title">Linux Video Encoder v__VERSION__</h1>
+        </div>
+      </div>
     </div>
     <div class="header-right">
+      <div class="header-status">Configuration and diagnostics</div>
       <a href="/" style="color:#fff; text-decoration:none;"><button type="button">Back to Main</button></a>
     </div>
   </header>
@@ -2248,6 +2320,7 @@ SETTINGS_PAGE_TEMPLATE = """
     </div>
   </div>
     </main>
+  </div>
   </div>
   <script>
     let hbDirty = false;
