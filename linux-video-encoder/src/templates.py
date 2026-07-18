@@ -51,7 +51,7 @@ MAIN_PAGE_TEMPLATE = """
     .scan-indicator { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--cyan); }
     .scan-dot { width:10px; height:10px; border:2px solid var(--cyan); border-top-color: transparent; border-radius:50%; animation: scan-spin 1s linear infinite; }
     @keyframes scan-spin { to { transform: rotate(360deg); } }
-    .app-shell { max-width: 1580px; margin: 0 auto; padding: 22px 22px 34px; position: relative; z-index: 1; }
+    .app-shell { max-width: 1540px; margin: 0 auto; padding: 22px 22px 34px; position: relative; z-index: 1; }
     header {
       display: flex;
       justify-content: space-between;
@@ -66,6 +66,8 @@ MAIN_PAGE_TEMPLATE = """
       box-shadow: var(--shadow);
     }
     .header-left, .header-right { display:flex; align-items:center; gap:12px; flex-wrap: wrap; }
+    .header-left { flex: 1 1 420px; min-width: 0; }
+    .header-right { justify-content: flex-end; }
     .nav-toggle {
       display:none;
       align-items:center;
@@ -133,7 +135,7 @@ MAIN_PAGE_TEMPLATE = """
       text-transform: uppercase;
       color: var(--teal);
     }
-    .brand-title { font-size: 22px; font-weight: 800; }
+    .brand-title { font-size: 20px; font-weight: 800; line-height: 1.05; }
     .header-status {
       padding: 9px 12px;
       border-radius: 999px;
@@ -145,11 +147,11 @@ MAIN_PAGE_TEMPLATE = """
     }
     .dashboard {
       display:grid;
-      grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.82fr);
+      grid-template-columns: minmax(0, 1.52fr) minmax(360px, 0.9fr);
       gap: 18px;
       align-items: start;
     }
-    .main-column, .side-column { display:grid; gap:18px; }
+    .main-column, .side-column { display:grid; gap:18px; align-content:start; }
     .panel {
       background: linear-gradient(180deg, rgba(10, 20, 31, 0.96), rgba(8, 16, 26, 0.88));
       border: 1px solid var(--border);
@@ -175,7 +177,7 @@ MAIN_PAGE_TEMPLATE = """
         linear-gradient(160deg, rgba(10,22,34,0.98), rgba(6,14,23,0.92));
       border-color: rgba(255,255,255,0.1);
     }
-    .deck-grid { display:grid; grid-template-columns: minmax(0, 1.08fr) minmax(310px, 0.92fr); gap:18px; }
+    .deck-grid { display:grid; grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr); gap:18px; }
     .deck-kicker {
       font-size: 11px;
       text-transform: uppercase;
@@ -185,34 +187,34 @@ MAIN_PAGE_TEMPLATE = """
     }
     .deck-headline {
       margin: 0;
-      font-size: clamp(34px, 4vw, 56px);
-      line-height: 0.95;
+      font-size: clamp(28px, 3.1vw, 44px);
+      line-height: 0.98;
       letter-spacing: -0.05em;
-      max-width: 11ch;
+      max-width: 14ch;
     }
     .deck-copy {
-      margin: 14px 0 0 0;
-      max-width: 720px;
-      font-size: 15px;
-      line-height: 1.65;
+      margin: 12px 0 0 0;
+      max-width: 60ch;
+      font-size: 14px;
+      line-height: 1.6;
       color: #bfd0e7;
     }
     .deck-signals {
       display:grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap:12px;
-      margin-top: 22px;
+      margin-top: 18px;
     }
     .signal-card {
-      min-height: 118px;
-      padding: 16px;
+      min-height: 94px;
+      padding: 15px 16px;
       border-radius: 22px;
       border: 1px solid rgba(255,255,255,0.08);
       background: linear-gradient(180deg, rgba(14, 29, 44, 0.92), rgba(10, 21, 33, 0.72));
       display:flex;
       flex-direction:column;
-      justify-content:space-between;
-      gap:8px;
+      justify-content:flex-start;
+      gap:6px;
     }
     .signal-label {
       font-size: 11px;
@@ -221,10 +223,12 @@ MAIN_PAGE_TEMPLATE = """
       color: var(--muted);
     }
     .signal-value {
-      font-size: 22px;
-      font-weight: 800;
-      line-height: 1.1;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
       word-break: break-word;
+      max-width: 18ch;
     }
     .signal-note { color: var(--muted); font-size: 12px; line-height: 1.4; }
     .deck-side { display:grid; gap:14px; }
@@ -244,22 +248,31 @@ MAIN_PAGE_TEMPLATE = """
     }
     .ops-copy { color: #bdd0e7; font-size: 14px; line-height: 1.6; }
     .ops-actions { display:flex; flex-wrap:wrap; gap:10px; }
-    .ops-list { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
-    .ops-list li {
-      display:flex;
+    .ops-grid {
+      display:grid;
       gap:10px;
-      color: #c9d7ea;
-      font-size: 13px;
-      line-height: 1.55;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .ops-list li::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      margin-top: 7px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, var(--amber), var(--teal));
-      flex-shrink: 0;
+    .ops-metric {
+      padding: 12px 13px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(7, 15, 24, 0.76);
+      min-height: 74px;
+    }
+    .ops-metric-label {
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .ops-metric-value {
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--text);
+      font-weight: 700;
+      word-break: break-word;
     }
     .panel-meta {
       display:flex;
@@ -278,7 +291,7 @@ MAIN_PAGE_TEMPLATE = """
     }
     .panel-copy { color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 58ch; }
     .stage-panel { min-height: 280px; }
-    .telemetry-panel { position: sticky; top: 20px; }
+    .telemetry-panel { position: static; }
     form { display: grid; gap: 8px; margin-top: 8px; }
     label { font-size: 12px; color: #cbd5e1; display: grid; gap: 4px; }
     input, select, textarea {
@@ -309,6 +322,24 @@ MAIN_PAGE_TEMPLATE = """
       box-shadow: 0 12px 28px rgba(255, 165, 84, 0.24);
     }
     button:hover, .smb-btn:hover { transform: translateY(-1px); filter: brightness(1.03); }
+    .btn-primary {
+      background: linear-gradient(135deg, #ff9a4c, #ffb95d 48%, #ffd874);
+      box-shadow: 0 16px 32px rgba(255, 165, 84, 0.28);
+    }
+    .btn-secondary {
+      background: rgba(10, 22, 35, 0.92);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: none;
+    }
+    .btn-secondary:hover { filter:none; border-color: rgba(255,184,95,0.28); }
+    .btn-quiet {
+      background: transparent;
+      color: var(--muted);
+      border: 1px dashed rgba(255,255,255,0.12);
+      box-shadow: none;
+    }
+    .btn-quiet:hover { filter:none; color: var(--text); border-color: rgba(255,255,255,0.24); }
     .log {
       font-family: "SFMono-Regular", Menlo, Consolas, monospace;
       font-size: 12px;
@@ -413,12 +444,14 @@ MAIN_PAGE_TEMPLATE = """
       color: var(--muted);
     }
     .metric-value {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--text);
       line-height: 1.15;
       word-break: break-word;
     }
+    .metric-main { display:block; font-size: 18px; font-weight: 800; line-height: 1.05; }
+    .metric-sub { display:block; font-size: 11px; color: var(--muted); line-height: 1.45; margin-top: 4px; }
     .notification-shell { display:grid; gap:12px; }
     .notification-actions { display:flex; flex-wrap:wrap; gap:10px; }
     .history-list { max-height: 560px; overflow-y: auto; }
@@ -429,7 +462,6 @@ MAIN_PAGE_TEMPLATE = """
     }
     @media (max-width: 1180px) {
       .deck-grid, .dashboard { grid-template-columns: 1fr; }
-      .telemetry-panel { position: static; }
       .deck-signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 900px) {
@@ -439,7 +471,8 @@ MAIN_PAGE_TEMPLATE = """
       .header-right { width: 100%; justify-content: flex-start; }
       .dashboard, .main-column, .side-column { grid-template-columns: 1fr; }
       .deck-signals { grid-template-columns: 1fr; }
-      .deck-headline { font-size: 34px; max-width: 100%; }
+      .deck-headline { font-size: 30px; max-width: 100%; }
+      .ops-grid { grid-template-columns: 1fr; }
       .panel, .control-deck { padding: 16px; border-radius: 22px; }
     }
   </style>
@@ -460,8 +493,8 @@ MAIN_PAGE_TEMPLATE = """
     <div class="header-right">
       <div class="header-status">Live control surface</div>
       <div id="clock" class="header-status"></div>
-      <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button">Settings</button></a>
-      <button onclick="window.location.reload(true)">Hard Reload</button>
+      <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button" class="btn-secondary">Settings</button></a>
+      <button onclick="window.location.reload(true)" class="btn-quiet">Hard Reload</button>
     </div>
   </header>
   <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
@@ -475,8 +508,8 @@ MAIN_PAGE_TEMPLATE = """
         <div class="deck-grid">
           <div>
             <div class="deck-kicker">Encode Control Deck</div>
-            <h2 class="deck-headline">A sharper cockpit for ripping and finishing discs.</h2>
-            <p class="deck-copy">This surface is now about operational clarity: what disc is loaded, what is running, what just finished, and what needs intervention. Settings still handles deep configuration, title inspection, and debugging.</p>
+            <h2 class="deck-headline">Load a disc. Run the queue. Finish clean files.</h2>
+            <p class="deck-copy">The front page should answer three questions immediately: what is loaded, what is running, and what needs action. Deeper configuration and diagnostics stay in Settings.</p>
             <div class="deck-signals">
               <div class="signal-card">
                 <div class="signal-label">Loaded Disc</div>
@@ -505,20 +538,20 @@ MAIN_PAGE_TEMPLATE = """
               <div class="ops-label">Command Strip</div>
               <div class="ops-copy">Use the main controls here, then drop into Settings only when you need disc analysis, workflow rules, or diagnostics.</div>
               <div class="ops-actions">
-                <button id="queue-pause-toggle" class="smb-btn" type="button">Pause After Current</button>
-                <button id="retry-last-failed" class="smb-btn" type="button">Retry Last Failed</button>
-                <button id="enable-browser-notify" class="smb-btn" type="button">Enable Browser Notifications</button>
-                <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button">Open Settings</button></a>
+                <a href="/settings" style="color:#fff; text-decoration:none;"><button type="button" class="btn-primary">Open Rip Controls</button></a>
+                <button id="queue-pause-toggle" class="smb-btn btn-secondary" type="button">Pause After Current</button>
+                <button id="retry-last-failed" class="smb-btn btn-secondary" type="button">Retry Last Failed</button>
+                <button id="enable-browser-notify" class="smb-btn btn-quiet" type="button">Browser Notifications</button>
               </div>
             </div>
             <div class="ops-card">
               <div class="ops-label">Runtime Profile</div>
-              <div class="ops-copy" id="hb-runtime">Runtime HandBrake profile unavailable.</div>
-              <ul class="ops-list">
-                <li>Active and recent jobs are now visually separated so failures do not get buried under idle space.</li>
-                <li>Telemetry and notifications sit in a side rail instead of interrupting the main workflow column.</li>
-                <li>Logs were intentionally removed from the front page to keep the operating surface clean.</li>
-              </ul>
+              <div class="ops-grid" id="hb-runtime">
+                <div class="ops-metric">
+                  <div class="ops-metric-label">Encoder</div>
+                  <div class="ops-metric-value">Unavailable</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -543,11 +576,11 @@ MAIN_PAGE_TEMPLATE = """
         </div>
         <div id="recent" class="field-display history-list"></div>
         <div class="notification-actions" style="margin-top:14px;">
-          <button data-clear="success" class="clear-btn">Clear Success</button>
-          <button data-clear="error" class="clear-btn">Clear Error</button>
-          <button data-clear="running" class="clear-btn">Clear Running</button>
-          <button data-clear="canceled" class="clear-btn">Clear Canceled</button>
-          <button data-clear="all" class="clear-btn">Clear All</button>
+          <button data-clear="success" class="clear-btn btn-secondary">Clear Success</button>
+          <button data-clear="error" class="clear-btn btn-secondary">Clear Error</button>
+          <button data-clear="running" class="clear-btn btn-secondary">Clear Running</button>
+          <button data-clear="canceled" class="clear-btn btn-secondary">Clear Canceled</button>
+          <button data-clear="all" class="clear-btn btn-quiet">Clear All</button>
         </div>
       </section>
     </div>
@@ -573,7 +606,7 @@ MAIN_PAGE_TEMPLATE = """
         <div class="notification-shell">
           <div id="notifications" class="log field-display"></div>
           <div class="notification-actions">
-            <button id="clear-notifications" class="smb-btn" type="button">Clear</button>
+            <button id="clear-notifications" class="smb-btn btn-secondary" type="button">Clear</button>
           </div>
         </div>
       </section>
@@ -927,6 +960,15 @@ MAIN_PAGE_TEMPLATE = """
         if (heroStorageEl) heroStorageEl.textContent = "Metrics unavailable";
         return;
       }
+      const formatGbValue = (val) => {
+        if (val === undefined || val === null || Number.isNaN(Number(val))) return "n/a";
+        return Number(val).toFixed(1) + " GB";
+      };
+      const formatMbValue = (val) => {
+        if (val === undefined || val === null || Number.isNaN(Number(val))) return "n/a";
+        const num = Number(val);
+        return num >= 1024 ? (num / 1024).toFixed(1) + " GB" : num.toFixed(1) + " MB";
+      };
       const icons = {
         cpu: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="8.5" width="15" height="15" rx="2"/><rect x="12" y="12" width="9" height="9" rx="1"/><path d="M12 4v3m4-3v3m4-3v3M12 28v-3m4 3v-3m4 3v-3M4 12h3m-3 4h3m-3 4h3M28 12h-3m3 4h-3m3 4h-3"/></svg>`,
         gpu: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="22" height="14" rx="2.5"/><circle cx="12" cy="16" r="3.5"/><path d="M22 12h3v8h-3zM8 12h2M8 16h2M8 20h2M26 14h2m-2 4h2m-8 6v-4m-4 4v-4"/></svg>`,
@@ -938,26 +980,25 @@ MAIN_PAGE_TEMPLATE = """
       };
       const cards = [];
       const cpuPct = (metrics.cpu_pct !== undefined && metrics.cpu_pct !== null) ? metrics.cpu_pct.toFixed(1) + "%" : "n/a";
-      const toGb = (mb) => (mb === undefined || mb === null) ? "n/a" : (mb / 1024).toFixed(1) + " GB";
-      cards.push({ icon: icons.cpu, label: "CPU", value: cpuPct });
+      cards.push({ icon: icons.cpu, label: "CPU", value: '<span class="metric-main">' + cpuPct + '</span><span class="metric-sub">Current processor utilization</span>' });
       if (metrics.gpu) {
         const g = metrics.gpu;
-        cards.push({ icon: icons.gpu, label: "GPU", value: g.util + "%<br>" + toGb(g.mem_used_mb) + " / " + toGb(g.mem_total_mb) });
+        cards.push({ icon: icons.gpu, label: "GPU", value: '<span class="metric-main">' + g.util + '%</span><span class="metric-sub">' + formatGbValue((g.mem_used_mb || 0) / 1024) + ' used of ' + formatGbValue((g.mem_total_mb || 0) / 1024) + '</span>' });
       }
       if (metrics.mem) {
-        cards.push({ icon: icons.memory, label: "Memory", value: toGb(metrics.mem.used_mb) + " / " + toGb(metrics.mem.total_mb) });
+        cards.push({ icon: icons.memory, label: "Memory", value: '<span class="metric-main">' + formatGbValue((metrics.mem.used_mb || 0) / 1024) + '</span><span class="metric-sub">of ' + formatGbValue((metrics.mem.total_mb || 0) / 1024) + ' installed</span>' });
       }
       if (metrics.block) {
-        cards.push({ icon: icons.disk, label: "Disk", value: toGb(metrics.block.read_mb) + " r / " + toGb(metrics.block.write_mb) + " w" });
+        cards.push({ icon: icons.disk, label: "Disk", value: '<span class="metric-main">' + formatMbValue(metrics.block.read_mb) + ' read</span><span class="metric-sub">' + formatMbValue(metrics.block.write_mb) + ' written</span>' });
       }
       if (metrics.fs) {
-        cards.push({ icon: icons.output, label: "Output", value: metrics.fs.free_gb + " / " + metrics.fs.total_gb + " GB" });
-        if (heroStorageEl) heroStorageEl.textContent = metrics.fs.free_gb + " GB free of " + metrics.fs.total_gb + " GB";
+        cards.push({ icon: icons.output, label: "Output", value: '<span class="metric-main">' + formatGbValue(metrics.fs.free_gb) + '</span><span class="metric-sub">free of ' + formatGbValue(metrics.fs.total_gb) + '</span>' });
+        if (heroStorageEl) heroStorageEl.textContent = formatGbValue(metrics.fs.free_gb) + " free";
       } else if (heroStorageEl) {
         heroStorageEl.textContent = "Output free space unavailable";
       }
       if (metrics.net) {
-        cards.push({ icon: icons.network, label: "Network", value: metrics.net.rx_mb + "MB ↓ / " + metrics.net.tx_mb + "MB ↑" });
+        cards.push({ icon: icons.network, label: "Network", value: '<span class="metric-main">' + formatMbValue(metrics.net.rx_mb) + ' down</span><span class="metric-sub">' + formatMbValue(metrics.net.tx_mb) + ' up</span>' });
       }
       const prevUsb = document.getElementById("usb-status") || {};
       const usbStatusText = prevUsb.textContent || "USB status: unknown";
@@ -981,9 +1022,9 @@ MAIN_PAGE_TEMPLATE = """
           <div style="display:flex; flex-direction:column; flex:1; gap:4px;">
             <div class="metric-label" style="margin-bottom:2px;">USB Controls</div>
             <div style="display:flex; flex-wrap:nowrap; gap:6px; align-items:center; width:100%;">
-              <button type="button" id="usb-refresh" style="padding:4px 6px; font-size:9px; flex:1 1 0; min-width:0; white-space:nowrap;">Refresh</button>
-              <button type="button" id="usb-force-remount" style="padding:4px 6px; font-size:9px; flex:1 1 0; min-width:0; white-space:nowrap;">Force Remount</button>
-              <button type="button" id="usb-eject" style="padding:4px 6px; font-size:9px; flex:1 1 0; min-width:0; white-space:nowrap;">Eject</button>
+              <button type="button" id="usb-refresh" class="btn-secondary" style="padding:6px 8px; font-size:10px; flex:1 1 0; min-width:0; white-space:nowrap;">Refresh</button>
+              <button type="button" id="usb-force-remount" class="btn-secondary" style="padding:6px 8px; font-size:10px; flex:1 1 0; min-width:0; white-space:nowrap;">Force Remount</button>
+              <button type="button" id="usb-eject" class="btn-quiet" style="padding:6px 8px; font-size:10px; flex:1 1 0; min-width:0; white-space:nowrap;">Eject</button>
             </div>
             <div id="usb-status" class="muted" style="min-height:14px; color:${usbStatusColor};">${usbStatusText}</div>
           </div>
@@ -997,7 +1038,7 @@ MAIN_PAGE_TEMPLATE = """
               <span id="disc-card-light" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:#ef4444;"></span>
               <span id="disc-card-label">Disc: unknown</span>
             </div>
-            <div class="metric-label" id="disc-card-info" style="margin-top:4px;">No disc info.</div>
+            <div class="metric-sub" id="disc-card-info" style="margin-top:4px;">No disc info.</div>
           </div>
         </div>`;
       el.innerHTML = '<div class="metric-grid">' + cardsHtml + usbCard + discCard + '</div>';
@@ -1265,7 +1306,8 @@ MAIN_PAGE_TEMPLATE = """
       const discLabel = summary.disc_label || summary.label || "";
       const discPresent = status && status.disc_present === true;
       const discValue = discPresent ? (discLabel || "Disc detected") : "No disc detected";
-      const queueValue = running + " active, " + queued + " queued";
+      const queueValue = running ? (running + " running") : "Idle";
+      const queueNote = queued ? (" • " + queued + " queued") : (running ? " • queue clear" : "");
       const recentValue = recent.length
         ? ((recentCounts.error || 0) + " failed, " + (recentCounts.success || 0) + " complete")
         : "No recent jobs";
@@ -1273,7 +1315,7 @@ MAIN_PAGE_TEMPLATE = """
       const queueEl = document.getElementById("hero-queue");
       const recentEl = document.getElementById("hero-recent");
       if (discEl) discEl.textContent = discValue;
-      if (queueEl) queueEl.textContent = queueValue;
+      if (queueEl) queueEl.textContent = queueValue + queueNote;
       if (recentEl) recentEl.textContent = recentValue;
     }
 
@@ -1414,23 +1456,22 @@ MAIN_PAGE_TEMPLATE = """
           usbEl.style.color = color;
           usbEl.textContent = "USB " + state + (msg ? (": " + msg) : "");
         }
-        const lbNote = (hbCfg.low_bitrate_auto_skip ? "Low bitrate: auto-skip" : (hbCfg.low_bitrate_auto_proceed ? "Low bitrate: auto-proceed" : "Low bitrate: ask"));
+        const lbNote = hbCfg.low_bitrate_auto_skip ? "Auto-skip low bitrate" : (hbCfg.low_bitrate_auto_proceed ? "Auto-proceed low bitrate" : "Ask before low bitrate");
         const audioModeLabel = (hb.audio_mode === "auto_dolby") ? "Auto Dolby" : (hb.audio_mode === "copy" ? "copy" : ((hb.audio_bitrate_kbps || "128") + " kbps"));
         const audioOffsetLabel = (hb.audio_offset_ms !== undefined && hb.audio_offset_ms !== null) ? (hb.audio_offset_ms + " ms (single)") : "0 ms (single)";
         const nvStatus = status.nvidia || {};
         const nvRuntimeLabel = nvStatus.handbrake_nvenc_available
-          ? "NVENC=HandBrake"
-          : (nvStatus.ffmpeg_nvenc_available ? "NVENC=ffmpeg fallback" : "NVENC=unavailable");
-        document.getElementById("hb-runtime").textContent =
-          "Runtime HB settings: Encoder=" + (hb.encoder || "x264") +
-          " | Default RF=" + (hb.quality ?? 20) +
-          " | DVD RF=" + (hbDvd.quality ?? 20) +
-          " | BR RF=" + (hbBr.quality ?? 25) +
-          " | Ext=" + hbExt +
-          " | " + lbNote +
-          " | Audio=" + audioModeLabel +
-          " | Offset=" + audioOffsetLabel +
-          " | " + nvRuntimeLabel;
+          ? "HandBrake NVENC"
+          : (nvStatus.ffmpeg_nvenc_available ? "ffmpeg fallback" : "Unavailable");
+        const runtimeEl = document.getElementById("hb-runtime");
+        if (runtimeEl) {
+          runtimeEl.innerHTML = [
+            '<div class="ops-metric"><div class="ops-metric-label">Encoder</div><div class="ops-metric-value">' + (hb.encoder || "x264") + '</div></div>',
+            '<div class="ops-metric"><div class="ops-metric-label">Quality</div><div class="ops-metric-value">Default RF ' + (hb.quality ?? 20) + '<br>DVD ' + (hbDvd.quality ?? 20) + ' • BR ' + (hbBr.quality ?? 25) + '</div></div>',
+            '<div class="ops-metric"><div class="ops-metric-label">Audio</div><div class="ops-metric-value">' + audioModeLabel + '<br>' + audioOffsetLabel + '</div></div>',
+            '<div class="ops-metric"><div class="ops-metric-label">Output</div><div class="ops-metric-value">' + hbExt + '<br>' + lbNote + '<br>' + nvRuntimeLabel + '</div></div>'
+          ].join("");
+        }
         const queuePauseBtn = document.getElementById("queue-pause-toggle");
         if (queuePauseBtn) {
           queuePauseBtn.textContent = status.pause_after_current ? "Resume Queue" : "Pause After Current";
